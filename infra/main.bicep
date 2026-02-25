@@ -135,7 +135,7 @@ resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             {
               name: 'API_BACKEND_URL'
-              value: 'http://REDACTED-API'
+              value: 'https://REDACTED-API'
             }
           ]
         }
@@ -170,7 +170,6 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       ingress: {
         external: false
         targetPort: 8080
-        allowInsecure: true
       }
       registries: [
         {
