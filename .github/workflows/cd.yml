@@ -83,18 +83,22 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Get ACR login server
+        id: acr
+        run: echo "loginServer=$(az acr show --name ${{ vars.ACR_NAME }} --query loginServer -o tsv)" >> $GITHUB_OUTPUT
+
       - name: Login to ACR
         run: az acr login --name ${{ vars.ACR_NAME }}
 
       - name: Build and push API image
         run: |
-          docker build -t ${{ vars.ACR_NAME }}.azurecr.io/kam-score-api:${{ github.sha }} -f api/Dockerfile api/
-          docker push ${{ vars.ACR_NAME }}.azurecr.io/kam-score-api:${{ github.sha }}
+          docker build -t ${{ steps.acr.outputs.loginServer }}/kam-score-api:${{ github.sha }} -f api/Dockerfile api/
+          docker push ${{ steps.acr.outputs.loginServer }}/kam-score-api:${{ github.sha }}
 
       - name: Build and push SPA image
         run: |
-          docker build -t ${{ vars.ACR_NAME }}.azurecr.io/kam-score-spa:${{ github.sha }} -f spa/Dockerfile spa/
-          docker push ${{ vars.ACR_NAME }}.azurecr.io/kam-score-spa:${{ github.sha }}
+          docker build -t ${{ steps.acr.outputs.loginServer }}/kam-score-spa:${{ github.sha }} -f spa/Dockerfile spa/
+          docker push ${{ steps.acr.outputs.loginServer }}/kam-score-spa:${{ github.sha }}
 
       - name: Deploy infrastructure
         uses: azure/arm-deploy@v2
@@ -102,5 +106,5 @@ jobs:
           resourceGroupName: ${{ vars.RESOURCE_GROUP }}
           template: infra/main.bicep
           parameters: >
-            apiImage=${{ vars.ACR_NAME }}.azurecr.io/kam-score-api:${{ github.sha }}
-            spaImage=${{ vars.ACR_NAME }}.azurecr.io/kam-score-spa:${{ github.sha }}
+            apiImage=${{ steps.acr.outputs.loginServer }}/kam-score-api:${{ github.sha }}
+            spaImage=${{ steps.acr.outputs.loginServer }}/kam-score-spa:${{ github.sha }}

@@ -28,9 +28,14 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existi
   scope: resourceGroup(sharedResourceGroup)
 }
 
+resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
+  name: acrName
+  scope: resourceGroup(sharedResourceGroup)
+}
+
 var cosmosConnectionString = cosmosAccount.listConnectionStrings().connectionStrings[0].connectionString
 var keyVaultUri = 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/secrets'
-var acrLoginServer = '${acrName}.azurecr.io'
+var acrLoginServer = acr.properties.loginServer
 
 // ──────────────────────────────────────────────
 // Log Analytics Workspace
