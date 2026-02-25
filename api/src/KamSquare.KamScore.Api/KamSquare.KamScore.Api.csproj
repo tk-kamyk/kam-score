@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup>  <UserSecretsId>de411230-9661-4c9d-ae25-fd73f64f7c0b</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KamSquare.KamScore.Infrastructure\KamSquare.KamScore.Infrastructure.csproj" />
+    <ProjectReference Include="..\KamSquare.KamScore.Application\KamSquare.KamScore.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="10.*" />
+  </ItemGroup>
+
+</Project>
