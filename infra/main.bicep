@@ -115,6 +115,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       ingress: {
         external: false
         targetPort: 8080
+        allowInsecure: true
       }
       registries: [
         {
@@ -240,7 +241,7 @@ resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             {
               name: 'API_BACKEND_URL'
-              value: 'https://${apiApp.properties.configuration.ingress.fqdn}'
+              value: 'http://${apiApp.properties.configuration.ingress.fqdn}'
             }
           ]
         }
