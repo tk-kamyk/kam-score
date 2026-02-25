@@ -104,6 +104,7 @@ jobs:
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: ${{ vars.RESOURCE_GROUP }}
+          deploymentName: kam-score-${{ github.sha }}
           template: infra/main.bicep
           parameters: >
             apiImage=${{ steps.acr.outputs.loginServer }}/REDACTED-API:${{ github.sha }}

@@ -19,6 +19,9 @@ param keyVaultName string = 'REDACTED-KV'
 @description('Name of the existing Container Registry')
 param acrName string = 'REDACTED-ACR'
 
+@description('Unique suffix for deployment names (auto-generated)')
+param deploymentSuffix string = utcNow('yyyyMMddHHmmss')
+
 // ──────────────────────────────────────────────
 // Existing resources in REDACTED-SHARED-RG RG
 // ──────────────────────────────────────────────
@@ -66,7 +69,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 // ──────────────────────────────────────────────
 
 module sharedAccess 'modules/shared-rg-access.bicep' = {
-  name: 'shared-rg-access'
+  name: 'shared-rg-access-${deploymentSuffix}'
   scope: resourceGroup(sharedResourceGroup)
   params: {
     principalId: managedIdentity.properties.principalId
@@ -165,8 +168,9 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
     managedEnvironmentId: containerAppEnv.id
     configuration: {
       ingress: {
-        external: true
+        external: false
         targetPort: 8080
+        allowInsecure: true
       }
       registries: [
         {
@@ -234,10 +238,6 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'CosmosDb__ConnectionString'
               secretRef: 'cosmos-connection-string'
-            }
-            {
-              name: 'Cors__AllowedOrigins__0'
-              value: 'https://${spaApp.properties.configuration.ingress.fqdn}'
             }
           ]
         }
