@@ -97,62 +97,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 }
 
 // ──────────────────────────────────────────────
-// SPA Container App
-// ──────────────────────────────────────────────
-
-resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
-  name: 'REDACTED-SPA'
-  location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentity.id}': {}
-    }
-  }
-  properties: {
-    managedEnvironmentId: containerAppEnv.id
-    configuration: {
-      ingress: {
-        external: true
-        targetPort: 80
-      }
-      registries: [
-        {
-          server: acrLoginServer
-          identity: managedIdentity.id
-        }
-      ]
-    }
-    template: {
-      containers: [
-        {
-          name: 'spa'
-          image: spaImage
-          resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
-          }
-          env: [
-            {
-              name: 'API_BACKEND_URL'
-              value: 'https://REDACTED-API'
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 2
-      }
-    }
-  }
-  dependsOn: [
-    sharedAccess
-  ]
-}
-
-// ──────────────────────────────────────────────
-// API Container App
+// API Container App (defined before SPA so FQDN is available)
 // ──────────────────────────────────────────────
 
 resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
@@ -238,12 +183,71 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
               name: 'CosmosDb__ConnectionString'
               secretRef: 'cosmos-connection-string'
             }
+            {
+              name: 'Cors__AllowedOrigins__0'
+              value: 'https://REDACTED-SPA.${containerAppEnv.properties.defaultDomain}'
+            }
           ]
         }
       ]
       scale: {
         minReplicas: 1
         maxReplicas: 3
+      }
+    }
+  }
+  dependsOn: [
+    sharedAccess
+  ]
+}
+
+// ──────────────────────────────────────────────
+// SPA Container App
+// ──────────────────────────────────────────────
+
+resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
+  name: 'REDACTED-SPA'
+  location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '${managedIdentity.id}': {}
+    }
+  }
+  properties: {
+    managedEnvironmentId: containerAppEnv.id
+    configuration: {
+      ingress: {
+        external: true
+        targetPort: 80
+      }
+      registries: [
+        {
+          server: acrLoginServer
+          identity: managedIdentity.id
+        }
+      ]
+    }
+    template: {
+      containers: [
+        {
+          name: 'spa'
+          image: spaImage
+          resources: {
+            cpu: json('0.25')
+            memory: '0.5Gi'
+          }
+          env: [
+            {
+              name: 'API_BACKEND_URL'
+              value: 'https://${apiApp.properties.configuration.ingress.fqdn}'
+            }
+          ]
+        }
+      ]
+      scale: {
+        minReplicas: 1
+        maxReplicas: 2
       }
     }
   }

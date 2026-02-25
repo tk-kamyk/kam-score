@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
@@ -86,8 +87,25 @@ public static class ServiceCollectionExtensions
         var cosmosClient = services.GetService<CosmosClient>();
         if (cosmosClient is null) return;
 
+        var logger = services.GetRequiredService<ILoggerFactory>()
+            .CreateLogger("CosmosDbInitialization");
         var options = services.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
-        var database = await cosmosClient.CreateDatabaseIfNotExistsAsync(options.DatabaseName);
-        await database.Database.CreateContainerIfNotExistsAsync(options.ContainerName, "/ownerId");
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        try
+        {
+            var database = await cosmosClient.CreateDatabaseIfNotExistsAsync(
+                options.DatabaseName, cancellationToken: cts.Token);
+            await database.Database.CreateContainerIfNotExistsAsync(
+                options.ContainerName, "/ownerId", cancellationToken: cts.Token);
+            logger.LogInformation("Cosmos DB initialized: {Database}/{Container}",
+                options.DatabaseName, options.ContainerName);
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex,
+                "Failed to initialize Cosmos DB within 30 seconds");
+            throw;
+        }
     }
 }
