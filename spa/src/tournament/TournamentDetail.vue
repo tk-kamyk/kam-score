@@ -150,7 +150,7 @@ async function handleDelete() {
           <v-text-field
             v-model="editForm.startTime"
             label="Start Time"
-            type="datetime-local"
+            placeholder="10:00"
             variant="outlined"
             density="comfortable"
           />
