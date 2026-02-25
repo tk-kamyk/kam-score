@@ -83,47 +83,24 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Login to ACR
+        run: az acr login --name ${{ vars.ACR_NAME }}
+
+      - name: Build and push API image
+        run: |
+          docker build -t ${{ vars.ACR_NAME }}.azurecr.io/REDACTED-API:${{ github.sha }} -f api/Dockerfile api/
+          docker push ${{ vars.ACR_NAME }}.azurecr.io/REDACTED-API:${{ github.sha }}
+
+      - name: Build and push SPA image
+        run: |
+          docker build -t ${{ vars.ACR_NAME }}.azurecr.io/REDACTED-SPA:${{ github.sha }} -f spa/Dockerfile spa/
+          docker push ${{ vars.ACR_NAME }}.azurecr.io/REDACTED-SPA:${{ github.sha }}
+
+      - name: Deploy infrastructure
+        uses: azure/arm-deploy@v2
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: spa/package-lock.json
-
-      # Build and deploy API
-      - name: Publish API
-        run: dotnet publish api/src/KamSquare.KamScore.Api/KamSquare.KamScore.Api.csproj -c Release -o ./api-publish
-
-      - name: Deploy API to Container App
-        uses: azure/container-apps-deploy-action@v1
-        with:
-          appSourcePath: .
-          dockerfilePath: api/Dockerfile
-          acrName: ${{ vars.ACR_NAME }}
-          containerAppName: ${{ vars.API_CONTAINER_APP_NAME }}
-          resourceGroup: ${{ vars.RESOURCE_GROUP }}
-
-      # Build and deploy SPA
-      - name: Install SPA dependencies
-        run: npm ci
-        working-directory: spa
-
-      - name: Build SPA
-        run: npm run build-only
-        working-directory: spa
-        env:
-          VITE_API_BASE_URL: ${{ vars.API_BASE_URL }}
-
-      - name: Deploy SPA to Static Web App
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOYMENT_TOKEN }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          action: upload
-          app_location: spa/dist
-          skip_app_build: true
+          resourceGroupName: ${{ vars.RESOURCE_GROUP }}
+          template: infra/main.bicep
+          parameters: >
+            apiImage=${{ vars.ACR_NAME }}.azurecr.io/REDACTED-API:${{ github.sha }}
+            spaImage=${{ vars.ACR_NAME }}.azurecr.io/REDACTED-SPA:${{ github.sha }}
