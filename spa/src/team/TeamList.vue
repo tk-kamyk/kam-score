@@ -92,8 +92,8 @@ async function handleDelete() {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-4">
-      <h3 class="text-h6">Teams</h3>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <h3 class="section-title">Teams</h3>
       <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
         Add Team
       </v-btn>
@@ -101,29 +101,31 @@ async function handleDelete() {
 
     <v-progress-linear v-if="teamStore.loading" indeterminate color="primary" class="mb-4" />
 
-    <v-table v-if="teamStore.teams.length > 0" density="comfortable">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Level</th>
-          <th v-if="isOwner">Email</th>
-          <th v-if="isOwner">Phone</th>
-          <th v-if="isOwner" class="text-right">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="team in teamStore.teams" :key="team.id">
-          <td>{{ team.name }}</td>
-          <td>{{ team.level }}</td>
-          <td v-if="isOwner">{{ team.email ?? '—' }}</td>
-          <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
-          <td v-if="isOwner" class="text-right">
-            <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit(team)" />
-            <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="openDelete(team)" />
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
+    <v-card v-if="teamStore.teams.length > 0" class="data-table-card">
+      <v-table density="comfortable" class="styled-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Level</th>
+            <th v-if="isOwner">Email</th>
+            <th v-if="isOwner">Phone</th>
+            <th v-if="isOwner" class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="team in teamStore.teams" :key="team.id">
+            <td>{{ team.name }}</td>
+            <td>{{ team.level }}</td>
+            <td v-if="isOwner">{{ team.email ?? '—' }}</td>
+            <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
+            <td v-if="isOwner" class="text-right">
+              <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit(team)" />
+              <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="openDelete(team)" />
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </v-card>
 
     <v-alert v-else-if="!teamStore.loading" type="info" variant="tonal">
       No teams yet.
@@ -131,14 +133,15 @@ async function handleDelete() {
 
     <!-- Create / Edit Dialog -->
     <v-dialog v-model="showFormDialog" max-width="500">
-      <v-card :title="editingTeam ? 'Edit Team' : 'Add Team'">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">
+          {{ editingTeam ? 'Edit Team' : 'Add Team' }}
+        </v-card-title>
         <v-card-text>
           <v-form ref="formRef" @submit.prevent="handleSave">
             <v-text-field
               v-model="form.name"
               label="Name"
-              variant="outlined"
-              density="comfortable"
               :rules="nameRules"
               :error-messages="fieldErrors('name')"
               @update:model-value="clearFieldError('name')"
@@ -150,14 +153,13 @@ async function handleDelete() {
               :max="100"
               :step="1"
               thumb-label="always"
+              color="primary"
               class="mt-4"
             />
             <v-text-field
               v-model="form.email"
               label="Email"
               type="email"
-              variant="outlined"
-              density="comfortable"
               :rules="emailRules"
               :error-messages="fieldErrors('email')"
               @update:model-value="clearFieldError('email')"
@@ -165,8 +167,6 @@ async function handleDelete() {
             <v-text-field
               v-model="form.phone"
               label="Phone"
-              variant="outlined"
-              density="comfortable"
               :rules="phoneRules"
               :error-messages="fieldErrors('phone')"
               @update:model-value="clearFieldError('phone')"
@@ -185,7 +185,8 @@ async function handleDelete() {
 
     <!-- Delete Confirmation -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card title="Delete Team">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Delete Team</v-card-title>
         <v-card-text>
           Are you sure you want to delete "{{ deletingTeam?.name }}"?
         </v-card-text>
@@ -198,3 +199,17 @@ async function handleDelete() {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.data-table-card {
+    border: 1px solid rgba(var(--ks-surface), 0.5);
+}
+
+.styled-table thead tr {
+    background-color: rgb(var(--v-theme-surface-bright));
+}
+
+.styled-table tbody tr:hover {
+    background-color: rgba(var(--ks-surface), 0.3) !important;
+}
+</style>

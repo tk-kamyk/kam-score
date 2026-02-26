@@ -8,4 +8,6 @@ public record TournamentDto(
     int? GameLength,
     GameConditionsDto? GameConditions,
     string? TournamentCode,
-    string? OwnerId);
+    string? OwnerId,
+    int? TeamCount = null,
+    int? CourtCount = null);

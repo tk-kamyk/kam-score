@@ -73,4 +73,15 @@ public class CosmosCourtRepository : CosmosRepository<Court>, ICourtRepository
             new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
         return results.FirstOrDefault() > 0;
     }
+
+    public async Task<int> CountByTournamentIdAsync(string tournamentId)
+    {
+        var query = new QueryDefinition(
+                "SELECT VALUE COUNT(1) FROM c WHERE c.tournamentId = @tournamentId")
+            .WithParameter("@tournamentId", tournamentId);
+
+        var results = await ExecuteQueryAsync<int>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
+        return results.FirstOrDefault();
+    }
 }

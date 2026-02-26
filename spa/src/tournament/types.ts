@@ -12,4 +12,6 @@ export interface TournamentDto {
   gameConditions?: GameConditionsDto
   tournamentCode?: string
   ownerId?: string
+  teamCount?: number
+  courtCount?: number
 }

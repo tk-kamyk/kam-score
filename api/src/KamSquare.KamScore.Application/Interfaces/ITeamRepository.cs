@@ -10,4 +10,5 @@ public interface ITeamRepository
     Task<Team> UpdateAsync(Team team);
     Task DeleteAsync(string id, string tournamentId);
     Task<bool> ExistsByNameAsync(string tournamentId, string name, string? excludeTeamId = null);
+    Task<int> CountByTournamentIdAsync(string tournamentId);
 }

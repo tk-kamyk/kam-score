@@ -23,6 +23,22 @@ const isOwner = computed(() =>
   auth.isAuthenticated && tournament.value?.ownerId === auth.username
 )
 
+const tabLabels: Record<string, string> = {
+  details: 'Details',
+  teams: 'Teams',
+  courts: 'Courts',
+}
+
+const breadcrumbItems = computed(() => [
+  { title: 'Tournaments', to: { name: 'home' }, disabled: false },
+  { title: tournament.value?.name ?? '...', disabled: false },
+  { title: tabLabels[activeTab.value] ?? activeTab.value, disabled: true },
+])
+
+function handleBreadcrumbClick() {
+  activeTab.value = 'details'
+}
+
 onMounted(() => {
   tournamentStore.fetchTournament(props.id)
 })
@@ -49,16 +65,37 @@ async function handleDelete() {
 
 <template>
   <div>
-    <v-btn variant="text" prepend-icon="mdi-arrow-left" class="mb-4" @click="router.push({ name: 'home' })">
-      Back to Tournaments
-    </v-btn>
+    <v-breadcrumbs :items="breadcrumbItems" class="breadcrumbs px-0 mb-4">
+      <template #divider>
+        <v-icon icon="mdi-chevron-right" size="small" />
+      </template>
+      <template #item="{ item }">
+        <v-breadcrumbs-item
+          v-if="item.to"
+          :to="item.to"
+          :disabled="item.disabled"
+        >
+          {{ item.title }}
+        </v-breadcrumbs-item>
+        <span
+          v-else-if="!item.disabled"
+          class="breadcrumb-clickable"
+          @click="handleBreadcrumbClick()"
+        >
+          {{ item.title }}
+        </span>
+        <v-breadcrumbs-item v-else :disabled="item.disabled">
+          {{ item.title }}
+        </v-breadcrumbs-item>
+      </template>
+    </v-breadcrumbs>
 
     <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" />
 
     <template v-if="tournament">
-      <h2 class="text-h5 mb-4">{{ tournament.name }}</h2>
+      <h2 class="section-title tournament-name mb-6">{{ tournament.name }}</h2>
 
-      <v-tabs v-model="activeTab" color="primary" class="mb-4">
+      <v-tabs v-model="activeTab" color="primary" class="mb-6" slider-color="primary">
         <v-tab value="details">Details</v-tab>
         <v-tab value="teams">Teams</v-tab>
         <v-tab value="courts">Courts</v-tab>
@@ -85,3 +122,35 @@ async function handleDelete() {
     </template>
   </div>
 </template>
+
+<style scoped>
+.breadcrumbs :deep(a) {
+    color: rgb(var(--v-theme-primary));
+    text-decoration: none;
+}
+
+.breadcrumbs :deep(.v-breadcrumbs-item--disabled) {
+    opacity: 0.5;
+}
+
+.breadcrumb-clickable {
+    color: rgb(var(--v-theme-primary));
+    cursor: pointer;
+}
+
+.breadcrumb-clickable:hover {
+    text-decoration: underline;
+}
+
+@media (min-width: 960px) {
+    .tournament-name {
+        font-size: 1.75rem;
+    }
+}
+
+@media (min-width: 1280px) {
+    .tournament-name {
+        font-size: 2rem;
+    }
+}
+</style>

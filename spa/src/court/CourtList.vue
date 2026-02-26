@@ -84,8 +84,8 @@ async function handleDelete() {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-4">
-      <h3 class="text-h6">Courts</h3>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <h3 class="section-title">Courts</h3>
       <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
         Add Court
       </v-btn>
@@ -93,23 +93,25 @@ async function handleDelete() {
 
     <v-progress-linear v-if="courtStore.loading" indeterminate color="primary" class="mb-4" />
 
-    <v-table v-if="courtStore.courts.length > 0" density="comfortable">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th v-if="isOwner" class="text-right">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="court in courtStore.courts" :key="court.id">
-          <td>{{ court.name }}</td>
-          <td v-if="isOwner" class="text-right">
-            <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit(court)" />
-            <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="openDelete(court)" />
-          </td>
-        </tr>
-      </tbody>
-    </v-table>
+    <v-card v-if="courtStore.courts.length > 0" class="data-table-card">
+      <v-table density="comfortable" class="styled-table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th v-if="isOwner" class="text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="court in courtStore.courts" :key="court.id">
+            <td>{{ court.name }}</td>
+            <td v-if="isOwner" class="text-right">
+              <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit(court)" />
+              <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="openDelete(court)" />
+            </td>
+          </tr>
+        </tbody>
+      </v-table>
+    </v-card>
 
     <v-alert v-else-if="!courtStore.loading" type="info" variant="tonal">
       No courts yet.
@@ -117,14 +119,15 @@ async function handleDelete() {
 
     <!-- Create / Edit Dialog -->
     <v-dialog v-model="showFormDialog" max-width="500">
-      <v-card :title="editingCourt ? 'Edit Court' : 'Add Court'">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">
+          {{ editingCourt ? 'Edit Court' : 'Add Court' }}
+        </v-card-title>
         <v-card-text>
           <v-form ref="formRef" @submit.prevent="handleSave">
             <v-text-field
               v-model="form.name"
               label="Name"
-              variant="outlined"
-              density="comfortable"
               :rules="nameRules"
               :error-messages="fieldErrors('name')"
               @update:model-value="clearFieldError('name')"
@@ -143,7 +146,8 @@ async function handleDelete() {
 
     <!-- Delete Confirmation -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card title="Delete Court">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Delete Court</v-card-title>
         <v-card-text>
           Are you sure you want to delete "{{ deletingCourt?.name }}"?
         </v-card-text>
@@ -156,3 +160,17 @@ async function handleDelete() {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.data-table-card {
+    border: 1px solid rgba(var(--ks-surface), 0.5);
+}
+
+.styled-table thead tr {
+    background-color: rgb(var(--v-theme-surface-bright));
+}
+
+.styled-table tbody tr:hover {
+    background-color: rgba(var(--ks-surface), 0.3) !important;
+}
+</style>
