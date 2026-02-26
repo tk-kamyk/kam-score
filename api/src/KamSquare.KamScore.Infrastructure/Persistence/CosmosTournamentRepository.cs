@@ -6,14 +6,11 @@ using Microsoft.Extensions.Options;
 
 namespace KamSquare.KamScore.Infrastructure.Persistence;
 
-public class CosmosTournamentRepository : ITournamentRepository
+public class CosmosTournamentRepository : CosmosRepository<Tournament>, ITournamentRepository
 {
-    private readonly Container _container;
-
     public CosmosTournamentRepository(CosmosClient cosmosClient, IOptions<CosmosDbOptions> options)
+        : base(cosmosClient, options)
     {
-        var db = cosmosClient.GetDatabase(options.Value.DatabaseName);
-        _container = db.GetContainer(options.Value.ContainerName);
     }
 
     public async Task<Tournament?> GetByIdAsync(string id)
@@ -21,7 +18,7 @@ public class CosmosTournamentRepository : ITournamentRepository
         var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
             .WithParameter("@id", id);
 
-        var iterator = _container.GetItemQueryIterator<Tournament>(query);
+        var iterator = Container.GetItemQueryIterator<Tournament>(query);
         var results = new List<Tournament>();
 
         while (iterator.HasMoreResults)
@@ -38,7 +35,7 @@ public class CosmosTournamentRepository : ITournamentRepository
         var query = new QueryDefinition("SELECT * FROM c WHERE c.ownerId = @ownerId")
             .WithParameter("@ownerId", ownerId);
 
-        var iterator = _container.GetItemQueryIterator<Tournament>(
+        var iterator = Container.GetItemQueryIterator<Tournament>(
             query,
             requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(ownerId) });
 
@@ -56,7 +53,7 @@ public class CosmosTournamentRepository : ITournamentRepository
     public async Task<IEnumerable<Tournament>> GetAllAsync()
     {
         var query = new QueryDefinition("SELECT * FROM c");
-        var iterator = _container.GetItemQueryIterator<Tournament>(query);
+        var iterator = Container.GetItemQueryIterator<Tournament>(query);
         var results = new List<Tournament>();
 
         while (iterator.HasMoreResults)
@@ -70,7 +67,7 @@ public class CosmosTournamentRepository : ITournamentRepository
 
     public async Task<Tournament> CreateAsync(Tournament tournament)
     {
-        var response = await _container.CreateItemAsync(
+        var response = await Container.CreateItemAsync(
             tournament,
             new PartitionKey(tournament.OwnerId));
 
@@ -79,7 +76,7 @@ public class CosmosTournamentRepository : ITournamentRepository
 
     public async Task<Tournament> UpdateAsync(Tournament tournament)
     {
-        var response = await _container.ReplaceItemAsync(
+        var response = await Container.ReplaceItemAsync(
             tournament,
             tournament.Id,
             new PartitionKey(tournament.OwnerId));
@@ -89,6 +86,6 @@ public class CosmosTournamentRepository : ITournamentRepository
 
     public async Task DeleteAsync(string id, string ownerId)
     {
-        await _container.DeleteItemAsync<Tournament>(id, new PartitionKey(ownerId));
+        await Container.DeleteItemAsync<Tournament>(id, new PartitionKey(ownerId));
     }
 }

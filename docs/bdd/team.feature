@@ -46,6 +46,18 @@ Feature: Team Management
     When a visitor requests the teams of "Summer Cup"
     Then the team list is returned successfully
 
+  Scenario: Anonymous visitor sees teams without contact info
+    Given user "Alice" owns tournament "Summer Cup" with team "Eagles" (email: "eagles@example.com", phone: "+123456789")
+    When a visitor requests the teams of "Summer Cup"
+    Then the team list is returned successfully
+    And the team email and phone are hidden
+
+  Scenario: Updating a team with duplicate name is rejected
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with teams "Eagles" and "Hawks"
+    When the user updates team "Hawks" name to "Eagles"
+    Then the request is rejected with 400 Bad Request
+
   Scenario: Anonymous visitor cannot add a team
     Given a tournament "Summer Cup" exists
     When a visitor attempts to add a team to "Summer Cup"

@@ -2,6 +2,7 @@ using System.Text;
 using FluentValidation;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Application.Mappers;
+using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Infrastructure.Options;
 using KamSquare.KamScore.Infrastructure.Persistence;
 using KamSquare.KamScore.Infrastructure.Services;
@@ -48,6 +49,7 @@ public static class ServiceCollectionExtensions
                 return new CosmosClient(cosmosConnectionString, clientOptions);
             });
             services.AddSingleton<ITournamentRepository, CosmosTournamentRepository>();
+            services.AddSingleton<ITeamRepository, CosmosTeamRepository>();
         }
 
         // Services
@@ -96,10 +98,13 @@ public static class ServiceCollectionExtensions
         {
             var database = await cosmosClient.CreateDatabaseIfNotExistsAsync(
                 options.DatabaseName, cancellationToken: cts.Token);
+
             await database.Database.CreateContainerIfNotExistsAsync(
-                options.ContainerName, "/ownerId", cancellationToken: cts.Token);
-            logger.LogInformation("Cosmos DB initialized: {Database}/{Container}",
-                options.DatabaseName, options.ContainerName);
+                CosmosRepository<Tournament>.GetContainerName(), "/ownerId", cancellationToken: cts.Token);
+            await database.Database.CreateContainerIfNotExistsAsync(
+                CosmosRepository<Team>.GetContainerName(), "/tournamentId", cancellationToken: cts.Token);
+
+            logger.LogInformation("Cosmos DB initialized: {Database}", options.DatabaseName);
         }
         catch (Exception ex)
         {

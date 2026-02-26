@@ -49,12 +49,7 @@ public class ExceptionHandlingMiddleware
                 Title = "Unauthorized",
                 Detail = ex.Message
             },
-            FluentValidation.ValidationException ex => new ProblemDetails
-            {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Validation Error",
-                Detail = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage))
-            },
+            FluentValidation.ValidationException ex => CreateValidationProblemDetails(ex),
             ArgumentException ex => new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,
@@ -86,5 +81,26 @@ public class ExceptionHandlingMiddleware
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
         await context.Response.WriteAsync(json);
+    }
+
+    private static ProblemDetails CreateValidationProblemDetails(FluentValidation.ValidationException ex)
+    {
+        var problemDetails = new ProblemDetails
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Validation Error",
+            Detail = string.Join("; ", ex.Errors.Select(e => e.ErrorMessage))
+        };
+
+        var errors = ex.Errors
+            .GroupBy(e => e.PropertyName)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(e => e.ErrorMessage).ToArray()
+            );
+
+        problemDetails.Extensions["errors"] = errors;
+
+        return problemDetails;
     }
 }

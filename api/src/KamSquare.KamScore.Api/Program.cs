@@ -61,6 +61,7 @@ app.UseAuthorization();
 // Map endpoint groups
 app.MapAuthEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapTournamentEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapTeamEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapHealthEndpoints();
 
 // Ensure Cosmos DB database and container exist

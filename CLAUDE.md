@@ -15,6 +15,7 @@ BDD specifications are in `/docs/bdd/` (Gherkin `.feature` files).
 
 For each iteration:
 - Check the requirements
+- Ignore the requirements under the `TBC` header
 - Transform requirements into BDD specs in `/docs/bdd/` if necessary
 - Write tests first
 - Implement the functionality
