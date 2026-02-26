@@ -18,6 +18,18 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* Subtle background watermark */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url('/bg.svg') center / cover no-repeat;
+    filter: invert(1);
+    opacity: 0.035;
+    pointer-events: none;
+    z-index: 0;
+}
+
 /* Section title utility */
 .section-title {
     text-transform: uppercase;
@@ -49,6 +61,12 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(var(--ks-surface), 0.75);
+}
+
+/* Darker primary on filled buttons for better contrast */
+.v-btn--variant-elevated.bg-primary,
+.v-btn--variant-flat.bg-primary {
+    background-color: #006D87 !important;
 }
 
 /* Vuetify typography overrides */

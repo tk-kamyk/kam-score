@@ -136,6 +136,12 @@ async function handleDelete() {
 .breadcrumb-clickable {
     color: rgb(var(--v-theme-primary));
     cursor: pointer;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: bottom;
 }
 
 .breadcrumb-clickable:hover {
