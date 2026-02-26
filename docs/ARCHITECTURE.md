@@ -31,9 +31,11 @@ Dependencies point inward. Domain has no external dependencies. Application defi
 
 ### Key Design Decisions
 
-**Domain-driven design**: Business logic lives in domain entities (e.g., `Tournament.AddTeam()`, `Phase.GenerateGames()`). For simple CRUD, endpoint handlers call the repository directly — no service layer. Services are introduced only when orchestration logic grows complex.
+**Domain-driven design**: Business logic lives in domain entities via factory methods (`Create`) and mutation methods (`Update`). For simple CRUD, endpoint handlers call the repository directly — no service layer. Services are introduced only when orchestration logic grows complex.
 
-**Single aggregate document**: Each tournament is stored as one Cosmos DB document containing all nested data (teams, courts, phases, groups, games, schedule). The partition key is `/ownerId`. Container-per-entity strategy is used — each entity type gets its own Cosmos container.
+**Base Entity class**: All domain entities inherit from `Entity`, which provides `Id` (string) and `LastModified` (DateTime?) properties.
+
+**Container-per-entity**: Each entity type gets its own Cosmos DB container. Container names are derived by convention from C# types (e.g., `Tournament` → `"tournaments"`, `Team` → `"teams"`) via `CosmosRepository<T>.GetContainerName()`. Partition keys are entity-specific: `/ownerId` for tournaments, `/tournamentId` for teams.
 
 **Options pattern**: All configuration is bound to strongly-typed classes (`JwtOptions`, `UserOptions`, `CosmosDbOptions`, `CorsOptions`).
 

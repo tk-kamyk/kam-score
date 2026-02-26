@@ -1,0 +1,129 @@
+using AutoMapper;
+using KamSquare.KamScore.Application.DTOs;
+using KamSquare.KamScore.Application.Interfaces;
+using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.Exceptions;
+using FluentValidation;
+
+namespace KamSquare.KamScore.Api.Endpoints;
+
+public static class TeamEndpoints
+{
+    public static RouteGroupBuilder MapTeamEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/tournaments/{tournamentId}/teams")
+            .WithTags("Teams");
+
+        group.MapGet("/", GetTeams);
+        group.MapPost("/", CreateTeam).RequireAuthorization();
+        group.MapPut("/{teamId}", UpdateTeam).RequireAuthorization();
+        group.MapDelete("/{teamId}", DeleteTeam).RequireAuthorization();
+
+        return group;
+    }
+
+    private static async Task<IResult> GetTeams(
+        string tournamentId,
+        ITeamRepository teamRepository,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser,
+        IMapper mapper)
+    {
+        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
+        if (tournament is null)
+            throw new NotFoundException(nameof(Tournament), tournamentId);
+
+        var teams = await teamRepository.GetByTournamentIdAsync(tournamentId);
+        var dtos = mapper.Map<IEnumerable<TeamDto>>(teams);
+
+        if (!currentUser.IsAuthenticated || !tournament.IsOwnedBy(currentUser.UserId!))
+            dtos = dtos.Select(HideContactInfo);
+
+        return Results.Ok(dtos);
+    }
+
+    private static async Task<IResult> CreateTeam(
+        string tournamentId,
+        TeamDto request,
+        ITeamRepository teamRepository,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser,
+        IMapper mapper)
+    {
+        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
+        if (tournament is null)
+            throw new NotFoundException(nameof(Tournament), tournamentId);
+
+        if (!tournament.IsOwnedBy(currentUser.UserId!))
+            throw new ForbiddenException();
+
+        if (await teamRepository.ExistsByNameAsync(tournamentId, request.Name))
+            throw new ValidationException(
+                [new FluentValidation.Results.ValidationFailure("Name", $"A team with name '{request.Name}' already exists in this tournament.")]);
+
+        var team = Team.Create(request.Name, request.Level, tournamentId, request.Email, request.Phone);
+        var created = await teamRepository.CreateAsync(team);
+        var dto = mapper.Map<TeamDto>(created);
+
+        return Results.Created($"/api/tournaments/{tournamentId}/teams/{dto.Id}", dto);
+    }
+
+    private static async Task<IResult> UpdateTeam(
+        string tournamentId,
+        string teamId,
+        TeamDto request,
+        ITeamRepository teamRepository,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser,
+        IMapper mapper)
+    {
+        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
+        if (tournament is null)
+            throw new NotFoundException(nameof(Tournament), tournamentId);
+
+        if (!tournament.IsOwnedBy(currentUser.UserId!))
+            throw new ForbiddenException();
+
+        var team = await teamRepository.GetByIdAsync(teamId, tournamentId);
+        if (team is null)
+            throw new NotFoundException(nameof(Team), teamId);
+
+        if (await teamRepository.ExistsByNameAsync(tournamentId, request.Name, teamId))
+            throw new ValidationException(
+                [new FluentValidation.Results.ValidationFailure("Name", $"A team with name '{request.Name}' already exists in this tournament.")]);
+
+        team.Update(request.Name, request.Level, request.Email, request.Phone);
+        var updated = await teamRepository.UpdateAsync(team);
+        var dto = mapper.Map<TeamDto>(updated);
+
+        return Results.Ok(dto);
+    }
+
+    private static async Task<IResult> DeleteTeam(
+        string tournamentId,
+        string teamId,
+        ITeamRepository teamRepository,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser)
+    {
+        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
+        if (tournament is null)
+            throw new NotFoundException(nameof(Tournament), tournamentId);
+
+        if (!tournament.IsOwnedBy(currentUser.UserId!))
+            throw new ForbiddenException();
+
+        var team = await teamRepository.GetByIdAsync(teamId, tournamentId);
+        if (team is null)
+            throw new NotFoundException(nameof(Team), teamId);
+
+        await teamRepository.DeleteAsync(teamId, tournamentId);
+
+        return Results.NoContent();
+    }
+
+    private static TeamDto HideContactInfo(TeamDto dto)
+    {
+        return dto with { Email = null, Phone = null };
+    }
+}

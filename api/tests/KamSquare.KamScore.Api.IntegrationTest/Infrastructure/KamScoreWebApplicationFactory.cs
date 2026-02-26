@@ -11,6 +11,7 @@ namespace KamSquare.KamScore.Api.IntegrationTest.Infrastructure;
 public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
 {
     public ITournamentRepository FakeRepository { get; } = A.Fake<ITournamentRepository>();
+    public ITeamRepository FakeTeamRepository { get; } = A.Fake<ITeamRepository>();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -40,6 +41,15 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
             services.AddSingleton(FakeRepository);
+
+            // Replace ITeamRepository with fake
+            var teamDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(ITeamRepository));
+            if (teamDescriptor != null)
+            {
+                services.Remove(teamDescriptor);
+            }
+            services.AddSingleton(FakeTeamRepository);
 
             // Replace authentication with test auth handler
             services.AddAuthentication(options =>

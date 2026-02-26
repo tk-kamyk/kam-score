@@ -3,9 +3,8 @@ using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Entities;
 
-public class Tournament
+public class Tournament : Entity
 {
-    public string Id { get; set; } = null!;
     public string Name { get; set; } = null!;
     public Discipline Discipline { get; set; }
     public DateTime? StartTime { get; set; }
@@ -14,7 +13,6 @@ public class Tournament
     public string TournamentCode { get; set; } = null!;
     public string OwnerId { get; set; } = null!;
 
-    public List<Team> Teams { get; set; } = [];
     public List<Court> Courts { get; set; } = [];
     public List<Phase> Phases { get; set; } = [];
 
@@ -26,7 +24,8 @@ public class Tournament
             Name = name,
             Discipline = discipline,
             OwnerId = ownerId,
-            TournamentCode = GenerateTournamentCode()
+            TournamentCode = GenerateTournamentCode(),
+            LastModified = DateTime.UtcNow
         };
     }
 
@@ -42,6 +41,7 @@ public class Tournament
         StartTime = startTime;
         GameLength = gameLength;
         GameConditions = gameConditions;
+        LastModified = DateTime.UtcNow;
     }
 
     public bool IsOwnedBy(string userId)
