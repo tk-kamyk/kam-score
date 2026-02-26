@@ -106,8 +106,9 @@ dotnet test api/KamScore.slnx
 | `EmptyName_ShouldFailValidation` | Name is required |
 | `InvalidDiscipline_ShouldFailValidation` | Must be a known discipline |
 | `NegativeGameLength_ShouldFailValidation` | GameLength must be positive |
-| `EvenWinningSets_ShouldFailValidation` | WinningSets must be odd |
-| `MismatchedPointsPerSetCount_ShouldFailValidation` | PointsPerSet count must match WinningSets |
+| `InvalidBestOfSets_ShouldFailValidation` | BestOfSets must be 1, 3, or 5 |
+| `ValidBestOfSets_ShouldPassValidation` | Valid BestOfSets values (1, 3, 5) pass |
+| `MismatchedPointsPerSetCount_ShouldFailValidation` | PointsPerSet count must match BestOfSets |
 | `ValidGameConditions_ShouldPassValidation` | Valid GameConditions pass |
 | `BeachVolleyball_ShouldBeValidDiscipline` | BeachVolleyball is accepted |
 

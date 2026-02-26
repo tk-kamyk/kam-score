@@ -49,15 +49,33 @@ public class TournamentDtoValidatorTests
         result.ShouldHaveValidationErrorFor(x => x.GameLength);
     }
 
-    [Fact]
-    public void EvenWinningSets_ShouldFailValidation()
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    [InlineData(7)]
+    [InlineData(0)]
+    public void InvalidBestOfSets_ShouldFailValidation(int bestOfSets)
     {
-        var conditions = new GameConditionsDto(2, [25, 25]);
+        var conditions = new GameConditionsDto(bestOfSets, null);
         var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, conditions, null, null);
 
         var result = _validator.TestValidate(dto);
 
-        result.ShouldHaveValidationErrorFor(x => x.GameConditions!.WinningSets);
+        result.ShouldHaveValidationErrorFor(x => x.GameConditions!.BestOfSets);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    [InlineData(5)]
+    public void ValidBestOfSets_ShouldPassValidation(int bestOfSets)
+    {
+        var conditions = new GameConditionsDto(bestOfSets, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, conditions, null, null);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.GameConditions!.BestOfSets);
     }
 
     [Fact]

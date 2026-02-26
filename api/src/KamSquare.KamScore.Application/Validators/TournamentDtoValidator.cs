@@ -20,16 +20,15 @@ public class TournamentDtoValidator : AbstractValidator<TournamentDto>
             .GreaterThan(0).WithMessage("Game length must be greater than 0.")
             .When(x => x.GameLength.HasValue);
 
-        RuleFor(x => x.GameConditions!.WinningSets)
-            .GreaterThan(0).WithMessage("Winning sets must be greater than 0.")
-            .Must(v => v!.Value % 2 == 1).WithMessage("Winning sets must be an odd number.")
-            .When(x => x.GameConditions?.WinningSets.HasValue == true);
+        RuleFor(x => x.GameConditions!.BestOfSets)
+            .Must(v => v is 1 or 3 or 5).WithMessage("Best of sets must be 1, 3, or 5.")
+            .When(x => x.GameConditions?.BestOfSets.HasValue == true);
 
         RuleFor(x => x.GameConditions!.PointsPerSet)
             .Must((dto, pointsPerSet) =>
-                pointsPerSet!.Count == dto.GameConditions!.WinningSets)
-            .WithMessage("Points per set count must match winning sets.")
-            .When(x => x.GameConditions?.PointsPerSet != null && x.GameConditions?.WinningSets.HasValue == true);
+                pointsPerSet!.Count == dto.GameConditions!.BestOfSets)
+            .WithMessage("Points per set count must match best of sets.")
+            .When(x => x.GameConditions?.PointsPerSet != null && x.GameConditions?.BestOfSets.HasValue == true);
     }
 
     private static bool BeValidDiscipline(string discipline)

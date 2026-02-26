@@ -22,7 +22,7 @@ const disciplines = ['Volleyball', 'BeachVolleyball']
 
 watch(editCustomConditions, (on) => {
   if (on && !editForm.value.gameConditions) {
-    editForm.value.gameConditions = { winningSets: undefined, pointsPerSet: undefined }
+    editForm.value.gameConditions = { bestOfSets: undefined, pointsPerSet: undefined }
   }
 })
 
@@ -41,7 +41,7 @@ function handleUpdate() {
       .map(s => parseInt(s.trim()))
       .filter(n => !isNaN(n))
     dto.gameConditions = {
-      winningSets: dto.gameConditions?.winningSets,
+      bestOfSets: dto.gameConditions?.bestOfSets,
       pointsPerSet: points.length > 0 ? points : undefined,
     }
   } else {
@@ -81,9 +81,9 @@ function handleDelete() {
             <td class="font-weight-bold">Game Length</td>
             <td>{{ tournament.gameLength }} minutes</td>
           </tr>
-          <tr v-if="tournament.gameConditions?.winningSets">
-            <td class="font-weight-bold">Winning Sets</td>
-            <td>{{ tournament.gameConditions.winningSets }}</td>
+          <tr v-if="tournament.gameConditions?.bestOfSets">
+            <td class="font-weight-bold">Best of Sets</td>
+            <td>{{ tournament.gameConditions.bestOfSets }}</td>
           </tr>
           <tr v-if="tournament.gameConditions?.pointsPerSet">
             <td class="font-weight-bold">Points per Set</td>
@@ -140,10 +140,10 @@ function handleDelete() {
           class="mb-4"
         />
         <template v-if="editCustomConditions">
-          <v-text-field
-            v-model.number="editForm.gameConditions!.winningSets"
-            label="Winning Sets"
-            type="number"
+          <v-select
+            v-model="editForm.gameConditions!.bestOfSets"
+            :items="[1, 3, 5]"
+            label="Best of Sets"
             variant="outlined"
             density="comfortable"
           />

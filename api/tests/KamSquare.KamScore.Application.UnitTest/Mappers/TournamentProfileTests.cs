@@ -44,12 +44,12 @@ public class TournamentProfileTests
     {
         var tournament = Tournament.Create("Beach Cup", Discipline.BeachVolleyball, "user1");
         tournament.Update("Beach Cup", Discipline.BeachVolleyball, null, 45,
-            new GameConditions(WinningSets: 3, PointsPerSet: [21, 21, 15]));
+            new GameConditions(BestOfSets: 3, PointsPerSet: [21, 21, 15]));
 
         var dto = _mapper.Map<TournamentDto>(tournament);
 
         dto.GameConditions.Should().NotBeNull();
-        dto.GameConditions!.WinningSets.Should().Be(3);
+        dto.GameConditions!.BestOfSets.Should().Be(3);
         dto.GameConditions.PointsPerSet.Should().BeEquivalentTo([21, 21, 15]);
         dto.GameLength.Should().Be(45);
     }

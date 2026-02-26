@@ -6,6 +6,7 @@ import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import TeamList from '@/team/TeamList.vue'
+import CourtList from '@/court/CourtList.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -60,6 +61,7 @@ async function handleDelete() {
       <v-tabs v-model="activeTab" color="primary" class="mb-4">
         <v-tab value="details">Details</v-tab>
         <v-tab value="teams">Teams</v-tab>
+        <v-tab value="courts">Courts</v-tab>
       </v-tabs>
 
       <v-tabs-window v-model="activeTab">
@@ -74,6 +76,10 @@ async function handleDelete() {
 
         <v-tabs-window-item value="teams">
           <TeamList :tournament-id="id" :is-owner="isOwner" />
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="courts">
+          <CourtList :tournament-id="id" :is-owner="isOwner" />
         </v-tabs-window-item>
       </v-tabs-window>
     </template>

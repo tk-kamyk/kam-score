@@ -199,6 +199,6 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
         result!.GameConditions.Should().NotBeNull();
-        result.GameConditions!.WinningSets.Should().Be(3);
+        result.GameConditions!.BestOfSets.Should().Be(3);
     }
 }

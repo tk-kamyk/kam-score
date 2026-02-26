@@ -1,5 +1,5 @@
 export interface GameConditionsDto {
-  winningSets?: number
+  bestOfSets?: number
   pointsPerSet?: number[]
 }
 
