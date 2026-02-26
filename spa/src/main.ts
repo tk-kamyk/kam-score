@@ -22,7 +22,7 @@ const kamScoreDark = {
     surface: '#33383f',
     'surface-bright': '#3e454d',
     'surface-light': '#4a5259',   // --ks-surface
-    primary: '#006D87',           // --ks-primary
+    primary: '#29b5d4',           // --ks-primary (lighter for readability on dark bg)
     secondary: '#E8B930',         // --ks-secondary
     error: '#e5534b',
     success: '#56d364',

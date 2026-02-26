@@ -12,6 +12,9 @@ export const useTournamentStore = defineStore('tournament', () => {
 
   watch(() => auth.isAuthenticated, () => {
     fetchTournaments()
+    if (currentTournament.value?.id) {
+      fetchTournament(currentTournament.value.id)
+    }
   })
 
   async function fetchTournaments() {
