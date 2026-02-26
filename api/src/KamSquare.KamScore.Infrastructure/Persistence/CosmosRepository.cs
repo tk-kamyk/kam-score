@@ -17,4 +17,20 @@ public abstract class CosmosRepository<T> where T : Entity
 
     public static string GetContainerName()
         => typeof(T).Name.ToLowerInvariant() + "s";
+
+    protected async Task<List<TResult>> ExecuteQueryAsync<TResult>(
+        QueryDefinition query,
+        QueryRequestOptions? requestOptions = null)
+    {
+        var iterator = Container.GetItemQueryIterator<TResult>(query, requestOptions: requestOptions);
+        var results = new List<TResult>();
+
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync();
+            results.AddRange(response);
+        }
+
+        return results;
+    }
 }

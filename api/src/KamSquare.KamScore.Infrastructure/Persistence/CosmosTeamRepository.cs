@@ -18,18 +18,8 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
         var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
             .WithParameter("@id", id);
 
-        var iterator = Container.GetItemQueryIterator<Team>(
-            query,
-            requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
-
-        var results = new List<Team>();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-            results.AddRange(response);
-        }
-
+        var results = await ExecuteQueryAsync<Team>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
         return results.FirstOrDefault();
     }
 
@@ -38,19 +28,8 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
         var query = new QueryDefinition("SELECT * FROM c WHERE c.tournamentId = @tournamentId")
             .WithParameter("@tournamentId", tournamentId);
 
-        var iterator = Container.GetItemQueryIterator<Team>(
-            query,
-            requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
-
-        var results = new List<Team>();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-            results.AddRange(response);
-        }
-
-        return results;
+        return await ExecuteQueryAsync<Team>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
     }
 
     public async Task<Team> CreateAsync(Team team)
@@ -90,11 +69,8 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
                 .WithParameter("@name", name)
                 .WithParameter("@excludeId", excludeTeamId);
 
-        var iterator = Container.GetItemQueryIterator<int>(
-            query,
-            requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
-
-        var response = await iterator.ReadNextAsync();
-        return response.Resource.FirstOrDefault() > 0;
+        var results = await ExecuteQueryAsync<int>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
+        return results.FirstOrDefault() > 0;
     }
 }
