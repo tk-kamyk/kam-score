@@ -26,25 +26,41 @@ public static class TournamentEndpoints
 
     private static async Task<IResult> GetTournaments(
         ITournamentRepository repository,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
+        IEnumerable<TournamentDto> dtos;
+
         if (currentUser.IsAuthenticated)
         {
             var tournaments = await repository.GetByOwnerIdAsync(currentUser.UserId!);
-            var dtos = mapper.Map<IEnumerable<TournamentDto>>(tournaments);
-            return Results.Ok(dtos);
+            dtos = mapper.Map<IEnumerable<TournamentDto>>(tournaments);
+        }
+        else
+        {
+            var allTournaments = await repository.GetAllAsync();
+            dtos = mapper.Map<IEnumerable<TournamentDto>>(allTournaments)
+                .Select(HideTournamentCode);
         }
 
-        var allTournaments = await repository.GetAllAsync();
-        var allDtos = mapper.Map<IEnumerable<TournamentDto>>(allTournaments)
-            .Select(HideTournamentCode);
-        return Results.Ok(allDtos);
+        var result = new List<TournamentDto>();
+        foreach (var dto in dtos)
+        {
+            var teamCount = await teamRepository.CountByTournamentIdAsync(dto.Id!);
+            var courtCount = await courtRepository.CountByTournamentIdAsync(dto.Id!);
+            result.Add(dto with { TeamCount = teamCount, CourtCount = courtCount });
+        }
+
+        return Results.Ok(result);
     }
 
     private static async Task<IResult> GetTournament(
         string id,
         ITournamentRepository repository,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -61,6 +77,10 @@ public static class TournamentEndpoints
         {
             dto = HideTournamentCode(dto);
         }
+
+        var teamCount = await teamRepository.CountByTournamentIdAsync(id);
+        var courtCount = await courtRepository.CountByTournamentIdAsync(id);
+        dto = dto with { TeamCount = teamCount, CourtCount = courtCount };
 
         return Results.Ok(dto);
     }

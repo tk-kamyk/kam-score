@@ -65,17 +65,22 @@ function navigateToTournament(id: string) {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-4">
-      <h1 class="text-h4">Tournaments</h1>
+    <div class="hero-section text-center mb-10">
+      <img src="/volleyball.svg" alt="Volleyball" class="hero-icon mb-4" />
+      <h1 class="hero-title text-uppercase mb-2">Tournament Management</h1>
+      <p class="hero-subtitle mb-6">Organize, schedule, and track your volleyball tournaments</p>
       <v-btn
         v-if="auth.isAuthenticated"
         color="primary"
-        icon="mdi-plus"
+        size="large"
+        prepend-icon="mdi-plus"
         @click="showCreateDialog = true"
-      />
+      >
+        New Tournament
+      </v-btn>
     </div>
 
-    <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" />
+    <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" class="mb-4" />
 
     <v-row>
       <v-col
@@ -86,59 +91,61 @@ function navigateToTournament(id: string) {
         lg="4"
       >
         <v-card
-          class="cursor-pointer h-100"
+          class="tournament-card h-100 pa-2"
           @click="navigateToTournament(tournament.id!)"
           hover
         >
-          <v-card-title>{{ tournament.name }}</v-card-title>
-          <v-card-subtitle>{{ tournament.discipline }}</v-card-subtitle>
-          <v-card-text>
-            <v-chip v-if="tournament.tournamentCode" size="small" color="primary" class="mr-2">
-              Code: {{ tournament.tournamentCode }}
+          <v-card-title class="text-uppercase" style="letter-spacing: 1px;">
+            {{ tournament.name }}
+          </v-card-title>
+          <v-card-subtitle class="mt-1">{{ tournament.discipline }}</v-card-subtitle>
+          <v-card-text class="pt-3">
+            <v-chip v-if="tournament.tournamentCode" size="small" color="secondary" variant="tonal" class="mr-2 font-weight-bold" style="letter-spacing: 1px;">
+              {{ tournament.tournamentCode }}
             </v-chip>
-            <v-chip v-if="tournament.gameLength" size="small" variant="outlined">
+            <v-chip v-if="tournament.gameLength" size="small" variant="outlined" class="mr-2">
               {{ tournament.gameLength }} min
+            </v-chip>
+            <v-chip size="small" variant="outlined" prepend-icon="mdi-account-group-outline" class="mr-2">
+              {{ tournament.teamCount ?? 0 }} teams
+            </v-chip>
+            <v-chip size="small" variant="outlined" prepend-icon="mdi-volleyball">
+              {{ tournament.courtCount ?? 0 }} courts
             </v-chip>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
 
-    <v-card v-if="!tournamentStore.loading && tournamentStore.tournaments.length === 0" class="pa-8 text-center">
-      <v-icon size="64" color="grey-lighten-1">mdi-trophy-outline</v-icon>
-      <p class="text-h6 mt-4 text-grey">No tournaments yet</p>
+    <v-card v-if="!tournamentStore.loading && tournamentStore.tournaments.length === 0" class="pa-12 text-center">
+      <v-icon size="72" color="secondary" class="mb-4" style="opacity: 0.6;">mdi-trophy-outline</v-icon>
+      <p class="text-h6 text-uppercase mb-2" style="letter-spacing: 1.5px; opacity: 0.5;">No tournaments yet</p>
+      <p v-if="auth.isAuthenticated" class="text-body-2" style="opacity: 0.4;">Click the button above to create your first tournament.</p>
     </v-card>
 
     <v-dialog v-model="showCreateDialog" max-width="500">
-      <v-card title="Create Tournament">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Create Tournament</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="newTournament.name"
             label="Name"
-            variant="outlined"
-            density="comfortable"
             autofocus
           />
           <v-select
             v-model="newTournament.discipline"
             :items="disciplines"
             label="Discipline"
-            variant="outlined"
-            density="comfortable"
           />
           <v-text-field
             v-model="newTournament.startTime"
             label="Start Time"
             type="datetime-local"
-            variant="outlined"
-            density="comfortable"
           />
           <v-text-field
             v-model.number="newTournament.gameLength"
             label="Game Length (minutes)"
             type="number"
-            variant="outlined"
-            density="comfortable"
           />
           <v-switch
             v-model="useCustomConditions"
@@ -153,15 +160,11 @@ function navigateToTournament(id: string) {
               v-model="newTournament.gameConditions!.bestOfSets"
               :items="[1, 3, 5]"
               label="Best of Sets"
-              variant="outlined"
-              density="comfortable"
             />
             <v-text-field
               v-model="pointsPerSetText"
               label="Points per Set (comma-separated)"
               placeholder="25, 25, 15"
-              variant="outlined"
-              density="comfortable"
             />
           </template>
         </v-card-text>
@@ -181,3 +184,41 @@ function navigateToTournament(id: string) {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.hero-section {
+    padding-top: 24px;
+}
+
+.hero-icon {
+    width: 80px;
+    height: 80px;
+}
+
+.hero-title {
+    font-weight: 700;
+    letter-spacing: 2px;
+    font-size: 1.75rem;
+}
+
+@media (min-width: 960px) {
+    .hero-title {
+        font-size: 2.25rem;
+    }
+}
+
+.hero-subtitle {
+    opacity: 0.5;
+    font-size: 1rem;
+}
+
+.tournament-card {
+    border: 1px solid rgba(var(--ks-surface), 0.5);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tournament-card:hover {
+    border-color: rgba(var(--ks-primary), 0.4);
+    box-shadow: 0 0 20px rgba(var(--ks-primary), 0.08);
+}
+</style>

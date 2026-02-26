@@ -1,0 +1,61 @@
+/* KamScore Global Styles — Dark Dashboard Theme */
+
+/* Color palette — edit these 5 values to retheme the app.
+   Keep in sync with Vuetify theme hex values in main.ts. */
+:root {
+    --ks-bg: 42, 46, 51;           /* #2a2e33 — page background */
+    --ks-surface: 74, 82, 89;      /* #4a5259 — borders, hover states */
+    --ks-primary: 0, 109, 135;     /* #006D87 — buttons, links, accents */
+    --ks-secondary: 232, 185, 48;  /* #E8B930 — chips, highlights */
+    --ks-text: 230, 237, 243;      /* #e6edf3 — text on dark backgrounds */
+}
+
+/* Base typography */
+body {
+    font-family: 'Dosis', sans-serif;
+    letter-spacing: 0.3px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Section title utility */
+.section-title {
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-size: 1.25rem;
+}
+
+@media (min-width: 960px) {
+    .section-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* Custom scrollbar for dark theme */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgb(var(--ks-bg));
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgb(var(--ks-surface));
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(var(--ks-surface), 0.75);
+}
+
+/* Vuetify typography overrides */
+.v-application {
+    font-family: 'Dosis', sans-serif !important;
+}
+
+.v-toolbar-title {
+    font-family: 'Dosis', sans-serif !important;
+}

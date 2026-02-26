@@ -10,4 +10,5 @@ public interface ICourtRepository
     Task<Court> UpdateAsync(Court court);
     Task DeleteAsync(string id, string tournamentId);
     Task<bool> ExistsByNameAsync(string tournamentId, string name, string? excludeCourtId = null);
+    Task<int> CountByTournamentIdAsync(string tournamentId);
 }

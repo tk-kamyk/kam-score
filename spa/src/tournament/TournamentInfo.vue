@@ -58,16 +58,23 @@ function handleDelete() {
 </script>
 
 <template>
-  <v-card>
-    <v-card-title class="d-flex justify-space-between align-center">
-      <span>{{ tournament.name }}</span>
+  <div>
+    <div class="d-flex justify-space-between align-center mb-6">
+      <h3 class="section-title">Details</h3>
       <div v-if="isOwner">
         <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit" />
         <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="showDeleteDialog = true" />
       </div>
-    </v-card-title>
-    <v-card-text>
-      <v-table density="comfortable">
+    </div>
+
+    <v-card class="data-table-card">
+      <v-table density="comfortable" class="styled-table">
+        <thead>
+          <tr>
+            <th>Property</th>
+            <th>Value</th>
+          </tr>
+        </thead>
         <tbody>
           <tr>
             <td class="font-weight-bold">Discipline</td>
@@ -92,44 +99,39 @@ function handleDelete() {
           <tr v-if="tournament.tournamentCode">
             <td class="font-weight-bold">Tournament Code</td>
             <td>
-              <v-chip color="primary" size="small">{{ tournament.tournamentCode }}</v-chip>
+              <v-chip color="secondary" size="small" variant="tonal" class="font-weight-bold" style="letter-spacing: 2px; font-family: monospace;">
+                {{ tournament.tournamentCode }}
+              </v-chip>
             </td>
           </tr>
         </tbody>
       </v-table>
-    </v-card-text>
-  </v-card>
+    </v-card>
+  </div>
 
   <!-- Edit Dialog -->
   <v-dialog v-model="showEditDialog" max-width="500">
-    <v-card title="Edit Tournament">
+    <v-card class="pa-2">
+      <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Edit Tournament</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="editForm.name"
           label="Name"
-          variant="outlined"
-          density="comfortable"
         />
         <v-select
           v-model="editForm.discipline"
           :items="disciplines"
           label="Discipline"
-          variant="outlined"
-          density="comfortable"
         />
         <v-text-field
           v-model="editForm.startTime"
           label="Start Time"
           placeholder="10:00"
-          variant="outlined"
-          density="comfortable"
         />
         <v-text-field
           v-model.number="editForm.gameLength"
           label="Game Length (minutes)"
           type="number"
-          variant="outlined"
-          density="comfortable"
         />
         <v-switch
           v-model="editCustomConditions"
@@ -144,15 +146,11 @@ function handleDelete() {
             v-model="editForm.gameConditions!.bestOfSets"
             :items="[1, 3, 5]"
             label="Best of Sets"
-            variant="outlined"
-            density="comfortable"
           />
           <v-text-field
             v-model="editPointsPerSetText"
             label="Points per Set (comma-separated)"
             placeholder="25, 25, 15"
-            variant="outlined"
-            density="comfortable"
           />
         </template>
       </v-card-text>
@@ -168,7 +166,8 @@ function handleDelete() {
 
   <!-- Delete Confirmation -->
   <v-dialog v-model="showDeleteDialog" max-width="400">
-    <v-card title="Delete Tournament">
+    <v-card class="pa-2">
+      <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Delete Tournament</v-card-title>
       <v-card-text>
         Are you sure you want to delete "{{ tournament.name }}"? This action cannot be undone.
       </v-card-text>
@@ -180,3 +179,17 @@ function handleDelete() {
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+.data-table-card {
+    border: 1px solid rgba(var(--ks-surface), 0.5);
+}
+
+.styled-table thead tr {
+    background-color: rgb(var(--v-theme-surface-bright));
+}
+
+.styled-table tbody tr:hover {
+    background-color: rgba(var(--ks-surface), 0.3) !important;
+}
+</style>
