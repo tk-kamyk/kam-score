@@ -18,15 +18,7 @@ public class CosmosTournamentRepository : CosmosRepository<Tournament>, ITournam
         var query = new QueryDefinition("SELECT * FROM c WHERE c.id = @id")
             .WithParameter("@id", id);
 
-        var iterator = Container.GetItemQueryIterator<Tournament>(query);
-        var results = new List<Tournament>();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-            results.AddRange(response);
-        }
-
+        var results = await ExecuteQueryAsync<Tournament>(query);
         return results.FirstOrDefault();
     }
 
@@ -35,34 +27,14 @@ public class CosmosTournamentRepository : CosmosRepository<Tournament>, ITournam
         var query = new QueryDefinition("SELECT * FROM c WHERE c.ownerId = @ownerId")
             .WithParameter("@ownerId", ownerId);
 
-        var iterator = Container.GetItemQueryIterator<Tournament>(
-            query,
-            requestOptions: new QueryRequestOptions { PartitionKey = new PartitionKey(ownerId) });
-
-        var results = new List<Tournament>();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-            results.AddRange(response);
-        }
-
-        return results;
+        return await ExecuteQueryAsync<Tournament>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(ownerId) });
     }
 
     public async Task<IEnumerable<Tournament>> GetAllAsync()
     {
         var query = new QueryDefinition("SELECT * FROM c");
-        var iterator = Container.GetItemQueryIterator<Tournament>(query);
-        var results = new List<Tournament>();
-
-        while (iterator.HasMoreResults)
-        {
-            var response = await iterator.ReadNextAsync();
-            results.AddRange(response);
-        }
-
-        return results;
+        return await ExecuteQueryAsync<Tournament>(query);
     }
 
     public async Task<Tournament> CreateAsync(Tournament tournament)
