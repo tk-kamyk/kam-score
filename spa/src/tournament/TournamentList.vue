@@ -23,7 +23,7 @@ const disciplines = ['Volleyball', 'BeachVolleyball']
 
 watch(useCustomConditions, (on) => {
   if (on) {
-    newTournament.value.gameConditions = { winningSets: undefined, pointsPerSet: undefined }
+    newTournament.value.gameConditions = { bestOfSets: undefined, pointsPerSet: undefined }
   }
 })
 
@@ -40,7 +40,7 @@ async function handleCreate() {
         .map(s => parseInt(s.trim()))
         .filter(n => !isNaN(n))
       dto.gameConditions = {
-        winningSets: dto.gameConditions?.winningSets,
+        bestOfSets: dto.gameConditions?.bestOfSets,
         pointsPerSet: points.length > 0 ? points : undefined,
       }
     } else {
@@ -149,10 +149,10 @@ function navigateToTournament(id: string) {
             class="mb-4"
           />
           <template v-if="useCustomConditions">
-            <v-text-field
-              v-model.number="newTournament.gameConditions!.winningSets"
-              label="Winning Sets"
-              type="number"
+            <v-select
+              v-model="newTournament.gameConditions!.bestOfSets"
+              :items="[1, 3, 5]"
+              label="Best of Sets"
               variant="outlined"
               density="comfortable"
             />

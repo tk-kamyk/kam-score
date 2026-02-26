@@ -26,7 +26,7 @@ Feature: Tournament Management
     When the user creates a tournament with:
       | Name         | Beach Cup        |
       | Discipline   | BeachVolleyball  |
-      | WinningSets  | 3                |
+      | BestOfSets   | 3                |
       | PointsPerSet | 21,21,15         |
       | GameLength   | 45               |
     Then the tournament game conditions are stored correctly

@@ -87,12 +87,12 @@ public class TournamentTests
     public void Update_ShouldSetGameConditions()
     {
         var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "user1");
-        var conditions = new GameConditions(WinningSets: 3, PointsPerSet: [25, 25, 15]);
+        var conditions = new GameConditions(BestOfSets: 3, PointsPerSet: [25, 25, 15]);
 
         tournament.Update("Summer Cup", Discipline.Volleyball, null, 60, conditions);
 
         tournament.GameConditions.Should().NotBeNull();
-        tournament.GameConditions!.WinningSets.Should().Be(3);
+        tournament.GameConditions!.BestOfSets.Should().Be(3);
         tournament.GameConditions.PointsPerSet.Should().BeEquivalentTo([25, 25, 15]);
         tournament.GameLength.Should().Be(60);
     }
