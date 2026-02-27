@@ -151,4 +151,41 @@ public class PhaseDtoValidatorTests
 
         result.ShouldNotHaveValidationErrorFor(x => x.TotalTeamsProceeding);
     }
+
+    [Fact]
+    public void StartTime_Null_ShouldPassValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin");
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.StartTime);
+    }
+
+    [Theory]
+    [InlineData("09:30")]
+    [InlineData("00:00")]
+    [InlineData("23:59")]
+    public void StartTime_ValidFormat_ShouldPassValidation(string startTime)
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", StartTime: startTime);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.StartTime);
+    }
+
+    [Theory]
+    [InlineData("25:00")]
+    [InlineData("abc")]
+    [InlineData("9:30")]
+    [InlineData("09:30:00")]
+    public void StartTime_InvalidFormat_ShouldFailValidation(string startTime)
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", StartTime: startTime);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldHaveValidationErrorFor(x => x.StartTime);
+    }
 }

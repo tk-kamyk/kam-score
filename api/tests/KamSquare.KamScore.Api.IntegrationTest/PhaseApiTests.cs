@@ -422,4 +422,40 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
         result!.GroupWinners.Should().Be(2);
         result.TotalTeamsProceeding.Should().Be(8);
     }
+
+    [Fact]
+    public async Task AddPhase_WithStartTime_ShouldReturnIt()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Groups", "RoundRobin",
+            NumberOfGroups: 2, StartTime: "09:30");
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.StartTime.Should().Be("09:30");
+    }
+
+    [Fact]
+    public async Task UpdatePhase_StartTime_ShouldUpdate()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", StartTime: "14:00");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.StartTime.Should().Be("14:00");
+    }
 }

@@ -28,5 +28,10 @@ public class PhaseDtoValidator : AbstractValidator<PhaseDto>
         RuleFor(x => x.TotalTeamsProceeding)
             .GreaterThanOrEqualTo(1)
             .When(x => x.TotalTeamsProceeding.HasValue);
+
+        RuleFor(x => x.StartTime)
+            .Must(value => TimeOnly.TryParseExact(value, "HH:mm", out _))
+            .WithMessage("StartTime must be in HH:mm format (e.g. 09:30).")
+            .When(x => x.StartTime is not null);
     }
 }

@@ -13,6 +13,7 @@
     - number of groups (specified on creation, auto-named A, B, C...)
     - group winners (optional) — how many teams per group qualify automatically to the next phase
     - total teams proceeding (optional) — total number of teams qualifying from this phase (a combined ranking is built: group winners on top, then remaining teams, cutoff applied at total)
+    - start time (optional) — baseline time for scheduling games in this phase (HH:mm format)
 - Phases are ordered sequentially (1, 2, 3...) and automatically reordered when one is deleted
 - Teams are assigned to groups via auto-assign (snake draft based on team level for first phase, random for later phases) or manually
 - Manual assignment can override auto-assign; retriggering auto-assign resets manual edits
@@ -32,6 +33,12 @@
 - Teams can be assigned to and removed from groups individually
 - A team cannot be assigned to two groups in the same phase
 
+# Game
+
+- Game is defined by the teams participating, the refereeing team, the court, the start time, and the result
+- It should be possible to enter the game results only using a tournament code. A tournament code should consist of 4 digits/letters and be visible to authenticated users on the tournament page. Then the code is distributed to participants outside of the application.
+
+
 # TBC
 
 # Phase
@@ -42,11 +49,6 @@
 # Group
 
 - Groups collect teams, games, and standings
-
-# Game
-
-- Game is defined by the teams participating, the refereeing team, the court, the start time, and the result
-- It should be possible to enter the game results only using a tournament code. A tournament code should consist of 4 digits/letters and be visible to authenticated users on the tournament page. Then the code is distributed to participants outside of the application.
 
 # Schedule
 

@@ -44,9 +44,10 @@ public static class PhaseEndpoints
 
         var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
         var numberOfGroups = request.NumberOfGroups ?? 1;
+        var startTime = mapper.Map<TimeOnly?>(request.StartTime);
 
         var phase = structure.AddPhase(request.Name, format, numberOfGroups,
-            request.GroupWinners, request.TotalTeamsProceeding);
+            request.GroupWinners, request.TotalTeamsProceeding, startTime);
         await structureRepository.UpdateAsync(structure);
 
         var dto = mapper.Map<PhaseDto>(phase);
@@ -73,8 +74,9 @@ public static class PhaseEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
+        var startTime = mapper.Map<TimeOnly?>(request.StartTime);
         structure.UpdatePhase(phaseId, request.Name, format,
-            request.GroupWinners, request.TotalTeamsProceeding);
+            request.GroupWinners, request.TotalTeamsProceeding, startTime);
         await structureRepository.UpdateAsync(structure);
 
         var updated = structure.GetPhase(phaseId);

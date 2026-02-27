@@ -70,6 +70,45 @@ public class StructureProfileTests
     }
 
     [Fact]
+    public void Phase_MapsToDto_WithStartTime()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2,
+            startTime: new TimeOnly(9, 30));
+
+        var dto = _mapper.Map<PhaseDto>(phase);
+
+        dto.StartTime.Should().Be("09:30");
+    }
+
+    [Fact]
+    public void Phase_MapsToDto_WithNullStartTime()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        var dto = _mapper.Map<PhaseDto>(phase);
+
+        dto.StartTime.Should().BeNull();
+    }
+
+    [Fact]
+    public void StringToTimeOnly_MapsCorrectly()
+    {
+        var result = _mapper.Map<TimeOnly?>("14:00");
+
+        result.Should().Be(new TimeOnly(14, 0));
+    }
+
+    [Fact]
+    public void NullStringToTimeOnly_MapsToNull()
+    {
+        var result = _mapper.Map<TimeOnly?>((string?)null);
+
+        result.Should().BeNull();
+    }
+
+    [Fact]
     public void Group_MapsToDto()
     {
         var group = Group.Create("A");
