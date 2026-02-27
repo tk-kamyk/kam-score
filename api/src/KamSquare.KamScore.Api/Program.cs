@@ -63,6 +63,10 @@ app.MapAuthEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapTournamentEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapTeamEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapCourtEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapStructureEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapPhaseEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapGroupEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapTeamAssignmentEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapHealthEndpoints();
 
 // Ensure Cosmos DB database and container exist

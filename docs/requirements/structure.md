@@ -1,11 +1,30 @@
 # Phase
 
-- Tournament phase defines a part of tournament
-- It contains groups - minimum one
-- It defines what is format of games to be played - round robin, play-off elimination, play-off with placement games
-- In the first phase, the teams are assigned to groups based on their seed or manually (e.g. standard seeding, top together, etc.)
-- In each phase, each resulting position is assigned a unique identifier, e.g. phaseA-groupA-position1
-- For the next phases, it is possible to define where each position proceeds to - which phase and which group
+- Phase defines a part of tournament
+- Phase is represented by:
+    - name
+    - groups (at least one default)
+    - format of the games (round robin - single game, play-off elimination, play-off with placement games)
+    - the amount of teams proceeding to the next phase (based on seed)
+- In each phase, the teams are assigned to groups based on their seed (e.g. snake based on standard seeding, top together, etc.) or manually (moving the teams between groups should be possible to overide the automated assignment). Retriggering the automated assignment would reset the manual edits.
+- In each phase, each position after the game is played is assigned a unique identifier, e.g. phaseA-groupA-position1
+- Output from one phase (positions after the games) is input (seeded teams) to another phase
+- Phase edit is a view dedicated to the authenticated users
+- Once the phases are save, a dedicate phase overview is available to everyone
+
+# Group
+
+- Group is represented by:
+    - name
+    - teams
+    - games (TBC)
+    - standings (TBC)
+- Group name is unique within one phase
+
+# TBC
+
+# Phase
+
 - It is possible to get a list of all games within all the groups of a phase
 - Phases structure can be copied from another tournament
 
