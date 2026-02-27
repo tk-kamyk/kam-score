@@ -6,4 +6,6 @@ public record PhaseDto(
     string Format,
     int? Order = null,
     int? NumberOfGroups = null,
+    int? GroupWinners = null,
+    int? TotalTeamsProceeding = null,
     List<GroupDto>? Groups = null);

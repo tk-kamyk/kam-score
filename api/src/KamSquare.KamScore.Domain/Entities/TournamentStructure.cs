@@ -18,19 +18,21 @@ public class TournamentStructure : Entity
         };
     }
 
-    public Phase AddPhase(string name, PhaseFormat format, int numberOfGroups)
+    public Phase AddPhase(string name, PhaseFormat format, int numberOfGroups,
+        int? groupWinners = null, int? totalTeamsProceeding = null)
     {
         var order = Phases.Count + 1;
-        var phase = Phase.Create(name, format, order, numberOfGroups);
+        var phase = Phase.Create(name, format, order, numberOfGroups, groupWinners, totalTeamsProceeding);
         Phases.Add(phase);
         LastModified = DateTime.UtcNow;
         return phase;
     }
 
-    public void UpdatePhase(string phaseId, string name, PhaseFormat format)
+    public void UpdatePhase(string phaseId, string name, PhaseFormat format,
+        int? groupWinners = null, int? totalTeamsProceeding = null)
     {
         var phase = GetPhase(phaseId);
-        phase.Update(name, format);
+        phase.Update(name, format, groupWinners, totalTeamsProceeding);
         LastModified = DateTime.UtcNow;
     }
 

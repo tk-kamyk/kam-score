@@ -27,6 +27,8 @@ const form = ref({
   name: '',
   format: 'RoundRobin',
   numberOfGroups: 2,
+  groupWinners: null as number | null,
+  totalTeamsProceeding: null as number | null,
 })
 
 const nameRules = [
@@ -46,9 +48,11 @@ watch(model, (open) => {
         name: props.phase.name,
         format: props.phase.format,
         numberOfGroups: props.phase.groups?.length ?? 1,
+        groupWinners: props.phase.groupWinners ?? null,
+        totalTeamsProceeding: props.phase.totalTeamsProceeding ?? null,
       }
     } else {
-      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2 }
+      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, groupWinners: null, totalTeamsProceeding: null }
     }
   }
 })
@@ -62,6 +66,8 @@ async function handleSave() {
       name: form.value.name,
       format: form.value.format,
       numberOfGroups: props.phase ? undefined : form.value.numberOfGroups,
+      groupWinners: form.value.groupWinners ?? undefined,
+      totalTeamsProceeding: form.value.totalTeamsProceeding ?? undefined,
     }
 
     if (props.phase?.id) {
@@ -112,6 +118,24 @@ async function handleSave() {
             type="number"
             :rules="groupsRules"
             min="1"
+          />
+          <v-text-field
+            v-model.number="form.groupWinners"
+            label="Teams Proceeding per Group"
+            type="number"
+            hint="Top N teams from each group advance automatically"
+            persistent-hint
+            min="1"
+            clearable
+          />
+          <v-text-field
+            v-model.number="form.totalTeamsProceeding"
+            label="Total Teams Proceeding"
+            type="number"
+            hint="Total teams qualifying from this phase (includes lucky losers)"
+            persistent-hint
+            min="1"
+            clearable
           />
         </v-form>
       </v-card-text>
