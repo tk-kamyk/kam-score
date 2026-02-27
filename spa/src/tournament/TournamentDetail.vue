@@ -7,6 +7,7 @@ import { useSnackbar } from '@/composables/useSnackbar'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
+import StructureDetail from '@/structure/StructureDetail.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -27,6 +28,7 @@ const tabLabels: Record<string, string> = {
   details: 'Details',
   teams: 'Teams',
   courts: 'Courts',
+  structure: 'Structure',
 }
 
 const breadcrumbItems = computed(() => [
@@ -99,6 +101,7 @@ async function handleDelete() {
         <v-tab value="details">Details</v-tab>
         <v-tab value="teams">Teams</v-tab>
         <v-tab value="courts">Courts</v-tab>
+        <v-tab value="structure">Structure</v-tab>
       </v-tabs>
 
       <v-tabs-window v-model="activeTab">
@@ -117,6 +120,10 @@ async function handleDelete() {
 
         <v-tabs-window-item value="courts">
           <CourtList :tournament-id="id" :is-owner="isOwner" />
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="structure">
+          <StructureDetail :tournament-id="id" :is-owner="isOwner" />
         </v-tabs-window-item>
       </v-tabs-window>
     </template>

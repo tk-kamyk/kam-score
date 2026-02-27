@@ -103,6 +103,5 @@ public class TournamentTests
         var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "user1");
 
         tournament.Courts.Should().BeEmpty();
-        tournament.Phases.Should().BeEmpty();
     }
 }

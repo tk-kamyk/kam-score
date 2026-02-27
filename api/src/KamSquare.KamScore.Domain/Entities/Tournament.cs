@@ -14,7 +14,6 @@ public class Tournament : Entity
     public string OwnerId { get; set; } = null!;
 
     public List<Court> Courts { get; set; } = [];
-    public List<Phase> Phases { get; set; } = [];
 
     public static Tournament Create(string name, Discipline discipline, string ownerId)
     {
