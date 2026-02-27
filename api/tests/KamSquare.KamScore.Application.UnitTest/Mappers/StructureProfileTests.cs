@@ -57,6 +57,19 @@ public class StructureProfileTests
     }
 
     [Fact]
+    public void Phase_MapsToDto_WithProgressionFields()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2,
+            groupWinners: 2, totalTeamsProceeding: 6);
+
+        var dto = _mapper.Map<PhaseDto>(phase);
+
+        dto.GroupWinners.Should().Be(2);
+        dto.TotalTeamsProceeding.Should().Be(6);
+    }
+
+    [Fact]
     public void Group_MapsToDto()
     {
         var group = Group.Create("A");

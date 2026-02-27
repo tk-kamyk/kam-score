@@ -90,6 +90,12 @@ async function handleAutoAssign() {
         <v-chip size="x-small" class="ml-1" variant="outlined">
           #{{ phase.order }}
         </v-chip>
+        <v-chip v-if="phase.groupWinners" size="x-small" class="ml-1" color="success" variant="tonal">
+          Top {{ phase.groupWinners }} per group
+        </v-chip>
+        <v-chip v-if="phase.totalTeamsProceeding" size="x-small" class="ml-1" color="info" variant="tonal">
+          {{ phase.totalTeamsProceeding }} total proceed
+        </v-chip>
       </div>
       <div v-if="editing">
         <v-btn icon="mdi-pencil" variant="text" size="small" @click="emit('edit', phase)" />

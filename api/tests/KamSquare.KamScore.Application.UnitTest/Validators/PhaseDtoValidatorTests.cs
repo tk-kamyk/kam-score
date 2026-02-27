@@ -91,4 +91,64 @@ public class PhaseDtoValidatorTests
 
         result.ShouldNotHaveValidationErrorFor(x => x.NumberOfGroups);
     }
+
+    [Fact]
+    public void GroupWinners_Zero_ShouldFailValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", GroupWinners: 0);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldHaveValidationErrorFor(x => x.GroupWinners);
+    }
+
+    [Fact]
+    public void GroupWinners_Null_ShouldPassValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin");
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.GroupWinners);
+    }
+
+    [Fact]
+    public void GroupWinners_Positive_ShouldPassValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", GroupWinners: 2);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.GroupWinners);
+    }
+
+    [Fact]
+    public void TotalTeamsProceeding_Zero_ShouldFailValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", TotalTeamsProceeding: 0);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldHaveValidationErrorFor(x => x.TotalTeamsProceeding);
+    }
+
+    [Fact]
+    public void TotalTeamsProceeding_Null_ShouldPassValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin");
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.TotalTeamsProceeding);
+    }
+
+    [Fact]
+    public void TotalTeamsProceeding_Positive_ShouldPassValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", TotalTeamsProceeding: 6);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.TotalTeamsProceeding);
+    }
 }

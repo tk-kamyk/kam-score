@@ -309,6 +309,43 @@ public class TournamentStructureTests
     }
 
     [Fact]
+    public void AddPhase_WithProgressionFields_ShouldStoreValues()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2,
+            groupWinners: 2, totalTeamsProceeding: 6);
+
+        phase.GroupWinners.Should().Be(2);
+        phase.TotalTeamsProceeding.Should().Be(6);
+    }
+
+    [Fact]
+    public void AddPhase_WithoutProgressionFields_ShouldDefaultToNull()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        phase.GroupWinners.Should().BeNull();
+        phase.TotalTeamsProceeding.Should().BeNull();
+    }
+
+    [Fact]
+    public void UpdatePhase_ShouldChangeProgressionFields()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        structure.UpdatePhase(phase.Id, "Groups", PhaseFormat.RoundRobin,
+            groupWinners: 1, totalTeamsProceeding: 4);
+
+        var updated = structure.GetPhase(phase.Id);
+        updated.GroupWinners.Should().Be(1);
+        updated.TotalTeamsProceeding.Should().Be(4);
+    }
+
+    [Fact]
     public void AddPhase_ShouldUpdateLastModified()
     {
         var structure = TournamentStructure.Create("tournament-1");

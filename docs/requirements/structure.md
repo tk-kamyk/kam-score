@@ -1,16 +1,25 @@
+# Structure
+
+- A tournament has one structure, initialized explicitly by the owner
+- The structure contains an ordered list of phases
+- Structure overview is available to everyone; editing requires authentication
+
 # Phase
 
 - Phase defines a part of tournament
 - Phase is represented by:
     - name
-    - groups (at least one default)
-    - format of the games (round robin - single game, play-off elimination, play-off with placement games)
-    - the amount of teams proceeding to the next phase (based on seed)
-- In each phase, the teams are assigned to groups based on their seed (e.g. snake based on standard seeding, top together, etc.) or manually (moving the teams between groups should be possible to overide the automated assignment). Retriggering the automated assignment would reset the manual edits.
-- In each phase, each position after the game is played is assigned a unique identifier, e.g. phaseA-groupA-position1
-- Output from one phase (positions after the games) is input (seeded teams) to another phase
+    - format of the games (round robin, play-off elimination, play-off with placement games)
+    - number of groups (specified on creation, auto-named A, B, C...)
+    - group winners (optional) — how many teams per group qualify automatically to the next phase
+    - total teams proceeding (optional) — total number of teams qualifying from this phase (a combined ranking is built: group winners on top, then remaining teams, cutoff applied at total)
+- Phases are ordered sequentially (1, 2, 3...) and automatically reordered when one is deleted
+- Teams are assigned to groups via auto-assign (snake draft based on team level for first phase, random for later phases) or manually
+- Manual assignment can override auto-assign; retriggering auto-assign resets manual edits
+- In each phase, each position after the game is played is assigned a unique identifier, e.g. phaseA-groupA-position1 (TBC)
+- Output from one phase (positions after the games) is input (seeded teams) to another phase (TBC)
 - Phase edit is a view dedicated to the authenticated users
-- Once the phases are save, a dedicate phase overview is available to everyone
+- Once the phases are saved, a dedicated phase overview is available to everyone
 
 # Group
 
@@ -20,6 +29,8 @@
     - games (TBC)
     - standings (TBC)
 - Group name is unique within one phase
+- Teams can be assigned to and removed from groups individually
+- A team cannot be assigned to two groups in the same phase
 
 # TBC
 

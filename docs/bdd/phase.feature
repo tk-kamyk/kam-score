@@ -41,11 +41,41 @@ Feature: Phase Management
     When the user adds groups "A", "B", "C" to the phase
     Then the phase has 3 groups
 
-  Scenario: Owner sets progression rules
+  Scenario: Owner creates a phase with number of groups
     Given the user is authenticated
-    And the user owns tournament "Summer Cup" with phases "Groups" and "Playoffs"
-    When the user sets progression rules from "Groups" to "Playoffs"
-    Then the progression rules are stored correctly
+    And the user owns tournament "Summer Cup" with a structure
+    When the user adds a phase with:
+      | Name            | Group Stage  |
+      | Format          | RoundRobin   |
+      | NumberOfGroups  | 4            |
+    Then the phase is created with 4 groups named "A", "B", "C", "D"
+
+  Scenario: Owner creates a phase with progression fields
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with a structure
+    When the user adds a phase with:
+      | Name                 | Group Stage  |
+      | Format               | RoundRobin   |
+      | GroupWinners         | 2            |
+      | TotalTeamsProceeding | 6            |
+    Then the phase has groupWinners 2
+    And the phase has totalTeamsProceeding 6
+
+  Scenario: Progression fields are optional
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with a structure
+    When the user adds a phase without progression fields
+    Then the phase has no groupWinners
+    And the phase has no totalTeamsProceeding
+
+  Scenario: Owner updates progression fields
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with phase "Group Stage"
+    When the user updates the phase with:
+      | GroupWinners         | 1 |
+      | TotalTeamsProceeding | 4 |
+    Then the phase has groupWinners 1
+    And the phase has totalTeamsProceeding 4
 
   Scenario: Non-owner cannot add a phase
     Given user "Alice" owns tournament "Summer Cup" with a structure
