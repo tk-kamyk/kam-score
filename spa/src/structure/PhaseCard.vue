@@ -168,7 +168,7 @@ async function handleAutoAssign() {
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px"
+        <v-card-title class="text-uppercase dialog-title"
           >Delete Phase</v-card-title
         >
         <v-card-text>
@@ -185,7 +185,7 @@ async function handleAutoAssign() {
 
     <v-dialog v-model="showAutoAssignDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px"
+        <v-card-title class="text-uppercase dialog-title"
           >Auto-assign Teams</v-card-title
         >
         <v-card-text>
@@ -202,7 +202,7 @@ async function handleAutoAssign() {
 
     <v-dialog v-model="showAddGroupDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px"
+        <v-card-title class="text-uppercase dialog-title"
           >Add Group</v-card-title
         >
         <v-card-text>
@@ -228,7 +228,7 @@ async function handleAutoAssign() {
 
 <style scoped>
 .phase-card {
-  border: 1px solid rgba(var(--ks-surface), 0.5);
+  border: 1px solid var(--ks-border);
 }
 
 .groups-grid {
@@ -238,6 +238,6 @@ async function handleAutoAssign() {
 }
 
 .group-card {
-  border-color: rgba(var(--ks-surface), 0.3);
+  border-color: var(--ks-border-subtle);
 }
 </style>

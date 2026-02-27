@@ -1,13 +1,24 @@
 /* KamScore Global Styles — Dark Dashboard Theme */
 
-/* Color palette — edit these 5 values to retheme the app.
-   Keep in sync with Vuetify theme hex values in main.ts. */
+/* Color palette — edit these values to retheme the app.
+   Hex values match the Vuetify theme in main.ts.
+   Alpha variants use 8-digit hex (#rrggbbaa). */
 :root {
-    --ks-bg: 42, 46, 51;           /* #2a2e33 — page background */
-    --ks-surface: 74, 82, 89;      /* #4a5259 — borders, hover states */
-    --ks-primary: 0, 109, 135;     /* #006D87 — buttons, links, accents */
-    --ks-secondary: 232, 185, 48;  /* #E8B930 — chips, highlights */
-    --ks-text: 230, 237, 243;      /* #e6edf3 — text on dark backgrounds */
+    --ks-bg: #2a2e33;              /* page background */
+    --ks-surface: #4a5259;         /* borders, hover states */
+    --ks-primary: #29b5d4;         /* links, accents */
+    --ks-primary-dark: #006D87;    /* filled buttons (darker for contrast) */
+    --ks-secondary: #E8B930;       /* chips, highlights */
+    --ks-text: #e6edf3;            /* text on dark backgrounds */
+
+    /* Alpha variants */
+    --ks-border: #4a525980;        /* surface 50% — card borders */
+    --ks-border-subtle: #4a52594d; /* surface 30% — hover backgrounds, subtle borders */
+    --ks-border-strong: #4a525999; /* surface 60% — emphasized borders */
+    --ks-surface-hover: #4a5259bf; /* surface 75% — scrollbar hover */
+    --ks-primary-border: #29b5d466;/* primary 40% — accent hover borders */
+    --ks-primary-glow: #29b5d414;  /* primary 8% — subtle shadow glow */
+    --ks-text-muted: #e6edf3b3;   /* text 70% — secondary text */
 }
 
 /* Base typography */
@@ -51,22 +62,22 @@ body::before {
 }
 
 ::-webkit-scrollbar-track {
-    background: rgb(var(--ks-bg));
+    background: var(--ks-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-    background: rgb(var(--ks-surface));
+    background: var(--ks-surface);
     border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: rgba(var(--ks-surface), 0.75);
+    background: var(--ks-surface-hover);
 }
 
 /* Darker primary on filled buttons for better contrast */
 .v-btn--variant-elevated.bg-primary,
 .v-btn--variant-flat.bg-primary {
-    background-color: #006D87 !important;
+    background-color: var(--ks-primary-dark) !important;
 }
 
 /* Vuetify typography overrides */
@@ -76,4 +87,18 @@ body::before {
 
 .v-toolbar-title {
     font-family: 'Dosis', sans-serif !important;
+}
+
+/* Utility classes */
+.dialog-title {
+    letter-spacing: 1.5px;
+}
+
+.code-chip {
+    letter-spacing: 2px;
+    font-family: monospace;
+}
+
+.text-muted-color {
+    color: var(--ks-text-muted);
 }
