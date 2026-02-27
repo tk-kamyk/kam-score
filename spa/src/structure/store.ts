@@ -145,6 +145,19 @@ export const useStructureStore = defineStore('structure', () => {
     }
   }
 
+  async function autoAssignTeams(tournamentId: string, phaseId: string) {
+    const { data } = await apiClient.post<PhaseDto>(
+      `/tournaments/${tournamentId}/structure/phases/${phaseId}/auto-assign`,
+    )
+    if (structure.value?.phases) {
+      const index = structure.value.phases.findIndex(p => p.id === phaseId)
+      if (index >= 0) {
+        structure.value.phases[index] = data
+      }
+    }
+    return data
+  }
+
   return {
     structure,
     loading,
@@ -158,5 +171,6 @@ export const useStructureStore = defineStore('structure', () => {
     deleteGroup,
     assignTeam,
     removeTeam,
+    autoAssignTeams,
   }
 })

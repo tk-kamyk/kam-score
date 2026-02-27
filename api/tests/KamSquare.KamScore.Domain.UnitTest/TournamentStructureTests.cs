@@ -227,6 +227,88 @@ public class TournamentStructureTests
     }
 
     [Fact]
+    public void AutoAssignTeams_EvenDistribution_ShouldDistributeEvenly()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 3);
+        var teamIds = Enumerable.Range(1, 6).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        phase.Groups[0].TeamIds.Should().HaveCount(2);
+        phase.Groups[1].TeamIds.Should().HaveCount(2);
+        phase.Groups[2].TeamIds.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_UnevenDistribution_ShouldDistributeCorrectly()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 3);
+        var teamIds = Enumerable.Range(1, 7).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        phase.Groups[0].TeamIds.Should().HaveCount(3);
+        phase.Groups[1].TeamIds.Should().HaveCount(2);
+        phase.Groups[2].TeamIds.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_ShouldFollowSnakeOrder()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 3);
+        var teamIds = Enumerable.Range(1, 9).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        // Round 1 (L→R): team-1→A, team-2→B, team-3→C
+        // Round 2 (R→L): team-4→C, team-5→B, team-6→A
+        // Round 3 (L→R): team-7→A, team-8→B, team-9→C
+        phase.Groups[0].TeamIds.Should().Equal("team-1", "team-6", "team-7");
+        phase.Groups[1].TeamIds.Should().Equal("team-2", "team-5", "team-8");
+        phase.Groups[2].TeamIds.Should().Equal("team-3", "team-4", "team-9");
+    }
+
+    [Fact]
+    public void AutoAssignTeams_ShouldClearExistingAssignments()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        structure.AssignTeam(phase.Id, phase.Groups[0].Id, "old-team-1");
+        structure.AssignTeam(phase.Id, phase.Groups[1].Id, "old-team-2");
+
+        structure.AutoAssignTeams(phase.Id, ["new-team-1", "new-team-2"]);
+
+        phase.Groups[0].TeamIds.Should().NotContain("old-team-1");
+        phase.Groups[1].TeamIds.Should().NotContain("old-team-2");
+        phase.Groups.SelectMany(g => g.TeamIds).Should().BeEquivalentTo(["new-team-1", "new-team-2"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_EmptyTeamsList_ShouldClearAllGroups()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        structure.AssignTeam(phase.Id, phase.Groups[0].Id, "team-1");
+
+        structure.AutoAssignTeams(phase.Id, []);
+
+        phase.Groups.Should().AllSatisfy(g => g.TeamIds.Should().BeEmpty());
+    }
+
+    [Fact]
+    public void AutoAssignTeams_NonExistentPhase_ShouldThrowNotFoundException()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var act = () => structure.AutoAssignTeams("nonexistent", ["team-1"]);
+
+        act.Should().Throw<NotFoundException>();
+    }
+
+    [Fact]
     public void AddPhase_ShouldUpdateLastModified()
     {
         var structure = TournamentStructure.Create("tournament-1");

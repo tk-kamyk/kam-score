@@ -110,6 +110,29 @@ public class TournamentStructure : Entity
         return phase.Groups.Any(g => g.TeamIds.Contains(teamId));
     }
 
+    public void AutoAssignTeams(string phaseId, List<string> orderedTeamIds)
+    {
+        var phase = GetPhase(phaseId);
+
+        foreach (var group in phase.Groups)
+        {
+            group.TeamIds.Clear();
+        }
+
+        var groupCount = phase.Groups.Count;
+        if (groupCount == 0) return;
+
+        for (var i = 0; i < orderedTeamIds.Count; i++)
+        {
+            var round = i / groupCount;
+            var positionInRound = i % groupCount;
+            var groupIndex = round % 2 == 0 ? positionInRound : groupCount - 1 - positionInRound;
+            phase.Groups[groupIndex].TeamIds.Add(orderedTeamIds[i]);
+        }
+
+        LastModified = DateTime.UtcNow;
+    }
+
     private void ReorderPhases()
     {
         for (var i = 0; i < Phases.Count; i++)

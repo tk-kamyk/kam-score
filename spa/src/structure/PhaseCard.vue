@@ -28,6 +28,7 @@ const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors
 
 const showDeleteDialog = ref(false)
 const showAddGroupDialog = ref(false)
+const showAutoAssignDialog = ref(false)
 const newGroupName = ref('')
 const groupFormRef = ref<InstanceType<typeof VForm> | null>(null)
 
@@ -64,6 +65,16 @@ async function handleAddGroup() {
     if (!handleError(error)) {
       showError('Failed to add group')
     }
+  }
+}
+
+async function handleAutoAssign() {
+  showAutoAssignDialog.value = false
+  try {
+    await structureStore.autoAssignTeams(props.tournamentId, props.phase.id!)
+    showSuccess('Teams auto-assigned')
+  } catch {
+    showError('Failed to auto-assign teams')
   }
 }
 </script>
@@ -126,16 +137,24 @@ async function handleAddGroup() {
         No groups in this phase.
       </v-alert>
 
-      <v-btn
-        v-if="editing"
-        variant="tonal"
-        size="small"
-        prepend-icon="mdi-plus"
-        class="mt-3"
-        @click="openAddGroup"
-      >
-        Add Group
-      </v-btn>
+      <div v-if="editing" class="mt-3 d-flex ga-2">
+        <v-btn
+          variant="tonal"
+          size="small"
+          prepend-icon="mdi-plus"
+          @click="openAddGroup"
+        >
+          Add Group
+        </v-btn>
+        <v-btn
+          variant="tonal"
+          size="small"
+          prepend-icon="mdi-shuffle-variant"
+          @click="showAutoAssignDialog = true"
+        >
+          Auto-assign Teams
+        </v-btn>
+      </div>
     </v-card-text>
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
@@ -151,6 +170,23 @@ async function handleAddGroup() {
           <v-spacer />
           <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
           <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showAutoAssignDialog" max-width="400">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px"
+          >Auto-assign Teams</v-card-title
+        >
+        <v-card-text>
+          This will clear existing team assignments and redistribute all tournament teams into the
+          groups of "{{ phase.name }}". Continue?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showAutoAssignDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="elevated" @click="handleAutoAssign">Assign</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
