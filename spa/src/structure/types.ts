@@ -12,6 +12,7 @@ export interface PhaseDto {
   numberOfGroups?: number
   groupWinners?: number
   totalTeamsProceeding?: number
+  startTime?: string
   groups?: GroupDto[]
 }
 

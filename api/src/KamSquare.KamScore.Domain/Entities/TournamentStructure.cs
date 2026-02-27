@@ -19,20 +19,20 @@ public class TournamentStructure : Entity
     }
 
     public Phase AddPhase(string name, PhaseFormat format, int numberOfGroups,
-        int? groupWinners = null, int? totalTeamsProceeding = null)
+        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null)
     {
         var order = Phases.Count + 1;
-        var phase = Phase.Create(name, format, order, numberOfGroups, groupWinners, totalTeamsProceeding);
+        var phase = Phase.Create(name, format, order, numberOfGroups, groupWinners, totalTeamsProceeding, startTime);
         Phases.Add(phase);
         LastModified = DateTime.UtcNow;
         return phase;
     }
 
     public void UpdatePhase(string phaseId, string name, PhaseFormat format,
-        int? groupWinners = null, int? totalTeamsProceeding = null)
+        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null)
     {
         var phase = GetPhase(phaseId);
-        phase.Update(name, format, groupWinners, totalTeamsProceeding);
+        phase.Update(name, format, groupWinners, totalTeamsProceeding, startTime);
         LastModified = DateTime.UtcNow;
     }
 

@@ -84,17 +84,20 @@ async function handleAutoAssign() {
     <v-card-title class="d-flex align-center justify-space-between">
       <div>
         <span class="text-h6">{{ phase.name }}</span>
+        <v-chip size="small" class="ml-3" variant="outlined">
+          #{{ phase.order }}
+        </v-chip>
         <v-chip size="small" class="ml-2" color="primary" variant="tonal">
           {{ formatPhaseFormat(phase.format) }}
         </v-chip>
-        <v-chip size="x-small" class="ml-1" variant="outlined">
-          #{{ phase.order }}
-        </v-chip>
-        <v-chip v-if="phase.groupWinners" size="x-small" class="ml-1" color="success" variant="tonal">
+        <v-chip v-if="phase.groupWinners" size="small" class="ml-2" color="success" variant="tonal">
           Top {{ phase.groupWinners }} per group
         </v-chip>
-        <v-chip v-if="phase.totalTeamsProceeding" size="x-small" class="ml-1" color="info" variant="tonal">
+        <v-chip v-if="phase.totalTeamsProceeding" size="small" class="ml-2" color="info" variant="tonal">
           {{ phase.totalTeamsProceeding }} total proceed
+        </v-chip>
+        <v-chip v-if="phase.startTime" size="small" class="ml-2" color="warning" variant="tonal">
+          Starts {{ phase.startTime }}
         </v-chip>
       </div>
       <div v-if="editing">

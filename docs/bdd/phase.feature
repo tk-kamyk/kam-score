@@ -77,6 +77,22 @@ Feature: Phase Management
     Then the phase has groupWinners 1
     And the phase has totalTeamsProceeding 4
 
+  Scenario: Owner creates a phase with start time
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with a structure
+    When the user adds a phase with:
+      | Name      | Group Stage |
+      | Format    | RoundRobin  |
+      | StartTime | 09:30       |
+    Then the phase has startTime "09:30"
+
+  Scenario: Owner updates phase start time
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with phase "Group Stage"
+    When the user updates the phase with:
+      | StartTime | 14:00 |
+    Then the phase has startTime "14:00"
+
   Scenario: Non-owner cannot add a phase
     Given user "Alice" owns tournament "Summer Cup" with a structure
     When user "Bob" attempts to add a phase

@@ -29,6 +29,7 @@ const form = ref({
   numberOfGroups: 2,
   groupWinners: null as number | null,
   totalTeamsProceeding: null as number | null,
+  startTime: '',
 })
 
 const nameRules = [
@@ -50,9 +51,10 @@ watch(model, (open) => {
         numberOfGroups: props.phase.groups?.length ?? 1,
         groupWinners: props.phase.groupWinners ?? null,
         totalTeamsProceeding: props.phase.totalTeamsProceeding ?? null,
+        startTime: props.phase.startTime ?? '',
       }
     } else {
-      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, groupWinners: null, totalTeamsProceeding: null }
+      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
     }
   }
 })
@@ -68,6 +70,7 @@ async function handleSave() {
       numberOfGroups: props.phase ? undefined : form.value.numberOfGroups,
       groupWinners: form.value.groupWinners ?? undefined,
       totalTeamsProceeding: form.value.totalTeamsProceeding ?? undefined,
+      startTime: form.value.startTime || undefined,
     }
 
     if (props.phase?.id) {
@@ -135,6 +138,14 @@ async function handleSave() {
             hint="Total teams qualifying from this phase (includes lucky losers)"
             persistent-hint
             min="1"
+            clearable
+          />
+          <v-text-field
+            v-model="form.startTime"
+            label="Start Time"
+            type="time"
+            hint="Baseline time for scheduling games in this phase"
+            persistent-hint
             clearable
           />
         </v-form>

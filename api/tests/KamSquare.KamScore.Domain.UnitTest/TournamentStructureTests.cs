@@ -346,6 +346,30 @@ public class TournamentStructureTests
     }
 
     [Fact]
+    public void AddPhase_WithStartTime_ShouldStoreValue()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2,
+            startTime: new TimeOnly(9, 30));
+
+        phase.StartTime.Should().Be(new TimeOnly(9, 30));
+    }
+
+    [Fact]
+    public void UpdatePhase_ShouldChangeStartTime()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        structure.UpdatePhase(phase.Id, "Groups", PhaseFormat.RoundRobin,
+            startTime: new TimeOnly(14, 0));
+
+        var updated = structure.GetPhase(phase.Id);
+        updated.StartTime.Should().Be(new TimeOnly(14, 0));
+    }
+
+    [Fact]
     public void AddPhase_ShouldUpdateLastModified()
     {
         var structure = TournamentStructure.Create("tournament-1");

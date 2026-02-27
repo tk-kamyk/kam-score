@@ -10,10 +10,11 @@ public class Phase
     public int Order { get; set; }
     public int? GroupWinners { get; set; }
     public int? TotalTeamsProceeding { get; set; }
+    public TimeOnly? StartTime { get; set; }
     public List<Group> Groups { get; set; } = [];
 
     public static Phase Create(string name, PhaseFormat format, int order, int numberOfGroups,
-        int? groupWinners = null, int? totalTeamsProceeding = null)
+        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null)
     {
         var phase = new Phase
         {
@@ -22,7 +23,8 @@ public class Phase
             Format = format,
             Order = order,
             GroupWinners = groupWinners,
-            TotalTeamsProceeding = totalTeamsProceeding
+            TotalTeamsProceeding = totalTeamsProceeding,
+            StartTime = startTime
         };
 
         for (var i = 0; i < numberOfGroups; i++)
@@ -33,12 +35,14 @@ public class Phase
         return phase;
     }
 
-    public void Update(string name, PhaseFormat format, int? groupWinners, int? totalTeamsProceeding)
+    public void Update(string name, PhaseFormat format, int? groupWinners, int? totalTeamsProceeding,
+        TimeOnly? startTime)
     {
         Name = name;
         Format = format;
         GroupWinners = groupWinners;
         TotalTeamsProceeding = totalTeamsProceeding;
+        StartTime = startTime;
     }
 
     private static string GetGroupName(int index)
