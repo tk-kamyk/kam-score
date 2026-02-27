@@ -16,7 +16,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
         </router-link>
       </v-app-bar-title>
       <template #append>
-        <span v-if="auth.isAuthenticated" class="text-body-2 mr-3" style="color: rgba(var(--ks-text), 0.7);">
+        <span v-if="auth.isAuthenticated" class="text-body-2 mr-3 text-muted-color">
           {{ auth.displayName }}
         </span>
         <v-btn
@@ -52,7 +52,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
 
 <style scoped>
 .app-bar-border {
-    border-bottom: 1px solid rgba(var(--ks-surface), 0.6) !important;
+    border-bottom: 1px solid var(--ks-border-strong) !important;
 }
 
 .brand-link {

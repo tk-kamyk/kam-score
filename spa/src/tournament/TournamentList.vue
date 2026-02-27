@@ -95,7 +95,7 @@ function navigateToTournament(id: string) {
           @click="navigateToTournament(tournament.id!)"
           hover
         >
-          <v-card-title class="text-uppercase" style="letter-spacing: 1px;">
+          <v-card-title class="text-uppercase tournament-card-title">
             {{ tournament.name }}
           </v-card-title>
           <v-card-subtitle class="mt-1">{{ tournament.discipline }}</v-card-subtitle>
@@ -112,7 +112,7 @@ function navigateToTournament(id: string) {
               </v-chip>
             </div>
             <div>
-              <v-chip v-if="tournament.tournamentCode" size="small" prepend-icon="mdi-key" color="secondary" variant="tonal" class="mr-2 font-weight-bold" style="letter-spacing: 1px;">
+              <v-chip v-if="tournament.tournamentCode" size="small" prepend-icon="mdi-key" color="secondary" variant="tonal" class="mr-2 font-weight-bold code-chip">
                 {{ tournament.tournamentCode }}
               </v-chip>
             </div>
@@ -122,14 +122,14 @@ function navigateToTournament(id: string) {
     </v-row>
 
     <v-card v-if="!tournamentStore.loading && tournamentStore.tournaments.length === 0" class="pa-12 text-center">
-      <v-icon size="72" color="secondary" class="mb-4" style="opacity: 0.6;">mdi-trophy-outline</v-icon>
-      <p class="text-h6 text-uppercase mb-2" style="letter-spacing: 1.5px; opacity: 0.5;">No tournaments yet</p>
-      <p v-if="auth.isAuthenticated" class="text-body-2" style="opacity: 0.4;">Click the button above to create your first tournament.</p>
+      <v-icon size="72" color="secondary" class="mb-4 empty-icon">mdi-trophy-outline</v-icon>
+      <p class="text-h6 text-uppercase mb-2 dialog-title empty-heading">No tournaments yet</p>
+      <p v-if="auth.isAuthenticated" class="text-body-2 empty-hint">Click the button above to create your first tournament.</p>
     </v-card>
 
     <v-dialog v-model="showCreateDialog" max-width="500">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Create Tournament</v-card-title>
+        <v-card-title class="text-uppercase dialog-title">Create Tournament</v-card-title>
         <v-card-text>
           <v-text-field
             v-model="newTournament.name"
@@ -217,12 +217,28 @@ function navigateToTournament(id: string) {
 }
 
 .tournament-card {
-    border: 1px solid rgba(var(--ks-surface), 0.5);
+    border: 1px solid var(--ks-border);
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .tournament-card:hover {
-    border-color: rgba(var(--ks-primary), 0.4);
-    box-shadow: 0 0 20px rgba(var(--ks-primary), 0.08);
+    border-color: var(--ks-primary-border);
+    box-shadow: 0 0 20px var(--ks-primary-glow);
+}
+
+.tournament-card-title {
+    letter-spacing: 1px;
+}
+
+.empty-icon {
+    opacity: 0.6;
+}
+
+.empty-heading {
+    opacity: 0.5;
+}
+
+.empty-hint {
+    opacity: 0.4;
 }
 </style>

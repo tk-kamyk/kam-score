@@ -93,7 +93,7 @@ async function handleSave() {
 <template>
   <v-dialog v-model="model" max-width="500">
     <v-card class="pa-2">
-      <v-card-title class="text-uppercase" style="letter-spacing: 1.5px">
+      <v-card-title class="text-uppercase dialog-title">
         {{ phase ? 'Edit Phase' : 'Add Phase' }}
       </v-card-title>
       <v-card-text>

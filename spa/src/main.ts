@@ -9,10 +9,10 @@ import './styles/global.css'
 import App from './App.vue'
 import router from './router'
 
-// Vuetify theme — keep hex values in sync with CSS vars in global.css:
+// Vuetify theme — hex values match CSS vars in global.css:
 //   --ks-bg       → background
 //   --ks-surface   → surface-light (surface & surface-bright are derived shades)
-//   --ks-primary   → primary
+//   --ks-primary   → primary  (global.css also has --ks-primary-dark for filled buttons)
 //   --ks-secondary → secondary
 //   --ks-text      → on-background, on-surface
 const kamScoreDark = {

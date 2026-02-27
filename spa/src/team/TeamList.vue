@@ -134,7 +134,7 @@ async function handleDelete() {
     <!-- Create / Edit Dialog -->
     <v-dialog v-model="showFormDialog" max-width="500">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">
+        <v-card-title class="text-uppercase dialog-title">
           {{ editingTeam ? 'Edit Team' : 'Add Team' }}
         </v-card-title>
         <v-card-text>
@@ -186,7 +186,7 @@ async function handleDelete() {
     <!-- Delete Confirmation -->
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Delete Team</v-card-title>
+        <v-card-title class="text-uppercase dialog-title">Delete Team</v-card-title>
         <v-card-text>
           Are you sure you want to delete "{{ deletingTeam?.name }}"?
         </v-card-text>
@@ -202,7 +202,7 @@ async function handleDelete() {
 
 <style scoped>
 .data-table-card {
-    border: 1px solid rgba(var(--ks-surface), 0.5);
+    border: 1px solid var(--ks-border);
 }
 
 .styled-table thead tr {
@@ -210,6 +210,6 @@ async function handleDelete() {
 }
 
 .styled-table tbody tr:hover {
-    background-color: rgba(var(--ks-surface), 0.3) !important;
+    background-color: var(--ks-border-subtle) !important;
 }
 </style>

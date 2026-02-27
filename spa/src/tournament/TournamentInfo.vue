@@ -99,7 +99,7 @@ function handleDelete() {
           <tr v-if="tournament.tournamentCode">
             <td class="font-weight-bold">Tournament Code</td>
             <td>
-              <v-chip color="secondary" size="small" variant="tonal" class="font-weight-bold" style="letter-spacing: 2px; font-family: monospace;">
+              <v-chip color="secondary" size="small" variant="tonal" class="font-weight-bold code-chip">
                 {{ tournament.tournamentCode }}
               </v-chip>
             </td>
@@ -112,7 +112,7 @@ function handleDelete() {
   <!-- Edit Dialog -->
   <v-dialog v-model="showEditDialog" max-width="500">
     <v-card class="pa-2">
-      <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Edit Tournament</v-card-title>
+      <v-card-title class="text-uppercase dialog-title">Edit Tournament</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="editForm.name"
@@ -167,7 +167,7 @@ function handleDelete() {
   <!-- Delete Confirmation -->
   <v-dialog v-model="showDeleteDialog" max-width="400">
     <v-card class="pa-2">
-      <v-card-title class="text-uppercase" style="letter-spacing: 1.5px;">Delete Tournament</v-card-title>
+      <v-card-title class="text-uppercase dialog-title">Delete Tournament</v-card-title>
       <v-card-text>
         Are you sure you want to delete "{{ tournament.name }}"? This action cannot be undone.
       </v-card-text>
@@ -182,7 +182,7 @@ function handleDelete() {
 
 <style scoped>
 .data-table-card {
-    border: 1px solid rgba(var(--ks-surface), 0.5);
+    border: 1px solid var(--ks-border);
 }
 
 .styled-table thead tr {
@@ -190,6 +190,6 @@ function handleDelete() {
 }
 
 .styled-table tbody tr:hover {
-    background-color: rgba(var(--ks-surface), 0.3) !important;
+    background-color: var(--ks-border-subtle) !important;
 }
 </style>

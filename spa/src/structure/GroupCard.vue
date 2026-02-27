@@ -74,7 +74,7 @@ async function handleDelete() {
 
     <v-dialog v-model="showRenameDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px"
+        <v-card-title class="text-uppercase dialog-title"
           >Rename Group</v-card-title
         >
         <v-card-text>
@@ -98,7 +98,7 @@ async function handleDelete() {
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase" style="letter-spacing: 1.5px"
+        <v-card-title class="text-uppercase dialog-title"
           >Delete Group</v-card-title
         >
         <v-card-text>
