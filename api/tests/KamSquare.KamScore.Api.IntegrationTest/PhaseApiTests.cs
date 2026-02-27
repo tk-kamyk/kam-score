@@ -19,6 +19,7 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
         _factory = factory;
         Fake.Reset(factory.FakeRepository);
         Fake.Reset(factory.FakeStructureRepository);
+        Fake.Reset(factory.FakeTeamRepository);
     }
 
     private Tournament CreateTestTournament(string ownerId = "alice")
@@ -266,5 +267,120 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
             $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AutoAssign_ShouldDistributeTeamsByLevel()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var teams = new[]
+        {
+            Team.Create("Eagles", 90, tournament.Id),
+            Team.Create("Hawks", 80, tournament.Id),
+            Team.Create("Falcons", 70, tournament.Id),
+            Team.Create("Ravens", 60, tournament.Id),
+        };
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(teams);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result.Should().NotBeNull();
+        // Level order: Eagles(90), Hawks(80), Falcons(70), Ravens(60)
+        // Snake: Eagles→A, Hawks→B, Ravens→B, Falcons→A
+        result!.Groups![0].TeamIds.Should().HaveCount(2);
+        result.Groups[1].TeamIds.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task AutoAssign_ShouldClearExistingAssignments()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        var oldTeam = Team.Create("OldTeam", 50, tournament.Id);
+        structure.AssignTeam(phase.Id, phase.Groups[0].Id, oldTeam.Id);
+        SetupTournamentAndStructure(tournament, structure);
+        var newTeam = Team.Create("NewTeam", 80, tournament.Id);
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { newTeam });
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        var allTeamIds = result!.Groups!.SelectMany(g => g.TeamIds ?? []).ToList();
+        allTeamIds.Should().Contain(newTeam.Id);
+        allTeamIds.Should().NotContain(oldTeam.Id);
+    }
+
+    [Fact]
+    public async Task AutoAssign_NoGroups_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 1);
+        // Remove the only group to make it empty
+        structure.RemoveGroup(phase.Id, phase.Groups[0].Id);
+        SetupTournamentAndStructure(tournament, structure);
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { Team.Create("Eagles", 50, tournament.Id) });
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AutoAssign_NonOwner_ShouldReturn403()
+    {
+        var tournament = CreateTestTournament("alice");
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("bob");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AutoAssign_Anonymous_ShouldReturn401()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsync(
+            "/api/tournaments/t1/structure/phases/p1/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task AutoAssign_NoStructure_ShouldReturn404()
+    {
+        var tournament = CreateTestTournament();
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns((TournamentStructure?)null);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/some-phase/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 }
