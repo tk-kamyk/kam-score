@@ -8,6 +8,7 @@ import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
 import StructureDetail from '@/structure/StructureDetail.vue'
+import ScheduleOverview from '@/game/ScheduleOverview.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -29,6 +30,7 @@ const tabLabels: Record<string, string> = {
   teams: 'Teams',
   courts: 'Courts',
   structure: 'Structure',
+  schedule: 'Schedule',
 }
 
 const breadcrumbItems = computed(() => [
@@ -102,6 +104,7 @@ async function handleDelete() {
         <v-tab value="teams">Teams</v-tab>
         <v-tab value="courts">Courts</v-tab>
         <v-tab value="structure">Structure</v-tab>
+        <v-tab value="schedule">Schedule</v-tab>
       </v-tabs>
 
       <v-tabs-window v-model="activeTab">
@@ -124,6 +127,10 @@ async function handleDelete() {
 
         <v-tabs-window-item value="structure">
           <StructureDetail :tournament-id="id" :is-owner="isOwner" />
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="schedule">
+          <ScheduleOverview :tournament-id="id" :is-owner="isOwner" />
         </v-tabs-window-item>
       </v-tabs-window>
     </template>

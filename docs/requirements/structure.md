@@ -35,9 +35,39 @@
 
 # Game
 
-- Game is defined by the teams participating, the refereeing team, the court, the start time, and the result
-- It should be possible to enter the game results only using a tournament code. A tournament code should consist of 4 digits/letters and be visible to authenticated users on the tournament page. Then the code is distributed to participants outside of the application.
+- Game is defined by
+    - the home team (or placeholder for playoff)
+    - the away team (or placeholder for playoff)
+    - the refereeing team
+    - the court
+    - the start time
+    - the result (TBC — future iteration)
+- Games should not be created manually
+- A single "Generate & Schedule" button generates all games in a phase and auto-schedules them across courts and time slots
+- Game generation depends on the phase format:
+    - **Round Robin**: all-play-all within each group. Uses circle method for pairings with home/away balance. Referee auto-assigned for every game: the available team (not playing) with fewest referee duties so far. This produces balanced distribution for any group size
+    - **Playoff Elimination**: single-elimination bracket per group. First round uses real team IDs (seeded). Later rounds use placeholders (e.g., "Winner SF1", "Winner QF2")
+    - **Playoff with Placement**: single-elimination bracket with full placement games for all final positions (1st through Nth). After each elimination round, losers form a consolation bracket (B) and winners form the main bracket (A). Consolation rounds are always scheduled before main bracket rounds at each level. Placement games (final position matches) are ordered worst-to-best position, with the Final always last. Example for 8 teams: QF → B-SF (QF losers) → A-SF (QF winners) → 7th → 5th → 3rd → Final
+- Playoffs apply to each group individually; bracket size is determined by the number of teams in the group
+- Scheduling uses the tournament-level game length (minutes) for time slot duration and the phase-level start time as the baseline
 
+# Schedule
+
+- The games should be uniformly distributed among courts
+- The games within each phase should be uniformly distributed among groups (e.g. the first game should happen at the same time in each group if possible due to amount of courts)
+- No team should play or referee in two games at the same time
+- No team should referee two consecutive time slots
+- In round robin the team should have equal amount of home and away games if possible
+- For playoffs, rounds must be scheduled in order (quarterfinals before semifinals before finals)
+
+# Overview
+
+- The following overviews of the tournament structure should be provided:
+    - Phase/group overview
+        - Accessible in a dedicated tab
+    - Court overview
+        - Accessible from the Court tab
+        - Accessible after selecting a court
 
 # TBC
 
@@ -50,13 +80,6 @@
 
 - Groups collect teams, games, and standings
 
-# Schedule
+# Game
 
-- It should be possible to automatically schedule all the games in a phase
-- The games should be uniformly distributed among courts
-- The games within each phase should uniformly distributed among groups (e.g. the first game should happen at the same time in each group if possible due to amount of courts)
-- Team should not play two games in a row
-- Team should not play just after refereeing
-- In round robin the team should have equal amount of home and away games if possible
-- It should be possible to get a schedule overview with all the courts
-- It should be possible to introduce 'break' periods in the schedule where no games can be scheduled
+- It should be possible to enter the game results only using a tournament code. A tournament code should consist of 4 digits/letters and be visible to authenticated users on the tournament page. Then the code is distributed to participants outside of the application.

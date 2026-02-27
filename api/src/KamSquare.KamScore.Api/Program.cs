@@ -67,6 +67,7 @@ app.MapStructureEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapPhaseEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapGroupEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapTeamAssignmentEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapGameEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapHealthEndpoints();
 
 // Ensure Cosmos DB database and container exist
