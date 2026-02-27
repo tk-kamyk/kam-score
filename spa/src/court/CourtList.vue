@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useCourtStore } from '@/court/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import CourtGames from '@/game/CourtGames.vue'
 import type { CourtDto } from '@/court/types'
 import type { VForm } from 'vuetify/components'
 
@@ -21,6 +22,13 @@ const editingCourt = ref<CourtDto | null>(null)
 const deletingCourt = ref<CourtDto | null>(null)
 const form = ref<CourtDto>({ name: '' })
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
+
+const expandedCourt = ref<string | null>(null)
+
+function toggleExpand(courtId?: string) {
+  if (!courtId) return
+  expandedCourt.value = expandedCourt.value === courtId ? null : courtId
+}
 
 const nameRules = [
   (v: string) => !!v || 'Court name is required.',
@@ -102,13 +110,31 @@ async function handleDelete() {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="court in courtStore.courts" :key="court.id">
-            <td>{{ court.name }}</td>
-            <td v-if="isOwner" class="text-right">
-              <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit(court)" />
-              <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="openDelete(court)" />
-            </td>
-          </tr>
+          <template v-for="court in courtStore.courts" :key="court.id">
+            <tr class="court-row" @click="toggleExpand(court.id)">
+              <td>
+                <v-icon
+                  :icon="expandedCourt === court.id ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+                  size="small"
+                  class="mr-1"
+                />
+                {{ court.name }}
+              </td>
+              <td v-if="isOwner" class="text-right">
+                <v-btn icon="mdi-pencil" variant="text" size="small" @click.stop="openEdit(court)" />
+                <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click.stop="openDelete(court)" />
+              </td>
+            </tr>
+            <tr v-if="expandedCourt === court.id">
+              <td :colspan="isOwner ? 2 : 1" class="pa-0">
+                <CourtGames
+                  :tournament-id="tournamentId"
+                  :court-id="court.id!"
+                  :court-name="court.name"
+                />
+              </td>
+            </tr>
+          </template>
         </tbody>
       </v-table>
     </v-card>
@@ -170,7 +196,11 @@ async function handleDelete() {
     background-color: rgb(var(--v-theme-surface-bright));
 }
 
-.styled-table tbody tr:hover {
+.styled-table tbody tr.court-row {
+    cursor: pointer;
+}
+
+.styled-table tbody tr.court-row:hover {
     background-color: var(--ks-border-subtle) !important;
 }
 </style>

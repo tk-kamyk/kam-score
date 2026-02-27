@@ -14,6 +14,7 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
     public ITeamRepository FakeTeamRepository { get; } = A.Fake<ITeamRepository>();
     public ICourtRepository FakeCourtRepository { get; } = A.Fake<ICourtRepository>();
     public ITournamentStructureRepository FakeStructureRepository { get; } = A.Fake<ITournamentStructureRepository>();
+    public IGameRepository FakeGameRepository { get; } = A.Fake<IGameRepository>();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -70,6 +71,15 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(structureDescriptor);
             }
             services.AddSingleton(FakeStructureRepository);
+
+            // Replace IGameRepository with fake
+            var gameDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IGameRepository));
+            if (gameDescriptor != null)
+            {
+                services.Remove(gameDescriptor);
+            }
+            services.AddSingleton(FakeGameRepository);
 
             // Replace authentication with test auth handler
             services.AddAuthentication(options =>
