@@ -127,7 +127,7 @@ async function handleDelete() {
       </v-table>
     </v-card>
 
-    <v-alert class="mt-6" v-else-if="!teamStore.loading" type="info" variant="tonal">
+    <v-alert class="mt-4 mb-4" v-else-if="!teamStore.loading" type="info" variant="tonal">
       No teams yet.
     </v-alert>
 

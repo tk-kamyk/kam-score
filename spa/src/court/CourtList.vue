@@ -153,7 +153,7 @@ async function handleDelete() {
       </v-table>
     </v-card>
 
-    <v-alert class="mt-6" v-else-if="!courtStore.loading" type="info" variant="tonal">
+    <v-alert class="mt-4 mb-4" v-else-if="!courtStore.loading" type="info" variant="tonal">
       No courts yet.
     </v-alert>
 
