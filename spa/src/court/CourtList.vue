@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useCourtStore } from '@/court/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
@@ -12,6 +13,8 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
+const route = useRoute()
+const router = useRouter()
 const courtStore = useCourtStore()
 const { showSuccess, showError } = useSnackbar()
 const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors()
@@ -23,7 +26,17 @@ const deletingCourt = ref<CourtDto | null>(null)
 const form = ref<CourtDto>({ name: '' })
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 
-const expandedCourt = ref<string | null>(null)
+const expandedCourt = ref<string | null>((route.query.court as string) || null)
+
+watch(expandedCourt, (courtId) => {
+  const query = { ...route.query }
+  if (courtId) {
+    query.court = courtId
+  } else {
+    delete query.court
+  }
+  router.replace({ query })
+})
 
 function toggleExpand(courtId?: string) {
   if (!courtId) return
@@ -140,7 +153,7 @@ async function handleDelete() {
       </v-table>
     </v-card>
 
-    <v-alert v-else-if="!courtStore.loading" type="info" variant="tonal">
+    <v-alert class="mt-6" v-else-if="!courtStore.loading" type="info" variant="tonal">
       No courts yet.
     </v-alert>
 

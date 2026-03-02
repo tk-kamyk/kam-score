@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
@@ -13,9 +14,58 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
+const route = useRoute()
+const router = useRouter()
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const { showSuccess, showError } = useSnackbar()
+
+function parseQuerySet(param: unknown): Set<string> {
+  if (!param || typeof param !== 'string') return new Set()
+  return new Set(param.split(',').filter(Boolean))
+}
+
+const expandedPhases = ref(parseQuerySet(route.query.phase))
+const expandedGroups = ref(parseQuerySet(route.query.group))
+
+watch(expandedPhases, (phases) => {
+  const query = { ...route.query }
+  if (phases.size > 0) {
+    query.phase = [...phases].join(',')
+  } else {
+    delete query.phase
+  }
+  router.replace({ query })
+})
+
+watch(expandedGroups, (groups) => {
+  const query = { ...route.query }
+  if (groups.size > 0) {
+    query.group = [...groups].join(',')
+  } else {
+    delete query.group
+  }
+  router.replace({ query })
+})
+
+function togglePhase(phaseId: string) {
+  if (expandedPhases.value.has(phaseId)) {
+    expandedPhases.value.delete(phaseId)
+  } else {
+    expandedPhases.value.add(phaseId)
+  }
+  expandedPhases.value = new Set(expandedPhases.value)
+}
+
+function toggleGroup(phaseId: string, groupId: string) {
+  const key = `${phaseId}:${groupId}`
+  if (expandedGroups.value.has(key)) {
+    expandedGroups.value.delete(key)
+  } else {
+    expandedGroups.value.add(key)
+  }
+  expandedGroups.value = new Set(expandedGroups.value)
+}
 
 const generating = ref<string | null>(null)
 const showDeleteDialog = ref(false)
@@ -130,13 +180,18 @@ onMounted(async () => {
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
-    <v-alert v-if="phases.length === 0 && !structureStore.loading" type="info" variant="tonal">
+    <v-alert class="mt-6" v-if="phases.length === 0 && !structureStore.loading" type="info" variant="tonal">
       No phases defined yet. Set up the tournament structure first.
     </v-alert>
 
-    <div v-for="phase in phases" :key="phase.id" class="mb-6">
-      <div class="d-flex align-center justify-space-between mb-3">
-        <div>
+    <div v-for="phase in phases" :key="phase.id" class="mb-8">
+      <div class="d-flex align-center justify-space-between mb-3 phase-header" @click="togglePhase(phase.id!)">
+        <div class="d-flex align-center">
+          <v-icon
+            :icon="expandedPhases.has(phase.id!) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+            size="small"
+            class="mr-1"
+          />
           <span class="text-h6">{{ phase.name }}</span>
           <v-chip size="small" class="ml-2" color="primary" variant="tonal">
             {{ formatPhaseFormat(phase.format) }}
@@ -145,7 +200,7 @@ onMounted(async () => {
             Starts {{ phase.startTime }}
           </v-chip>
         </div>
-        <div v-if="isOwner">
+        <div v-if="isOwner" @click.stop>
           <v-btn
             v-if="phaseGames(phase.id!).length === 0"
             color="primary"
@@ -167,16 +222,22 @@ onMounted(async () => {
         </div>
       </div>
 
+      <template v-if="expandedPhases.has(phase.id!)">
       <template v-if="phaseGames(phase.id!).length > 0">
         <div
           v-for="(games, groupId) in gamesByGroup(phaseGames(phase.id!))"
           :key="groupId"
-          class="mb-4"
+          class="mb-6 mt-6 ml-6"
         >
-          <div class="text-subtitle-1 font-weight-medium mb-2">
+          <div class="d-flex align-center text-subtitle-1 font-weight-medium mb-2 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
+            <v-icon
+              :icon="expandedGroups.has(`${phase.id}:${groupId}`) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+              size="small"
+              class="mr-1"
+            />
             Group {{ groupName(phase, groupId as string) }}
           </div>
-          <v-card class="data-table-card">
+          <v-card v-if="expandedGroups.has(`${phase.id}:${groupId}`)" class="data-table-card">
             <v-table density="comfortable" class="styled-table">
               <thead>
                 <tr>
@@ -236,7 +297,7 @@ onMounted(async () => {
         </div>
       </template>
 
-      <v-alert
+      <v-alert class="mt-6"
         v-else-if="!gameStore.loading"
         type="info"
         variant="tonal"
@@ -244,6 +305,7 @@ onMounted(async () => {
       >
         No games generated for this phase yet.
       </v-alert>
+      </template>
     </div>
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
@@ -282,5 +344,13 @@ onMounted(async () => {
 
 .styled-table tbody tr:hover {
   background-color: var(--ks-border-subtle) !important;
+}
+
+.phase-header {
+  cursor: pointer;
+}
+
+.group-header {
+  cursor: pointer;
 }
 </style>
