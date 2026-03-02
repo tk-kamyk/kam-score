@@ -78,7 +78,7 @@ onMounted(loadGames)
         <tr v-for="game in games" :key="game.id">
           <td>{{ formatTime(game.startTime) }}</td>
           <td>{{ displayTeam(game, 'home') }}</td>
-          <td class="text-center pt-2 pb-2">
+          <td class="text-center">
             <template v-if="game.status === 'Completed' && game.homeScore != null">
               <v-chip size="small" color="success" variant="tonal">
                 {{ game.homeScore }}–{{ game.awayScore }}

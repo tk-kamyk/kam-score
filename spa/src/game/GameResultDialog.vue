@@ -123,9 +123,9 @@ function awayName(): string {
         <template v-if="mode === 'detailed'">
           <div class="d-flex text-caption text-medium-emphasis mb-1 px-1">
             <span class="flex-1-1">Set</span>
-            <span style="width: 80px" class="text-center">{{ homeName() }}</span>
-            <span style="width: 80px" class="text-center">{{ awayName() }}</span>
-            <span style="width: 36px" />
+            <span class="set-column text-center">{{ homeName() }}</span>
+            <span class="set-column text-center">{{ awayName() }}</span>
+            <span class="remove-btn-column" />
           </div>
           <div v-for="(set, i) in sets" :key="i" class="d-flex align-center gap-2 mb-2">
             <span class="text-body-2 text-medium-emphasis flex-1-1">Set {{ i + 1 }}</span>
@@ -135,7 +135,7 @@ function awayName(): string {
               density="compact"
               hide-details
               min="0"
-              style="max-width: 80px"
+              class="set-input"
             />
             <v-text-field
               v-model.number="set.awayPoints"
@@ -143,7 +143,7 @@ function awayName(): string {
               density="compact"
               hide-details
               min="0"
-              style="max-width: 80px"
+              class="set-input"
             />
             <v-btn
               v-if="sets.length > 1"
@@ -153,7 +153,7 @@ function awayName(): string {
               color="error"
               @click="removeSet(i)"
             />
-            <span v-else style="width: 28px" />
+            <span v-else class="remove-btn-spacer" />
           </div>
           <v-btn
             prepend-icon="mdi-plus"
@@ -216,3 +216,21 @@ function awayName(): string {
     </v-card>
   </v-dialog>
 </template>
+
+<style scoped>
+.set-column {
+  width: 80px;
+}
+
+.set-input {
+  max-width: 80px;
+}
+
+.remove-btn-column {
+  width: 36px;
+}
+
+.remove-btn-spacer {
+  width: 28px;
+}
+</style>
