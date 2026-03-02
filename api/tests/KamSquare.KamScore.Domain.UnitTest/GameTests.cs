@@ -1,6 +1,7 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -49,5 +50,67 @@ public class GameTests
         game.CourtId.Should().Be("court1");
         game.StartTime.Should().Be(startTime);
         game.LastModified.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void RecordResult_WithSets_ComputesScoresAndSetsCompleted()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        var sets = new List<SetResult>
+        {
+            new(25, 20),  // home wins
+            new(23, 25),  // away wins
+            new(15, 10)   // home wins
+        };
+
+        game.RecordResult(sets);
+
+        game.HomeScore.Should().Be(2);
+        game.AwayScore.Should().Be(1);
+        game.Sets.Should().HaveCount(3);
+        game.Status.Should().Be(GameStatus.Completed);
+        game.LastModified.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void RecordResult_TiedSets_NotCountedForEither()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        var sets = new List<SetResult>
+        {
+            new(25, 20),  // home wins
+            new(20, 20)   // tie (not counted)
+        };
+
+        game.RecordResult(sets);
+
+        game.HomeScore.Should().Be(1);
+        game.AwayScore.Should().Be(0);
+    }
+
+    [Fact]
+    public void RecordSimpleResult_SetsScoreAndCompleted()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+
+        game.RecordSimpleResult(2, 1);
+
+        game.HomeScore.Should().Be(2);
+        game.AwayScore.Should().Be(1);
+        game.Sets.Should().BeNull();
+        game.Status.Should().Be(GameStatus.Completed);
+        game.LastModified.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void RecordSimpleResult_ZeroZero_SetsCompleted()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+
+        game.RecordSimpleResult(0, 0);
+
+        game.HomeScore.Should().Be(0);
+        game.AwayScore.Should().Be(0);
+        game.Status.Should().Be(GameStatus.Completed);
     }
 }

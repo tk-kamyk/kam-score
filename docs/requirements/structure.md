@@ -41,7 +41,7 @@
     - the refereeing team
     - the court
     - the start time
-    - the result (TBC — future iteration)
+    - the result (optional — recorded after the game is played)
 - Games should not be created manually
 - A single "Generate & Schedule" button generates all games in a phase and auto-schedules them across courts and time slots
 - Game generation depends on the phase format:
@@ -69,17 +69,28 @@
         - Accessible from the Court tab
         - Accessible after selecting a court
 
+# Results
+
+- It should be possible to enter the game results only using a tournament code
+- It should be possible from the phase/group overview and from the court overview
+- Game results should be visible in the overviews
+- It should be possible to edit a previously recorded result using the same mechanism as entering it
+- Results can be entered in two modes:
+    - **Detailed** (default): per-set scores (e.g. 25-20, 23-25, 15-10); displayed in overviews when available
+    - **Simple**: sets won only (e.g. 2-1); shown as a fallback when per-set data is not recorded
+- Tie rules:
+    - Simple results (sets-won mode): a tie is not allowed (one team must win more sets)
+    - Detailed result with exactly 1 set: a tie is allowed (equal points permitted)
+    - Detailed result with more than 1 set: a tie in set count is not allowed (one team must win more sets), and each individual set must also have a winner (no drawn sets)
+
 # TBC
 
 # Phase
 
-- It is possible to get a list of all games within all the groups of a phase
 - Phases structure can be copied from another tournament
+- Phases and groups should be collapsible
 
 # Group
 
 - Groups collect teams, games, and standings
 
-# Game
-
-- It should be possible to enter the game results only using a tournament code. A tournament code should consist of 4 digits/letters and be visible to authenticated users on the tournament page. Then the code is distributed to participants outside of the application.

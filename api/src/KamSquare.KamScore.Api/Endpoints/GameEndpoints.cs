@@ -7,6 +7,7 @@ using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -20,6 +21,7 @@ public static class GameEndpoints
         group.MapPost("/structure/phases/{phaseId}/generate-schedule", GenerateAndSchedule)
             .RequireAuthorization();
         group.MapGet("/games", GetGames);
+        group.MapPut("/games/{gameId}/result", RecordResult);
         group.MapDelete("/structure/phases/{phaseId}/games", DeleteGames)
             .RequireAuthorization();
 
@@ -196,5 +198,53 @@ public static class GameEndpoints
         await gameRepository.DeleteByPhaseIdAsync(tournamentId, phaseId);
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> RecordResult(
+        string tournamentId,
+        string gameId,
+        GameResultDto resultDto,
+        ITournamentRepository tournamentRepository,
+        IGameRepository gameRepository,
+        ICurrentUserService currentUser,
+        HttpContext httpContext,
+        IMapper mapper)
+    {
+        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
+        if (tournament is null)
+            throw new NotFoundException(nameof(Tournament), tournamentId);
+
+        var isOwner = currentUser.IsAuthenticated && tournament.IsOwnedBy(currentUser.UserId!);
+        if (!isOwner)
+        {
+            var code = httpContext.Request.Headers["X-Tournament-Code"].FirstOrDefault();
+            if (code is null)
+            {
+                if (!currentUser.IsAuthenticated)
+                    throw new UnauthorizedException("Authentication required.");
+                throw new ForbiddenException();
+            }
+            if (!tournament.TournamentCode.Equals(code, StringComparison.OrdinalIgnoreCase))
+                throw new ForbiddenException();
+        }
+
+        var game = await gameRepository.GetByIdAsync(tournamentId, gameId);
+        if (game is null)
+            throw new NotFoundException(nameof(Game), gameId);
+
+        if (resultDto.Sets is { Count: > 0 })
+        {
+            var sets = resultDto.Sets
+                .Select(s => new SetResult(s.HomePoints, s.AwayPoints))
+                .ToList();
+            game.RecordResult(sets);
+        }
+        else
+        {
+            game.RecordSimpleResult(resultDto.HomeScore!.Value, resultDto.AwayScore!.Value);
+        }
+
+        var updatedGame = await gameRepository.UpdateAsync(game);
+        return Results.Ok(mapper.Map<GameDto>(updatedGame));
     }
 }

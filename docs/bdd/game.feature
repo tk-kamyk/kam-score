@@ -134,3 +134,58 @@ Feature: Game Generation and Management
     Given a phase in someone else's tournament
     When I try to generate or delete games
     Then I should receive a 403 Forbidden error
+
+  # --- Results ---
+
+  Scenario: Participant records a result using tournament code
+    Given a scheduled game in a phase with generated games
+    When a participant submits set scores [(25,20), (23,25), (15,10)] with a valid tournament code
+    Then the game status should change to "Completed"
+    And the game should show HomeScore 2 and AwayScore 1
+    And the per-set breakdown should be stored
+
+  Scenario: Participant records a simple result (sets won)
+    Given a scheduled game in a phase with generated games
+    When a participant submits HomeScore 2 and AwayScore 1 with a valid tournament code
+    Then the game status should change to "Completed"
+    And the game should show HomeScore 2 and AwayScore 1
+
+  Scenario: Recorded result is visible in game list
+    Given a game with a recorded result (HomeScore 2, AwayScore 1)
+    When anyone requests the games for the tournament
+    Then the game should appear with status "Completed", HomeScore 2, and AwayScore 1
+
+  Scenario: Anonymous can view recorded results
+    Given a game with a recorded result
+    When an anonymous visitor requests games
+    Then they should see the result (score and status) in the response
+
+  Scenario: Simple result cannot be a tie
+    Given a scheduled game in a phase with generated games
+    When a participant submits HomeScore 1 and AwayScore 1 with a valid tournament code
+    Then the request should be rejected with status 400
+    And the error should indicate a tie is not allowed
+
+  Scenario: Detailed result with exactly one set can be a tie
+    Given a scheduled game in a phase with generated games
+    When a participant submits set scores [(25,25)] with a valid tournament code
+    Then the game status should change to "Completed"
+    And the game should show HomeScore 0 and AwayScore 0
+
+  Scenario: Detailed result with more than one set cannot be a tie
+    Given a scheduled game in a phase with generated games
+    When a participant submits set scores [(25,20), (20,25)] with a valid tournament code
+    Then the request should be rejected with status 400
+    And the error should indicate a tie is not allowed in a multi-set result
+
+  Scenario: Individual set draw not allowed in multi-set result
+    Given a scheduled game in a phase with generated games
+    When a participant submits set scores [(25,13), (13,13)] with a valid tournament code
+    Then the request should be rejected with status 400
+    And the error should indicate each set must have a winner
+
+  Scenario: Owner can edit an already-recorded result
+    Given a game with a recorded result (HomeScore 2, AwayScore 1)
+    When the owner submits a new result for that game
+    Then the game status should remain "Completed"
+    And the new result should replace the previous one

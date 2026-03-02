@@ -33,6 +33,27 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
     }
 
+    public async Task<Game?> GetByIdAsync(string tournamentId, string gameId)
+    {
+        try
+        {
+            var response = await Container.ReadItemAsync<Game>(
+                gameId,
+                new PartitionKey(tournamentId));
+            return response.Resource;
+        }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
+    public async Task<Game> UpdateAsync(Game game)
+    {
+        var response = await Container.UpsertItemAsync(game, new PartitionKey(game.TournamentId));
+        return response.Resource;
+    }
+
     public async Task<IEnumerable<Game>> CreateBatchAsync(IEnumerable<Game> games)
     {
         var created = new List<Game>();

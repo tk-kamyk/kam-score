@@ -1,4 +1,5 @@
 using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Entities;
 
@@ -16,6 +17,9 @@ public class Game : Entity
     public string? CourtId { get; set; }
     public DateTime? StartTime { get; set; }
     public GameStatus Status { get; set; } = GameStatus.Scheduled;
+    public int? HomeScore { get; set; }
+    public int? AwayScore { get; set; }
+    public List<SetResult>? Sets { get; set; }
 
     public static Game Create(
         string tournamentId,
@@ -49,6 +53,24 @@ public class Game : Entity
     {
         CourtId = courtId;
         StartTime = startTime;
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void RecordResult(List<SetResult> sets)
+    {
+        Sets = sets;
+        HomeScore = sets.Count(s => s.HomePoints > s.AwayPoints);
+        AwayScore = sets.Count(s => s.AwayPoints > s.HomePoints);
+        Status = GameStatus.Completed;
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void RecordSimpleResult(int homeScore, int awayScore)
+    {
+        HomeScore = homeScore;
+        AwayScore = awayScore;
+        Sets = null;
+        Status = GameStatus.Completed;
         LastModified = DateTime.UtcNow;
     }
 }

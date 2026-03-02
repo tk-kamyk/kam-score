@@ -6,6 +6,7 @@ import { useSnackbar } from '@/composables/useSnackbar'
 import { formatPhaseFormat } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import type { PhaseDto } from '@/structure/types'
+import GameResultDialog from '@/game/GameResultDialog.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -20,6 +21,13 @@ const generating = ref<string | null>(null)
 const showDeleteDialog = ref(false)
 const deletingPhaseId = ref<string | null>(null)
 const deletingPhaseName = ref('')
+const showResultDialog = ref(false)
+const selectedGame = ref<GameDto | null>(null)
+
+function openResultDialog(game: GameDto) {
+  selectedGame.value = game
+  showResultDialog.value = true
+}
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
 
@@ -63,6 +71,11 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
   if (name) return name
   const placeholder = side === 'home' ? game.homeTeamPlaceholder : game.awayTeamPlaceholder
   return placeholder ?? '-'
+}
+
+function formatSets(game: GameDto): string {
+  if (!game.sets?.length) return ''
+  return game.sets.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ')
 }
 
 function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
@@ -170,9 +183,10 @@ onMounted(async () => {
                   <th>Time</th>
                   <th>Court</th>
                   <th>Home</th>
-                  <th class="text-center">vs</th>
+                  <th class="text-center">Result</th>
                   <th>Away</th>
                   <th>Referee</th>
+                  <th />
                 </tr>
               </thead>
               <tbody>
@@ -182,11 +196,39 @@ onMounted(async () => {
                   <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'home') }">
                     {{ displayTeam(game, 'home') }}
                   </td>
-                  <td class="text-center">vs</td>
+                  <td class="text-center pt-2 pb-2">
+                    <template v-if="game.status === 'Completed' && game.homeScore != null">
+                      <v-chip size="small" color="success" variant="tonal">
+                        {{ game.homeScore }}–{{ game.awayScore }}
+                      </v-chip>
+                      <div v-if="formatSets(game)" class="text-caption text-medium-emphasis mt-1">
+                        {{ formatSets(game) }}
+                      </div>
+                    </template>
+                    <span v-else class="text-medium-emphasis">vs</span>
+                  </td>
                   <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'away') }">
                     {{ displayTeam(game, 'away') }}
                   </td>
                   <td>{{ game.refereeTeamName ?? '-' }}</td>
+                  <td class="text-right">
+                    <v-btn
+                      v-if="game.status === 'Scheduled'"
+                      size="x-small"
+                      variant="tonal"
+                      color="primary"
+                      @click="openResultDialog(game)"
+                    >
+                      Enter Result
+                    </v-btn>
+                    <v-btn
+                      v-else-if="game.status === 'Completed'"
+                      size="x-small"
+                      variant="text"
+                      icon="mdi-pencil"
+                      @click="openResultDialog(game)"
+                    />
+                  </td>
                 </tr>
               </tbody>
             </v-table>
@@ -218,6 +260,14 @@ onMounted(async () => {
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <GameResultDialog
+      v-if="selectedGame"
+      v-model="showResultDialog"
+      :game="selectedGame"
+      :tournament-id="tournamentId"
+      :is-owner="isOwner"
+    />
   </div>
 </template>
 

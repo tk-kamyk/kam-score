@@ -1,3 +1,8 @@
+export interface SetResultDto {
+  homePoints: number
+  awayPoints: number
+}
+
 export interface GameDto {
   id?: string
   phaseId?: string
@@ -11,8 +16,17 @@ export interface GameDto {
   courtId?: string
   startTime?: string
   status?: string
+  homeScore?: number
+  awayScore?: number
+  sets?: SetResultDto[]
   homeTeamName?: string
   awayTeamName?: string
   refereeTeamName?: string
   courtName?: string
+}
+
+export interface GameResultInput {
+  sets?: SetResultDto[]
+  homeScore?: number
+  awayScore?: number
 }
