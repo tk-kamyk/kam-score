@@ -142,7 +142,7 @@ async function handleAutoAssign() {
         </v-card>
       </div>
 
-      <v-alert v-else type="info" variant="tonal" density="compact">
+      <v-alert class="mt-6" v-else type="info" variant="tonal" density="compact">
         No groups in this phase.
       </v-alert>
 

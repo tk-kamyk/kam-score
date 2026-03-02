@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { onMounted, ref, computed, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
@@ -14,11 +14,17 @@ import type { TournamentDto } from '@/tournament/types'
 const props = defineProps<{ id: string }>()
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 
-const activeTab = ref('details')
+const validTabs = ['details', 'teams', 'courts', 'structure', 'schedule']
+const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'details')
+
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, tab } })
+})
 
 const tournament = computed(() => tournamentStore.currentTournament)
 const isOwner = computed(() =>
