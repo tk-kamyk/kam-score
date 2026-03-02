@@ -180,12 +180,13 @@ onMounted(async () => {
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
-    <v-alert class="mt-6" v-if="phases.length === 0 && !structureStore.loading" type="info" variant="tonal">
+    <v-alert class="mt-4 mb-4" v-if="phases.length === 0 && !structureStore.loading" type="info" variant="tonal">
       No phases defined yet. Set up the tournament structure first.
     </v-alert>
 
-    <div v-for="phase in phases" :key="phase.id" class="mb-8">
-      <div class="d-flex align-center justify-space-between mb-3 phase-header" @click="togglePhase(phase.id!)">
+    <div class="phases-list">
+    <v-card v-for="phase in phases" :key="phase.id" class="phase-card">
+      <v-card-title class="d-flex align-center justify-space-between phase-header mb-4 mt-4" @click="togglePhase(phase.id!)">
         <div class="d-flex align-center">
           <v-icon
             :icon="expandedPhases.has(phase.id!) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
@@ -220,16 +221,16 @@ onMounted(async () => {
             Delete Games
           </v-btn>
         </div>
-      </div>
+      </v-card-title>
 
-      <template v-if="expandedPhases.has(phase.id!)">
+      <v-card-text v-if="expandedPhases.has(phase.id!)">
       <template v-if="phaseGames(phase.id!).length > 0">
         <div
           v-for="(games, groupId) in gamesByGroup(phaseGames(phase.id!))"
           :key="groupId"
-          class="mb-6 mt-6 ml-6"
+          class="mb-4 ml-6 mr-6"
         >
-          <div class="d-flex align-center text-subtitle-1 font-weight-medium mb-2 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
+          <div class="d-flex align-center text-subtitle-1 font-weight-medium mb-6 mt-6 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
             <v-icon
               :icon="expandedGroups.has(`${phase.id}:${groupId}`) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
               size="small"
@@ -297,15 +298,17 @@ onMounted(async () => {
         </div>
       </template>
 
-      <v-alert class="mt-6"
+      <v-alert
         v-else-if="!gameStore.loading"
+        class="mt-4 mb-4"
         type="info"
         variant="tonal"
         density="compact"
       >
         No games generated for this phase yet.
       </v-alert>
-      </template>
+      </v-card-text>
+    </v-card>
     </div>
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
@@ -344,6 +347,16 @@ onMounted(async () => {
 
 .styled-table tbody tr:hover {
   background-color: var(--ks-border-subtle) !important;
+}
+
+.phases-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.phase-card {
+  border: 1px solid var(--ks-border);
 }
 
 .phase-header {

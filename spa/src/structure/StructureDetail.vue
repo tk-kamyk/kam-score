@@ -125,12 +125,12 @@ async function handleDeletePhase(phaseId: string) {
         />
       </div>
 
-      <v-alert class="mt-6" v-else-if="!structureStore.loading" type="info" variant="tonal">
+      <v-alert class="mt-4 mb-4" v-else-if="!structureStore.loading" type="info" variant="tonal">
         No phases yet. {{ isOwner ? 'Click Edit to start adding phases.' : '' }}
       </v-alert>
     </template>
 
-    <v-alert class="mt-6" v-else-if="!structureStore.loading" type="info" variant="tonal">
+    <v-alert class="mt-4 mb-4" v-else-if="!structureStore.loading" type="info" variant="tonal">
       No structure configured.
       {{ isOwner ? 'Click "Initialize Structure" to get started.' : '' }}
     </v-alert>
