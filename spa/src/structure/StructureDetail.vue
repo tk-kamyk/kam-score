@@ -102,15 +102,16 @@ async function handleDeletePhase(phaseId: string) {
     <v-progress-linear v-if="structureStore.loading" indeterminate color="primary" class="mb-4" />
 
     <template v-if="hasStructure">
-      <v-btn
-        v-if="editing"
-        color="primary"
-        prepend-icon="mdi-plus"
-        class="mb-4"
-        @click="openAddPhase"
-      >
-        Add Phase
-      </v-btn>
+      <div v-if="editing" class="text-right">
+        <v-btn
+          color="primary"
+          prepend-icon="mdi-plus"
+          class="mb-4"
+          @click="openAddPhase"
+        >
+          Add Phase
+        </v-btn>
+      </div>
 
       <div v-if="phases.length > 0" class="phases-list">
         <PhaseCard

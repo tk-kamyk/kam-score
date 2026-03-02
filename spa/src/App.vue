@@ -36,7 +36,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
       </template>
     </v-app-bar>
 
-    <v-main>
+    <v-main class="ks-content">
       <v-container class="main-container">
         <router-view />
       </v-container>
@@ -44,7 +44,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
 
     <LoginDialog />
 
-    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="3000">
+    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="3000" class="ks-snackbar">
       {{ snackbarMessage }}
     </v-snackbar>
   </v-app>

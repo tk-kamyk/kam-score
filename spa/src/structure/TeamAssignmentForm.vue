@@ -74,7 +74,7 @@ async function handleRemove(teamId: string) {
 
 <template>
   <div>
-    <v-list v-if="assignedTeams.length > 0" density="compact" class="pa-0">
+    <v-list v-if="assignedTeams.length > 0" density="compact" class="pa-0 team-list">
       <v-list-item v-for="team in assignedTeams" :key="team.id" class="px-0">
         <template #default>
           <span class="text-body-2">{{ team.name }}</span>
@@ -120,5 +120,9 @@ async function handleRemove(teamId: string) {
 <style scoped>
 .gap-2 {
   gap: 8px;
+}
+
+.team-list {
+  background-color: rgb(var(--v-theme-surface-bright));
 }
 </style>

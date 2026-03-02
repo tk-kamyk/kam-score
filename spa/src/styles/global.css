@@ -102,3 +102,22 @@ body::before {
 .text-muted-color {
     color: var(--ks-text-muted);
 }
+
+/* Global table cell padding — equivalent to Vuetify pa-4 (16px) */
+.ks-content .v-table .v-table__wrapper table tbody tr td,
+.ks-content .v-table .v-table__wrapper table tbody tr th,
+.ks-content .v-table .v-table__wrapper table tfoot tr td,
+.ks-content .v-table .v-table__wrapper table tfoot tr th,
+.ks-content .v-table .v-table__wrapper table thead tr th {
+    padding: 16px;
+}
+
+/* Lift snackbar off the bottom edge */
+.ks-snackbar .v-snackbar__wrapper {
+    margin-bottom: 24px;
+}
+
+.v-card-title {
+    padding-top: 24px;
+    padding-bottom: 24px;
+}
