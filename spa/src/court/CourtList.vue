@@ -126,11 +126,12 @@ async function handleDelete() {
               </td>
             </tr>
             <tr v-if="expandedCourt === court.id">
-              <td :colspan="isOwner ? 2 : 1" class="pa-0">
+              <td :colspan="isOwner ? 2 : 1" class="pa-0 court-expanded-cell">
                 <CourtGames
                   :tournament-id="tournamentId"
                   :court-id="court.id!"
                   :court-name="court.name"
+                  :is-owner="isOwner"
                 />
               </td>
             </tr>
@@ -202,5 +203,9 @@ async function handleDelete() {
 
 .styled-table tbody tr.court-row:hover {
     background-color: var(--ks-border-subtle) !important;
+}
+
+.court-expanded-cell {
+    background-color: rgb(var(--v-theme-surface-bright));
 }
 </style>

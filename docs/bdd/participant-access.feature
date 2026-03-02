@@ -33,3 +33,26 @@ Feature: Participant Access via Tournament Code
     Given a tournament with code "XKRT3"
     When I submit a result with code "xkrt3"
     Then the result should be recorded successfully
+
+  Scenario: Record result in detailed set format
+    Given a scheduled game between "Eagles" and "Hawks"
+    When I submit a result with X-Tournament-Code header "XKRT3" and sets [(25,20), (23,25), (15,10)]
+    Then the result should be recorded successfully
+    And the game should show HomeScore 2, AwayScore 1, status "Completed"
+    And the per-set breakdown should be stored
+
+  Scenario: Record result in simple mode (sets won only)
+    Given a scheduled game between "Eagles" and "Hawks"
+    When I submit a result with X-Tournament-Code header "XKRT3" and HomeScore 2, AwayScore 1
+    Then the result should be recorded successfully
+    And the game should show HomeScore 2, AwayScore 1, status "Completed"
+
+  Scenario: Authenticated owner can record result without tournament code
+    Given a scheduled game between "Eagles" and "Hawks"
+    When the tournament owner submits a result with a valid JWT token
+    Then the result should be recorded successfully
+
+  Scenario: Non-owner authenticated user cannot record result without tournament code
+    Given a user authenticated as a different owner
+    When they try to record a result without a tournament code
+    Then I should receive a 403 Forbidden response

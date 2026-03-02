@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import apiClient from '@/api/client'
-import type { GameDto } from '@/game/types'
+import type { GameDto, GameResultInput } from '@/game/types'
 
 export const useGameStore = defineStore('game', () => {
   const games = ref<GameDto[]>([])
@@ -39,11 +39,30 @@ export const useGameStore = defineStore('game', () => {
     await apiClient.delete(`/tournaments/${tournamentId}/structure/phases/${phaseId}/games`)
   }
 
+  async function recordResult(
+    tournamentId: string,
+    gameId: string,
+    result: GameResultInput,
+    tournamentCode?: string,
+  ) {
+    const headers: Record<string, string> = {}
+    if (tournamentCode) {
+      headers['X-Tournament-Code'] = tournamentCode
+    }
+    await apiClient.put<GameDto>(
+      `/tournaments/${tournamentId}/games/${gameId}/result`,
+      result,
+      { headers },
+    )
+    await fetchGames(tournamentId)
+  }
+
   return {
     games,
     loading,
     fetchGames,
     generateSchedule,
     deleteGames,
+    recordResult,
   }
 })
