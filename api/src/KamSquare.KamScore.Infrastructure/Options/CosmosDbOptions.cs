@@ -5,4 +5,6 @@ public class CosmosDbOptions
     public const string SectionName = "CosmosDb";
     public string ConnectionString { get; set; } = string.Empty;
     public string DatabaseName { get; set; } = "KamScore";
+    public int ProvisionedThroughput { get; set; } = 1000;
+    public int InitializationTimeoutSeconds { get; set; } = 30;
 }

@@ -4,6 +4,7 @@ namespace KamSquare.KamScore.Domain.Services;
 
 public static class RoundRobinGenerator
 {
+    private const string ByePlaceholder = "BYE";
     /// <summary>
     /// Generates round-robin games for a group using the circle method.
     /// Home/away is balanced per team using a tracking approach.
@@ -24,7 +25,7 @@ public static class RoundRobinGenerator
 
         // Add BYE placeholder if odd number of teams
         if (isOdd)
-            teams.Add("BYE");
+            teams.Add(ByePlaceholder);
 
         var n = teams.Count;
         var totalRounds = n - 1;
@@ -67,7 +68,7 @@ public static class RoundRobinGenerator
             // Create games, skip BYE pairings, assign referee per game
             foreach (var (home, away) in pairings)
             {
-                if (home == "BYE" || away == "BYE") continue;
+                if (home == ByePlaceholder || away == ByePlaceholder) continue;
 
                 // Pick referee: available team with fewest referee duties
                 var referee = teamIds

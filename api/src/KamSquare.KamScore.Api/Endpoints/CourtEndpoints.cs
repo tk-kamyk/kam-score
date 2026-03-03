@@ -3,7 +3,9 @@ using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Api.Helpers;
 using FluentValidation;
+using FluentValidation.Results;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -46,16 +48,11 @@ public static class CourtEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         if (await courtRepository.ExistsByNameAsync(tournamentId, request.Name))
             throw new ValidationException(
-                [new FluentValidation.Results.ValidationFailure("Name", $"A court with name '{request.Name}' already exists in this tournament.")]);
+                [new ValidationFailure("Name", $"A court with name '{request.Name}' already exists in this tournament.")]);
 
         var court = Court.Create(request.Name, tournamentId);
         var created = await courtRepository.CreateAsync(court);
@@ -73,12 +70,7 @@ public static class CourtEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var court = await courtRepository.GetByIdAsync(courtId, tournamentId);
         if (court is null)
@@ -86,7 +78,7 @@ public static class CourtEndpoints
 
         if (await courtRepository.ExistsByNameAsync(tournamentId, request.Name, courtId))
             throw new ValidationException(
-                [new FluentValidation.Results.ValidationFailure("Name", $"A court with name '{request.Name}' already exists in this tournament.")]);
+                [new ValidationFailure("Name", $"A court with name '{request.Name}' already exists in this tournament.")]);
 
         court.Update(request.Name);
         var updated = await courtRepository.UpdateAsync(court);
@@ -102,12 +94,7 @@ public static class CourtEndpoints
         ITournamentRepository tournamentRepository,
         ICurrentUserService currentUser)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var court = await courtRepository.GetByIdAsync(courtId, tournamentId);
         if (court is null)

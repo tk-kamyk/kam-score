@@ -1,3 +1,4 @@
+using FluentAssertions;
 using FluentValidation.TestHelper;
 using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Validators;
@@ -106,7 +107,7 @@ public class GameResultDtoValidatorTests
 
         var result = _validator.TestValidate(dto);
 
-        Assert.Contains(result.Errors, e => e.ErrorMessage == "In a multi-set result, each set must have a winner.");
+        result.Errors.Should().Contain(e => e.ErrorMessage == "In a multi-set result, each set must have a winner.");
     }
 
     [Fact]

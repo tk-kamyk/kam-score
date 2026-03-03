@@ -5,6 +5,7 @@ using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.ValueObjects;
+using KamSquare.KamScore.Api.Helpers;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -115,17 +116,7 @@ public static class TournamentEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await repository.GetByIdAsync(id);
-
-        if (tournament is null)
-        {
-            throw new NotFoundException(nameof(Tournament), id);
-        }
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-        {
-            throw new ForbiddenException();
-        }
+        var tournament = await repository.GetOwnedTournamentAsync(currentUser, id);
 
         var discipline = Enum.Parse<Discipline>(request.Discipline, ignoreCase: true);
         var gameConditions = request.GameConditions is not null
@@ -145,17 +136,7 @@ public static class TournamentEndpoints
         ITournamentRepository repository,
         ICurrentUserService currentUser)
     {
-        var tournament = await repository.GetByIdAsync(id);
-
-        if (tournament is null)
-        {
-            throw new NotFoundException(nameof(Tournament), id);
-        }
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-        {
-            throw new ForbiddenException();
-        }
+        var tournament = await repository.GetOwnedTournamentAsync(currentUser, id);
 
         await repository.DeleteAsync(id, tournament.OwnerId);
 

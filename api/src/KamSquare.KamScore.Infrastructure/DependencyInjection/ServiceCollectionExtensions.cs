@@ -29,7 +29,10 @@ public static class ServiceCollectionExtensions
                 o => !string.IsNullOrEmpty(o.Secret) && o.Secret.Length >= 32,
                 "Jwt:Secret must be at least 32 characters.")
             .ValidateOnStart();
-        services.Configure<UserOptions>(configuration.GetSection(UserOptions.SectionName));
+        services.AddOptions<UserOptions>()
+            .Bind(configuration.GetSection(UserOptions.SectionName))
+            .Validate(o => o.Entries.Count > 0, "At least one user entry is required.")
+            .ValidateOnStart();
         services.Configure<CosmosDbOptions>(configuration.GetSection(CosmosDbOptions.SectionName));
         services.Configure<CorsOptions>(configuration.GetSection(CorsOptions.SectionName));
 
@@ -66,20 +69,22 @@ public static class ServiceCollectionExtensions
         // FluentValidation
         services.AddValidatorsFromAssemblyContaining<TournamentProfile>();
 
-        // JWT Authentication
-        var jwtSecret = configuration["Jwt:Secret"] ?? string.Empty;
+        // JWT Authentication — configured via validated JwtOptions
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
+            .AddJwtBearer();
+        services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) =>
             {
-                options.TokenValidationParameters = new TokenValidationParameters
+                var jwt = jwtOptions.Value;
+                bearer.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = configuration["Jwt:Issuer"],
-                    ValidAudience = configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
+                    ValidIssuer = jwt.Issuer,
+                    ValidAudience = jwt.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret))
                 };
             });
         services.AddAuthorization();
@@ -96,11 +101,11 @@ public static class ServiceCollectionExtensions
             .CreateLogger("CosmosDbInitialization");
         var options = services.GetRequiredService<IOptions<CosmosDbOptions>>().Value;
 
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(options.InitializationTimeoutSeconds));
         try
         {
             var database = await cosmosClient.CreateDatabaseIfNotExistsAsync(
-                options.DatabaseName, throughput: 1000, cancellationToken: cts.Token);
+                options.DatabaseName, throughput: options.ProvisionedThroughput, cancellationToken: cts.Token);
 
             await database.Database.CreateContainerIfNotExistsAsync(
                 CosmosRepository<Tournament>.GetContainerName(), "/ownerId", cancellationToken: cts.Token);
@@ -118,7 +123,7 @@ public static class ServiceCollectionExtensions
         catch (Exception ex)
         {
             logger.LogCritical(ex,
-                "Failed to initialize Cosmos DB within 30 seconds");
+                "Failed to initialize Cosmos DB within {Timeout} seconds", options.InitializationTimeoutSeconds);
             throw;
         }
     }

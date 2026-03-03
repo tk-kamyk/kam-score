@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using AutoMapper;
 using FluentValidation;
 using FluentValidation.Results;
@@ -6,13 +7,17 @@ using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Api.Helpers;
 using KamSquare.KamScore.Domain.Services;
 using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
-public static class GameEndpoints
+public static partial class GameEndpoints
 {
+    [GeneratedRegex("^[0-9A-Fa-f]{4}$")]
+    private static partial Regex TournamentCodeRegex();
+
     public static RouteGroupBuilder MapGameEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/tournaments/{tournamentId}")
@@ -39,94 +44,26 @@ public static class GameEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
-
+        var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
-
         var phase = structure.GetPhase(phaseId);
-
-        // Validate prerequisites
-        if (tournament.GameLength is null or <= 0)
-            throw new ValidationException(
-                [new ValidationFailure("GameLength", "Tournament must have a game length configured.")]);
-
-        if (phase.StartTime is null)
-            throw new ValidationException(
-                [new ValidationFailure("StartTime", "Phase must have a start time configured.")]);
-
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
-        if (courts.Count == 0)
-            throw new ValidationException(
-                [new ValidationFailure("Courts", "At least one court is required.")]);
 
-        if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
-            throw new ValidationException(
-                [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
+        await ValidateGenerationPrerequisitesAsync(tournament, phase, courts, tournamentId, phaseId, gameRepository);
+        var allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
 
-        if (await gameRepository.GamesExistForPhaseAsync(tournamentId, phaseId))
-            throw new ValidationException(
-                [new ValidationFailure("Games", "Games already exist for this phase. Delete them first.")]);
-
-        // Generate games for each group based on phase format
-        var allGames = new List<Game>();
-        foreach (var group in phase.Groups)
-        {
-            if (group.TeamIds.Count <= 1)
-                continue;
-
-            var games = phase.Format switch
-            {
-                PhaseFormat.RoundRobin => RoundRobinGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                PhaseFormat.PlayoffElimination => PlayoffEliminationGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                PhaseFormat.PlayoffWithPlacement => PlayoffWithPlacementGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                _ => throw new ValidationException(
-                    [new ValidationFailure("Format", $"Unsupported phase format: {phase.Format}")])
-            };
-
-            allGames.AddRange(games);
-        }
-
-        if (allGames.Count == 0)
-            throw new ValidationException(
-                [new ValidationFailure("Games", "No games could be generated. Check team assignments.")]);
-
-        // Schedule games across courts and time slots
         var courtIds = courts.Select(c => c.Id).ToList();
-        var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime.Value.ToTimeSpan())
-            ?? DateTime.Today.Add(phase.StartTime.Value.ToTimeSpan());
+        var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime!.Value.ToTimeSpan())
+            ?? DateTime.Today.Add(phase.StartTime!.Value.ToTimeSpan());
+        GameScheduler.Schedule(allGames, courtIds, startDateTime, tournament.GameLength!.Value);
 
-        GameScheduler.Schedule(allGames, courtIds, startDateTime, tournament.GameLength.Value);
-
-        // Save all games
         var savedGames = (await gameRepository.CreateBatchAsync(allGames)).ToList();
-
-        // Resolve team and court names for response
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
-        var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
-        var courtLookup = courts.ToDictionary(c => c.Id, c => c.Name);
 
-        var dtos = savedGames.Select(g =>
-        {
-            var dto = mapper.Map<GameDto>(g);
-            return dto with
-            {
-                HomeTeamName = g.HomeTeamId is not null && teamLookup.TryGetValue(g.HomeTeamId, out var hn) ? hn : null,
-                AwayTeamName = g.AwayTeamId is not null && teamLookup.TryGetValue(g.AwayTeamId, out var an) ? an : null,
-                RefereeTeamName = g.RefereeTeamId is not null && teamLookup.TryGetValue(g.RefereeTeamId, out var rn) ? rn : null,
-                CourtName = g.CourtId is not null && courtLookup.TryGetValue(g.CourtId, out var cn) ? cn : null
-            };
-        }).ToList();
-
-        return Results.Created($"/api/tournaments/{tournamentId}/games?phaseId={phaseId}", dtos);
+        return Results.Created(
+            $"/api/tournaments/{tournamentId}/games?phaseId={phaseId}",
+            EnrichGamesWithNames(savedGames, teams, courts, mapper));
     }
 
     private static async Task<IResult> GetGames(
@@ -144,41 +81,20 @@ public static class GameEndpoints
         if (tournament is null)
             throw new NotFoundException(nameof(Tournament), tournamentId);
 
-        IEnumerable<Game> games;
-        if (phaseId is not null)
-            games = await gameRepository.GetByPhaseIdAsync(tournamentId, phaseId);
-        else
-            games = await gameRepository.GetByTournamentIdAsync(tournamentId);
+        var games = phaseId is not null
+            ? await gameRepository.GetByPhaseIdAsync(tournamentId, phaseId)
+            : await gameRepository.GetByTournamentIdAsync(tournamentId);
 
         var gameList = games.ToList();
-
-        // Apply additional filters
         if (groupId is not null)
             gameList = gameList.Where(g => g.GroupId == groupId).ToList();
         if (courtId is not null)
             gameList = gameList.Where(g => g.CourtId == courtId).ToList();
 
-        // Resolve names
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
-        var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
-        var courtLookup = courts.ToDictionary(c => c.Id, c => c.Name);
 
-        var dtos = gameList
-            .OrderBy(g => g.StartTime)
-            .Select(g =>
-            {
-                var dto = mapper.Map<GameDto>(g);
-                return dto with
-                {
-                    HomeTeamName = g.HomeTeamId is not null && teamLookup.TryGetValue(g.HomeTeamId, out var hn) ? hn : null,
-                    AwayTeamName = g.AwayTeamId is not null && teamLookup.TryGetValue(g.AwayTeamId, out var an) ? an : null,
-                    RefereeTeamName = g.RefereeTeamId is not null && teamLookup.TryGetValue(g.RefereeTeamId, out var rn) ? rn : null,
-                    CourtName = g.CourtId is not null && courtLookup.TryGetValue(g.CourtId, out var cn) ? cn : null
-                };
-            }).ToList();
-
-        return Results.Ok(dtos);
+        return Results.Ok(EnrichGamesWithNames(gameList.OrderBy(g => g.StartTime), teams, courts, mapper));
     }
 
     private static async Task<IResult> DeleteGames(
@@ -188,12 +104,7 @@ public static class GameEndpoints
         IGameRepository gameRepository,
         ICurrentUserService currentUser)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         await gameRepository.DeleteByPhaseIdAsync(tournamentId, phaseId);
 
@@ -224,6 +135,8 @@ public static class GameEndpoints
                     throw new UnauthorizedException("Authentication required.");
                 throw new ForbiddenException();
             }
+            if (!TournamentCodeRegex().IsMatch(code))
+                throw new ForbiddenException();
             if (!tournament.TournamentCode.Equals(code, StringComparison.OrdinalIgnoreCase))
                 throw new ForbiddenException();
         }
@@ -246,5 +159,79 @@ public static class GameEndpoints
 
         var updatedGame = await gameRepository.UpdateAsync(game);
         return Results.Ok(mapper.Map<GameDto>(updatedGame));
+    }
+
+    private static async Task ValidateGenerationPrerequisitesAsync(
+        Tournament tournament, Phase phase, List<Court> courts,
+        string tournamentId, string phaseId,
+        IGameRepository gameRepository)
+    {
+        if (tournament.GameLength is null or <= 0)
+            throw new ValidationException(
+                [new ValidationFailure("GameLength", "Tournament must have a game length configured.")]);
+
+        if (phase.StartTime is null)
+            throw new ValidationException(
+                [new ValidationFailure("StartTime", "Phase must have a start time configured.")]);
+
+        if (courts.Count == 0)
+            throw new ValidationException(
+                [new ValidationFailure("Courts", "At least one court is required.")]);
+
+        if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
+            throw new ValidationException(
+                [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
+
+        if (await gameRepository.GamesExistForPhaseAsync(tournamentId, phaseId))
+            throw new ValidationException(
+                [new ValidationFailure("Games", "Games already exist for this phase. Delete them first.")]);
+    }
+
+    private static List<Game> GenerateGamesForPhase(Phase phase, string tournamentId, string phaseId)
+    {
+        var allGames = new List<Game>();
+        foreach (var group in phase.Groups)
+        {
+            if (group.TeamIds.Count <= 1) continue;
+
+            var games = phase.Format switch
+            {
+                PhaseFormat.RoundRobin => RoundRobinGenerator.Generate(
+                    tournamentId, phaseId, group.Id, group.TeamIds),
+                PhaseFormat.PlayoffElimination => PlayoffEliminationGenerator.Generate(
+                    tournamentId, phaseId, group.Id, group.TeamIds),
+                PhaseFormat.PlayoffWithPlacement => PlayoffWithPlacementGenerator.Generate(
+                    tournamentId, phaseId, group.Id, group.TeamIds),
+                _ => throw new ValidationException(
+                    [new ValidationFailure("Format", $"Unsupported phase format: {phase.Format}")])
+            };
+
+            allGames.AddRange(games);
+        }
+
+        if (allGames.Count == 0)
+            throw new ValidationException(
+                [new ValidationFailure("Games", "No games could be generated. Check team assignments.")]);
+
+        return allGames;
+    }
+
+    private static List<GameDto> EnrichGamesWithNames(
+        IEnumerable<Game> games, List<Team> teams, List<Court> courts, IMapper mapper)
+    {
+        var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
+        var courtLookup = courts.ToDictionary(c => c.Id, c => c.Name);
+
+        return games.Select(g =>
+        {
+            var dto = mapper.Map<GameDto>(g);
+            return dto with
+            {
+                HomeTeamName = g.HomeTeamId is not null && teamLookup.TryGetValue(g.HomeTeamId, out var hn) ? hn : null,
+                AwayTeamName = g.AwayTeamId is not null && teamLookup.TryGetValue(g.AwayTeamId, out var an) ? an : null,
+                RefereeTeamName = g.RefereeTeamId is not null && teamLookup.TryGetValue(g.RefereeTeamId, out var rn) ? rn : null,
+                CourtName = g.CourtId is not null && courtLookup.TryGetValue(g.CourtId, out var cn) ? cn : null
+            };
+        }).ToList();
     }
 }

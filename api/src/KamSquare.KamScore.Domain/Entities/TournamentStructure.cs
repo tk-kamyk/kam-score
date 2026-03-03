@@ -71,7 +71,7 @@ public class TournamentStructure : Entity
     public void AssignTeam(string phaseId, string groupId, string teamId)
     {
         var group = GetGroup(phaseId, groupId);
-        group.TeamIds.Add(teamId);
+        group.AddTeam(teamId);
         LastModified = DateTime.UtcNow;
     }
 
@@ -79,7 +79,7 @@ public class TournamentStructure : Entity
     {
         var group = GetGroup(phaseId, groupId);
 
-        if (!group.TeamIds.Remove(teamId))
+        if (!group.RemoveTeam(teamId))
             throw new NotFoundException("Team assignment", teamId);
 
         LastModified = DateTime.UtcNow;
@@ -109,7 +109,18 @@ public class TournamentStructure : Entity
     public bool TeamExistsInPhase(string phaseId, string teamId)
     {
         var phase = GetPhase(phaseId);
-        return phase.Groups.Any(g => g.TeamIds.Contains(teamId));
+        return phase.Groups.Any(g => g.HasTeam(teamId));
+    }
+
+    public void AutoAssignTeams(string phaseId, List<Team> teams)
+    {
+        var phase = GetPhase(phaseId);
+
+        var orderedTeamIds = phase.Order == 1
+            ? teams.OrderByDescending(t => t.Level).ThenBy(t => t.Name).Select(t => t.Id).ToList()
+            : teams.OrderBy(_ => Random.Shared.Next()).Select(t => t.Id).ToList();
+
+        AutoAssignTeams(phaseId, orderedTeamIds);
     }
 
     public void AutoAssignTeams(string phaseId, List<string> orderedTeamIds)
@@ -118,7 +129,7 @@ public class TournamentStructure : Entity
 
         foreach (var group in phase.Groups)
         {
-            group.TeamIds.Clear();
+            group.ClearTeams();
         }
 
         var groupCount = phase.Groups.Count;
@@ -129,7 +140,7 @@ public class TournamentStructure : Entity
             var round = i / groupCount;
             var positionInRound = i % groupCount;
             var groupIndex = round % 2 == 0 ? positionInRound : groupCount - 1 - positionInRound;
-            phase.Groups[groupIndex].TeamIds.Add(orderedTeamIds[i]);
+            phase.Groups[groupIndex].AddTeam(orderedTeamIds[i]);
         }
 
         LastModified = DateTime.UtcNow;

@@ -293,7 +293,7 @@ public class TournamentStructureTests
         var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
         structure.AssignTeam(phase.Id, phase.Groups[0].Id, "team-1");
 
-        structure.AutoAssignTeams(phase.Id, []);
+        structure.AutoAssignTeams(phase.Id, new List<string>());
 
         phase.Groups.Should().AllSatisfy(g => g.TeamIds.Should().BeEmpty());
     }
