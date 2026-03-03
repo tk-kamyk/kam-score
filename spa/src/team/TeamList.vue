@@ -210,6 +210,6 @@ async function handleDelete() {
 }
 
 .styled-table tbody tr:hover {
-    background-color: var(--ks-border-subtle) !important;
+    background-color: var(--ks-border-subtle);
 }
 </style>

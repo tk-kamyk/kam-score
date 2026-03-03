@@ -123,8 +123,8 @@ function navigateToTournament(id: string) {
 
     <v-card v-if="!tournamentStore.loading && tournamentStore.tournaments.length === 0" class="pa-12 text-center">
       <v-icon size="72" color="secondary" class="mb-4 empty-icon">mdi-trophy-outline</v-icon>
-      <p class="text-h6 text-uppercase mb-2 dialog-title empty-heading">No tournaments yet</p>
-      <p v-if="auth.isAuthenticated" class="text-body-2 empty-hint">Click the button above to create your first tournament.</p>
+      <p class="text-headline-small text-uppercase mb-2 dialog-title empty-heading">No tournaments yet</p>
+      <p v-if="auth.isAuthenticated" class="text-body-medium empty-hint">Click the button above to create your first tournament.</p>
     </v-card>
 
     <v-dialog v-model="showCreateDialog" max-width="500">
@@ -205,7 +205,7 @@ function navigateToTournament(id: string) {
     font-size: 1.75rem;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 840px) {
     .hero-title {
         font-size: 2.25rem;
     }

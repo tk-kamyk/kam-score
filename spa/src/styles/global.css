@@ -49,7 +49,7 @@ body::before {
     font-size: 1.25rem;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 840px) {
     .section-title {
         font-size: 1.5rem;
     }
@@ -77,16 +77,16 @@ body::before {
 /* Darker primary on filled buttons for better contrast */
 .v-btn--variant-elevated.bg-primary,
 .v-btn--variant-flat.bg-primary {
-    background-color: var(--ks-primary-dark) !important;
+    background-color: var(--ks-primary-dark);
 }
 
 /* Vuetify typography overrides */
 .v-application {
-    font-family: 'Dosis', sans-serif !important;
+    font-family: 'Dosis', sans-serif;
 }
 
 .v-toolbar-title {
-    font-family: 'Dosis', sans-serif !important;
+    font-family: 'Dosis', sans-serif;
 }
 
 /* Utility classes */
@@ -142,8 +142,8 @@ body::before {
     }
 
     /* Vuetify heading used for phase/group names */
-    .ks-content .text-h6 {
-        font-size: 1.05rem !important;
+    .ks-content .text-headline-small {
+        font-size: 1.05rem;
     }
 
     .ks-content .v-table .v-table__wrapper table tbody tr td,
