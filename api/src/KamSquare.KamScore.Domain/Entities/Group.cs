@@ -1,5 +1,8 @@
 namespace KamSquare.KamScore.Domain.Entities;
 
+/// <summary>
+/// Nested value object within TournamentStructure aggregate — not an independent entity.
+/// </summary>
 public class Group
 {
     public string Id { get; set; } = string.Empty;
@@ -19,4 +22,12 @@ public class Group
     {
         Name = name;
     }
+
+    public void AddTeam(string teamId) => TeamIds.Add(teamId);
+
+    public bool RemoveTeam(string teamId) => TeamIds.Remove(teamId);
+
+    public bool HasTeam(string teamId) => TeamIds.Contains(teamId);
+
+    public void ClearTeams() => TeamIds.Clear();
 }

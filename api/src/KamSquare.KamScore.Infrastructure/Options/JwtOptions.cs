@@ -6,5 +6,6 @@ public class JwtOptions
     public string Secret { get; set; } = string.Empty;
     public string Issuer { get; set; } = string.Empty;
     public string Audience { get; set; } = string.Empty;
-    public int ExpirationMinutes { get; set; } = 480;
+    public const int DefaultExpirationMinutes = 480; // 8 hours
+    public int ExpirationMinutes { get; set; } = DefaultExpirationMinutes;
 }

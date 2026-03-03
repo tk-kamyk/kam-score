@@ -12,6 +12,9 @@ public class GameProfile : Profile
     {
         CreateMap<SetResult, SetResultDto>();
 
+        // GameDto is a record with specific constructor parameters. ForCtorParam is required
+        // because Status (enum->string) and StartTime (DateTime?->string?) need custom mapping
+        // that cannot be inferred from matching property names alone.
         CreateMap<Game, GameDto>()
             .ForCtorParam("Status", opt => opt.MapFrom(src => src.Status.ToString()))
             .ForCtorParam("StartTime", opt => opt.MapFrom(src =>

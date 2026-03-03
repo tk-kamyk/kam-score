@@ -2,6 +2,9 @@ using KamSquare.KamScore.Domain.Enums;
 
 namespace KamSquare.KamScore.Domain.Entities;
 
+/// <summary>
+/// Nested value object within TournamentStructure aggregate — not an independent entity.
+/// </summary>
 public class Phase
 {
     public string Id { get; set; } = string.Empty;

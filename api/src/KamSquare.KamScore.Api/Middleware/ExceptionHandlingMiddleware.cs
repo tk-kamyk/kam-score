@@ -1,4 +1,6 @@
+using System.Security.Claims;
 using System.Text.Json;
+using FluentValidation;
 using KamSquare.KamScore.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
@@ -49,7 +51,7 @@ public class ExceptionHandlingMiddleware
                 Title = "Unauthorized",
                 Detail = ex.Message
             },
-            FluentValidation.ValidationException ex => CreateValidationProblemDetails(ex),
+            ValidationException ex => CreateValidationProblemDetails(ex),
             ArgumentException ex => new ProblemDetails
             {
                 Status = StatusCodes.Status400BadRequest,
@@ -70,6 +72,18 @@ public class ExceptionHandlingMiddleware
         }
         else
         {
+            if (exception is ForbiddenException)
+            {
+                var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "anonymous";
+                _logger.LogWarning("Authorization denied for user {UserId} on {Method} {Path}",
+                    userId, context.Request.Method, context.Request.Path);
+            }
+            else if (exception is UnauthorizedException)
+            {
+                _logger.LogWarning("Authentication required for {Method} {Path}",
+                    context.Request.Method, context.Request.Path);
+            }
+
             _logger.LogInformation("Request failed with {StatusCode}: {Detail}", problemDetails.Status, problemDetails.Detail);
         }
 
@@ -83,7 +97,7 @@ public class ExceptionHandlingMiddleware
         await context.Response.WriteAsync(json);
     }
 
-    private static ProblemDetails CreateValidationProblemDetails(FluentValidation.ValidationException ex)
+    private static ProblemDetails CreateValidationProblemDetails(ValidationException ex)
     {
         var problemDetails = new ProblemDetails
         {

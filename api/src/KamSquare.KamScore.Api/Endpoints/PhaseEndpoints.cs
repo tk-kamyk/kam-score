@@ -6,6 +6,7 @@ using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Api.Helpers;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -32,12 +33,7 @@ public static class PhaseEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
@@ -63,12 +59,7 @@ public static class PhaseEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
@@ -91,12 +82,7 @@ public static class PhaseEndpoints
         ITournamentRepository tournamentRepository,
         ICurrentUserService currentUser)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
@@ -116,12 +102,7 @@ public static class PhaseEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
@@ -133,26 +114,7 @@ public static class PhaseEndpoints
                 [new ValidationFailure("Groups", "Phase has no groups to assign teams to.")]);
 
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
-
-        List<string> orderedTeamIds;
-        if (phase.Order == 1)
-        {
-            orderedTeamIds = teams
-                .OrderByDescending(t => t.Level)
-                .ThenBy(t => t.Name)
-                .Select(t => t.Id)
-                .ToList();
-        }
-        else
-        {
-            var rng = Random.Shared;
-            orderedTeamIds = teams
-                .OrderBy(_ => rng.Next())
-                .Select(t => t.Id)
-                .ToList();
-        }
-
-        structure.AutoAssignTeams(phaseId, orderedTeamIds);
+        structure.AutoAssignTeams(phaseId, teams);
         await structureRepository.UpdateAsync(structure);
 
         var dto = mapper.Map<PhaseDto>(phase);

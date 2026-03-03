@@ -1,6 +1,7 @@
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Api.Helpers;
 using FluentValidation;
 using FluentValidation.Results;
 
@@ -29,12 +30,7 @@ public static class TeamAssignmentEndpoints
         ITeamRepository teamRepository,
         ICurrentUserService currentUser)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
@@ -64,12 +60,7 @@ public static class TeamAssignmentEndpoints
         ITournamentRepository tournamentRepository,
         ICurrentUserService currentUser)
     {
-        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
-        if (tournament is null)
-            throw new NotFoundException(nameof(Tournament), tournamentId);
-
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
-            throw new ForbiddenException();
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
