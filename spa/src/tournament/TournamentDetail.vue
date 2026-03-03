@@ -10,6 +10,7 @@ import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
 import StructureDetail from '@/structure/StructureDetail.vue'
 import ScheduleOverview from '@/game/ScheduleOverview.vue'
+import GroupOverview from '@/standings/GroupOverview.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -21,7 +22,7 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
 
-const validTabs = ['details', 'teams', 'courts', 'structure', 'schedule']
+const validTabs = ['details', 'teams', 'courts', 'structure', 'groups', 'schedule']
 const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'details')
 
 watch(activeTab, (tab) => {
@@ -38,6 +39,7 @@ const tabLabels: Record<string, string> = {
   teams: 'Teams',
   courts: 'Courts',
   structure: 'Structure',
+  groups: 'Groups',
   schedule: 'Schedule',
 }
 
@@ -134,6 +136,10 @@ async function handleDelete() {
 
         <v-tabs-window-item value="structure">
           <StructureDetail :tournament-id="id" :is-owner="isOwner" />
+        </v-tabs-window-item>
+
+        <v-tabs-window-item value="groups">
+          <GroupOverview :tournament-id="id" :is-owner="isOwner" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="schedule">
