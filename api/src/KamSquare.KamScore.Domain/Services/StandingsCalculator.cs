@@ -43,6 +43,17 @@ public static class StandingsCalculator
             away.SetsWon += awayScore;
             away.SetsLost += homeScore;
 
+            if (game.Sets is not null)
+            {
+                foreach (var set in game.Sets)
+                {
+                    home.PointsWon += set.HomePoints;
+                    home.PointsLost += set.AwayPoints;
+                    away.PointsWon += set.AwayPoints;
+                    away.PointsLost += set.HomePoints;
+                }
+            }
+
             if (homeScore > awayScore)
             {
                 home.Wins++;
@@ -143,7 +154,8 @@ public static class StandingsCalculator
                 t.Value.Wins,
                 0,
                 t.Value.Losses,
-                null, null, null, null))
+                null, null, null, null,
+                null, null, null))
             .ToList();
     }
 
@@ -243,7 +255,8 @@ public static class StandingsCalculator
                     wins,
                     0,
                     losses,
-                    null, null, null, null);
+                    null, null, null, null,
+                    null, null, null);
             })
             .OrderBy(s => s.Position)
             .ThenByDescending(s => s.Wins)
@@ -375,7 +388,10 @@ public static class StandingsCalculator
                 s.Points,
                 s.SetsWon,
                 s.SetsLost,
-                s.SetDifference));
+                s.SetDifference,
+                s.PointsWon,
+                s.PointsLost,
+                s.PointDifference));
         }
 
         return standings;
@@ -389,8 +405,11 @@ public static class StandingsCalculator
         public int Losses { get; set; }
         public int SetsWon { get; set; }
         public int SetsLost { get; set; }
+        public int PointsWon { get; set; }
+        public int PointsLost { get; set; }
         public int Points => 2 * Wins + Draws;
         public int SetDifference => SetsWon - SetsLost;
+        public int PointDifference => PointsWon - PointsLost;
     }
 
     private record RoundRobinEntry(string TeamId, TeamStats Stats);
