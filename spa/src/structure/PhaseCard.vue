@@ -150,7 +150,7 @@ async function handleAutoAssign() {
     <v-card-actions v-if="editing" class="justify-end pa-4">
         <v-btn
           color="primary"
-          variant="tonal"
+          variant="elevated"
           prepend-icon="mdi-plus"
           @click="openAddGroup"
         >
@@ -158,7 +158,7 @@ async function handleAutoAssign() {
         </v-btn>
         <v-btn
           color="primary"
-          variant="tonal"
+          variant="elevated"
           prepend-icon="mdi-shuffle-variant"
           @click="showAutoAssignDialog = true"
         >

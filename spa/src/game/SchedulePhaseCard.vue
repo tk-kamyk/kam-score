@@ -86,7 +86,7 @@ function groupName(groupId: string): string {
       <v-btn
         v-if="games.length === 0"
         color="primary"
-        variant="tonal"
+        variant="elevated"
         prepend-icon="mdi-calendar-clock"
         :loading="generating"
         @click="emit('generate')"
@@ -96,7 +96,7 @@ function groupName(groupId: string): string {
       <v-btn
         v-else
         color="error"
-        variant="tonal"
+        variant="elevated"
         prepend-icon="mdi-delete"
         @click="emit('delete')"
       >
