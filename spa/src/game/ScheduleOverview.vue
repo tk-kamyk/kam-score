@@ -193,7 +193,7 @@ onMounted(async () => {
             size="small"
             class="mr-1"
           />
-          <span class="text-h6">{{ phase.name }}</span>
+          <span class="text-headline-small">{{ phase.name }}</span>
           <v-chip size="small" color="primary" variant="tonal">
             {{ formatPhaseFormat(phase.format) }}
           </v-chip>
@@ -210,7 +210,7 @@ onMounted(async () => {
           :key="groupId"
           class="mb-4 group-content"
         >
-          <div class="d-flex align-center text-subtitle-1 font-weight-medium pb-6 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
+          <div class="d-flex align-center text-title-medium font-weight-medium pb-6 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
             <v-icon
               :icon="expandedGroups.has(`${phase.id}:${groupId}`) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
               size="small"
@@ -243,7 +243,7 @@ onMounted(async () => {
                       <v-chip size="small" color="success" variant="tonal">
                         {{ game.homeScore }}–{{ game.awayScore }}
                       </v-chip>
-                      <div v-if="formatSets(game)" class="text-caption text-medium-emphasis mt-1">
+                      <div v-if="formatSets(game)" class="text-body-small text-medium-emphasis mt-1">
                         {{ formatSets(game) }}
                       </div>
                     </template>
@@ -348,7 +348,7 @@ onMounted(async () => {
 }
 
 .styled-table tbody tr:hover {
-  background-color: var(--ks-border-subtle) !important;
+  background-color: var(--ks-border-subtle);
 }
 
 .phases-list {

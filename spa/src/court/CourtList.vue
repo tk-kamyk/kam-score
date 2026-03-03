@@ -215,7 +215,7 @@ async function handleDelete() {
 }
 
 .styled-table tbody tr.court-row:hover {
-    background-color: var(--ks-border-subtle) !important;
+    background-color: var(--ks-border-subtle);
 }
 
 .court-expanded-cell {

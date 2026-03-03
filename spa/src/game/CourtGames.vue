@@ -83,7 +83,7 @@ onMounted(loadGames)
               <v-chip size="small" color="success" variant="tonal">
                 {{ game.homeScore }}–{{ game.awayScore }}
               </v-chip>
-              <div v-if="formatSets(game)" class="text-caption text-medium-emphasis mt-1">
+              <div v-if="formatSets(game)" class="text-body-small text-medium-emphasis mt-1">
                 {{ formatSets(game) }}
               </div>
             </template>
@@ -113,7 +113,7 @@ onMounted(loadGames)
       </tbody>
     </v-table>
 
-    <div v-else-if="!loading" class="text-body-2 text-medium-emphasis">
+    <div v-else-if="!loading" class="text-body-medium text-medium-emphasis">
       No games scheduled on this court.
     </div>
 

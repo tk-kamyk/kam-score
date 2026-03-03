@@ -77,7 +77,7 @@ async function handleRemove(teamId: string) {
     <v-list v-if="assignedTeams.length > 0" density="compact" class="pa-0 team-list">
       <v-list-item v-for="team in assignedTeams" :key="team.id" class="px-0">
         <template #default>
-          <span class="text-body-2">{{ team.name }}</span>
+          <span class="text-body-medium">{{ team.name }}</span>
         </template>
         <template v-if="editing" #append>
           <v-btn
@@ -91,7 +91,7 @@ async function handleRemove(teamId: string) {
       </v-list-item>
     </v-list>
 
-    <div v-else class="text-body-2 text-medium-emphasis">No teams assigned</div>
+    <div v-else class="text-body-medium text-medium-emphasis">No teams assigned</div>
 
     <div v-if="editing && availableTeams.length > 0" class="d-flex align-center mt-2 gap-2">
       <v-select

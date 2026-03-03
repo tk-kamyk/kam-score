@@ -83,7 +83,7 @@ async function handleAutoAssign() {
   <v-card class="phase-card">
     <v-card-title class="d-flex align-center justify-space-between">
       <div class="d-flex align-center flex-wrap ga-1">
-        <span class="text-h6">{{ phase.name }}</span>
+        <span class="text-headline-small">{{ phase.name }}</span>
         <v-chip size="small" variant="outlined">
           #{{ phase.order }}
         </v-chip>
@@ -121,7 +121,7 @@ async function handleAutoAssign() {
           class="group-card"
         >
           <v-card-title class="d-flex align-center justify-space-between py-2">
-            <span class="text-subtitle-1 font-weight-medium">Group {{ group.name }}</span>
+            <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
             <GroupCard
               v-if="editing"
               :tournament-id="tournamentId"

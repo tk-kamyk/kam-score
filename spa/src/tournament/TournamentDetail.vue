@@ -169,13 +169,13 @@ async function handleDelete() {
     text-decoration: underline;
 }
 
-@media (min-width: 960px) {
+@media (min-width: 840px) {
     .tournament-name {
         font-size: 1.75rem;
     }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1145px) {
     .tournament-name {
         font-size: 2rem;
     }

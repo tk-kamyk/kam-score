@@ -111,7 +111,7 @@ function awayName(): string {
       </v-card-title>
 
       <v-card-text>
-        <div class="text-body-2 text-medium-emphasis mb-4">
+        <div class="text-body-medium text-medium-emphasis mb-4">
           {{ homeName() }} vs {{ awayName() }}
         </div>
 
@@ -121,14 +121,14 @@ function awayName(): string {
         </v-btn-toggle>
 
         <template v-if="mode === 'detailed'">
-          <div class="d-flex text-caption text-medium-emphasis mb-1 px-1">
+          <div class="d-flex text-body-small text-medium-emphasis mb-1 px-1">
             <span class="flex-1-1">Set</span>
             <span class="set-column text-center">{{ homeName() }}</span>
             <span class="set-column text-center">{{ awayName() }}</span>
             <span class="remove-btn-column" />
           </div>
           <div v-for="(set, i) in sets" :key="i" class="d-flex align-center gap-2 mb-2">
-            <span class="text-body-2 text-medium-emphasis flex-1-1">Set {{ i + 1 }}</span>
+            <span class="text-body-medium text-medium-emphasis flex-1-1">Set {{ i + 1 }}</span>
             <v-text-field
               v-model.number="set.homePoints"
               type="number"
@@ -176,7 +176,7 @@ function awayName(): string {
               min="0"
               hide-details
             />
-            <span class="text-h6">–</span>
+            <span class="text-headline-small">–</span>
             <v-text-field
               v-model.number="awayScore"
               :label="`${awayName()} sets won`"
