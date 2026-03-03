@@ -115,6 +115,16 @@
 - The winner of the Final is 1st, loser is 2nd; winner of 3rd-place game is 3rd, loser is 4th; and so on
 - Positions are only assigned for completed placement games
 
+# Bracket Advancement
+
+- When a playoff game result is recorded (or corrected), downstream games referencing it via placeholders are automatically updated with actual team IDs
+- "Winner {label}" placeholders resolve to the winning team; "Loser {label}" placeholders resolve to the losing team
+- Each playoff game has a Label (e.g., "SF1", "QF2", "Final", "B-SF1") stored on the game entity and set during generation
+- If a result is a draw (HomeScore == AwayScore), no advancement occurs — the organizer must correct the result
+- Placeholders are kept intact after resolution (not cleared), allowing re-resolution when a result is corrected
+- Round-robin games have no label and no advancement
+- If a downstream game has already been played, its team IDs are updated but its result and status are preserved — the organizer is responsible for reviewing cascading changes
+
 # TBC
 
 # Phase

@@ -158,6 +158,20 @@ public static partial class GameEndpoints
         }
 
         var updatedGame = await gameRepository.UpdateAsync(game);
+
+        if (updatedGame.Label is not null)
+        {
+            var allGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, updatedGame.PhaseId))
+                .Where(g => g.GroupId == updatedGame.GroupId)
+                .ToList();
+
+            var advancedGames = BracketAdvancementService.ResolveAdvancement(updatedGame, allGames);
+            foreach (var advancedGame in advancedGames)
+            {
+                await gameRepository.UpdateAsync(advancedGame);
+            }
+        }
+
         return Results.Ok(mapper.Map<GameDto>(updatedGame));
     }
 

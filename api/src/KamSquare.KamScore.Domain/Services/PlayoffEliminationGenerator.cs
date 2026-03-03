@@ -24,7 +24,8 @@ public static class PlayoffEliminationGenerator
             [
                 Game.Create(tournamentId, phaseId, groupId, round: 1,
                     homeTeamId: teamIds[0], awayTeamId: teamIds[1],
-                    homeTeamPlaceholder: null, awayTeamPlaceholder: null)
+                    homeTeamPlaceholder: null, awayTeamPlaceholder: null,
+                    label: "Final")
             ];
         }
 
@@ -69,7 +70,7 @@ public static class PlayoffEliminationGenerator
             gameIndex++;
             var matchLabel = GetMatchLabel(roundNames[0], gameIndex);
             var game = Game.Create(tournamentId, phaseId, groupId, round: 1,
-                homeTeamId: team1, awayTeamId: team2);
+                homeTeamId: team1, awayTeamId: team2, label: matchLabel);
             games.Add(game);
             gameMap[(1, match)] = game;
         }
@@ -105,9 +106,11 @@ public static class PlayoffEliminationGenerator
                 else
                     awayPlaceholder = $"Winner {GetMatchLabel(roundNames[round - 2], prevMatch2 + 1)}";
 
+                var matchLabel = GetMatchLabel(roundNames[round - 1], gameIndex);
                 var game = Game.Create(tournamentId, phaseId, groupId, round: round,
                     homeTeamId: homeTeamId, awayTeamId: awayTeamId,
-                    homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder);
+                    homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
+                    label: matchLabel);
                 games.Add(game);
                 gameMap[(round, match)] = game;
             }

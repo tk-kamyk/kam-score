@@ -13,6 +13,7 @@ public class Game : Entity
     public string? AwayTeamId { get; set; }
     public string? HomeTeamPlaceholder { get; set; }
     public string? AwayTeamPlaceholder { get; set; }
+    public string? Label { get; set; }
     public string? RefereeTeamId { get; set; }
     public string? CourtId { get; set; }
     public DateTime? StartTime { get; set; }
@@ -30,7 +31,8 @@ public class Game : Entity
         string? awayTeamId = null,
         string? homeTeamPlaceholder = null,
         string? awayTeamPlaceholder = null,
-        string? refereeTeamId = null)
+        string? refereeTeamId = null,
+        string? label = null)
     {
         return new Game
         {
@@ -43,6 +45,7 @@ public class Game : Entity
             AwayTeamId = awayTeamId,
             HomeTeamPlaceholder = homeTeamPlaceholder,
             AwayTeamPlaceholder = awayTeamPlaceholder,
+            Label = label,
             RefereeTeamId = refereeTeamId,
             Status = GameStatus.Scheduled,
             LastModified = DateTime.UtcNow
@@ -72,5 +75,21 @@ public class Game : Entity
         Sets = null;
         Status = GameStatus.Completed;
         LastModified = DateTime.UtcNow;
+    }
+
+    public string? GetWinnerId()
+    {
+        if (Status != GameStatus.Completed) return null;
+        if (HomeTeamId is null || AwayTeamId is null) return null;
+        if (HomeScore == AwayScore) return null;
+        return HomeScore > AwayScore ? HomeTeamId : AwayTeamId;
+    }
+
+    public string? GetLoserId()
+    {
+        if (Status != GameStatus.Completed) return null;
+        if (HomeTeamId is null || AwayTeamId is null) return null;
+        if (HomeScore == AwayScore) return null;
+        return HomeScore > AwayScore ? AwayTeamId : HomeTeamId;
     }
 }

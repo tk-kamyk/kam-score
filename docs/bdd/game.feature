@@ -189,3 +189,38 @@ Feature: Game Generation and Management
     When the owner submits a new result for that game
     Then the game status should remain "Completed"
     And the new result should replace the previous one
+
+  # --- Bracket Advancement ---
+
+  Scenario: Recording a playoff result advances winner to downstream game
+    Given a playoff-elimination phase with 4 teams and generated games
+    And the semifinal "SF1" is between "Eagles" (home) and "Hawks" (away)
+    And the final references "Winner SF1" as the home team placeholder
+    When a result is recorded for SF1 with Eagles winning 2-1
+    Then the final game's HomeTeamId should be set to "Eagles"
+    And the final game's HomeTeamPlaceholder should still be "Winner SF1"
+
+  Scenario: Recording a playoff result advances loser to placement game
+    Given a playoff-with-placement phase with 4 teams and generated games
+    And the semifinal "SF1" is between "Eagles" and "Hawks"
+    And the 3rd-place game references "Loser SF1" as the home team placeholder
+    When a result is recorded for SF1 with Eagles winning 2-1
+    Then the 3rd-place game's HomeTeamId should be set to "Hawks"
+
+  Scenario: Draw in playoff does not trigger advancement
+    Given a playoff-elimination phase with 4 teams and generated games
+    And the semifinal "SF1" has a one-set detailed result that is a tie (25-25)
+    When the result is recorded
+    Then downstream games referencing "Winner SF1" should NOT have their team IDs updated
+
+  Scenario: Correcting a playoff result re-resolves downstream teams
+    Given a playoff-elimination phase with 4 teams and generated games
+    And SF1 was previously recorded with Eagles winning
+    And the final already has HomeTeamId set to "Eagles"
+    When the SF1 result is corrected with Hawks winning
+    Then the final game's HomeTeamId should be updated to "Hawks"
+
+  Scenario: Round-robin result does not trigger bracket advancement
+    Given a round-robin phase with generated games
+    When a result is recorded for a round-robin game
+    Then no other games should be modified

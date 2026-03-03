@@ -113,4 +113,94 @@ public class GameTests
         game.AwayScore.Should().Be(0);
         game.Status.Should().Be(GameStatus.Completed);
     }
+
+    [Fact]
+    public void Create_WithLabel_ShouldSetLabelProperty()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1,
+            homeTeamId: "home", awayTeamId: "away", label: "SF1");
+
+        game.Label.Should().Be("SF1");
+    }
+
+    [Fact]
+    public void Create_WithoutLabel_ShouldHaveNullLabel()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1,
+            homeTeamId: "home", awayTeamId: "away");
+
+        game.Label.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetWinnerId_HomeWins_ReturnsHomeTeamId()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        game.RecordSimpleResult(2, 1);
+
+        game.GetWinnerId().Should().Be("a");
+    }
+
+    [Fact]
+    public void GetWinnerId_AwayWins_ReturnsAwayTeamId()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        game.RecordSimpleResult(1, 2);
+
+        game.GetWinnerId().Should().Be("b");
+    }
+
+    [Fact]
+    public void GetWinnerId_Draw_ReturnsNull()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        game.RecordSimpleResult(1, 1);
+
+        game.GetWinnerId().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetWinnerId_NotCompleted_ReturnsNull()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+
+        game.GetWinnerId().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetWinnerId_MissingTeamIds_ReturnsNull()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2");
+        game.RecordSimpleResult(2, 1);
+
+        game.GetWinnerId().Should().BeNull();
+    }
+
+    [Fact]
+    public void GetLoserId_HomeWins_ReturnsAwayTeamId()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        game.RecordSimpleResult(2, 1);
+
+        game.GetLoserId().Should().Be("b");
+    }
+
+    [Fact]
+    public void GetLoserId_AwayWins_ReturnsHomeTeamId()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        game.RecordSimpleResult(1, 2);
+
+        game.GetLoserId().Should().Be("a");
+    }
+
+    [Fact]
+    public void GetLoserId_Draw_ReturnsNull()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+        game.RecordSimpleResult(1, 1);
+
+        game.GetLoserId().Should().BeNull();
+    }
 }

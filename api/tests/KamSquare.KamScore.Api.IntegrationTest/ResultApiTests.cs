@@ -327,4 +327,134 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
                  g.AwayScore == 1)))
             .MustHaveHappenedOnceExactly();
     }
+
+    // --- Bracket Advancement ---
+
+    [Fact]
+    public async Task RecordResult_PlayoffGame_AdvancesWinnerToDownstreamGame()
+    {
+        var tournament = CreateTestTournament("alice");
+
+        var sf1 = Game.Create(tournament.Id, "p1", "g1", 1,
+            homeTeamId: "team1", awayTeamId: "team2", label: "SF1");
+        sf1.AssignSchedule("court1", new DateTime(2026, 6, 1, 9, 0, 0));
+
+        var final_ = Game.Create(tournament.Id, "p1", "g1", 2,
+            homeTeamPlaceholder: "Winner SF1",
+            awayTeamPlaceholder: "Winner SF2",
+            label: "Final");
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, sf1.Id)).Returns(sf1);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, "p1"))
+            .Returns(new List<Game> { sf1, final_ });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{sf1.Id}/result",
+            SimpleResult());
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.That.Matches(
+            g => g.Id == final_.Id && g.HomeTeamId == "team1")))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task RecordResult_PlayoffGame_AdvancesLoserToPlacementGame()
+    {
+        var tournament = CreateTestTournament("alice");
+
+        var sf1 = Game.Create(tournament.Id, "p1", "g1", 1,
+            homeTeamId: "team1", awayTeamId: "team2", label: "SF1");
+        sf1.AssignSchedule("court1", new DateTime(2026, 6, 1, 9, 0, 0));
+
+        var thirdPlace = Game.Create(tournament.Id, "p1", "g1", 2,
+            homeTeamPlaceholder: "Loser SF1",
+            awayTeamPlaceholder: "Loser SF2");
+
+        var final_ = Game.Create(tournament.Id, "p1", "g1", 3,
+            homeTeamPlaceholder: "Winner SF1",
+            awayTeamPlaceholder: "Winner SF2",
+            label: "Final");
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, sf1.Id)).Returns(sf1);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, "p1"))
+            .Returns(new List<Game> { sf1, thirdPlace, final_ });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{sf1.Id}/result",
+            SimpleResult());
+
+        // Winner (team1) → Final home, Loser (team2) → 3rd place home
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.That.Matches(
+            g => g.Id == thirdPlace.Id && g.HomeTeamId == "team2")))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.That.Matches(
+            g => g.Id == final_.Id && g.HomeTeamId == "team1")))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task RecordResult_RoundRobinGame_DoesNotFetchSiblingGames()
+    {
+        var tournament = CreateTestTournament("alice");
+        var game = CreateScheduledGame(tournament.Id);
+        SetupTournamentAndGame(tournament, game);
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{game.Id}/result",
+            SimpleResult());
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(
+            A<string>.Ignored, A<string>.Ignored))
+            .MustNotHaveHappened();
+    }
+
+    [Fact]
+    public async Task RecordResult_PlayoffDraw_DoesNotAdvance()
+    {
+        var tournament = CreateTestTournament("alice");
+
+        var sf1 = Game.Create(tournament.Id, "p1", "g1", 1,
+            homeTeamId: "team1", awayTeamId: "team2", label: "SF1");
+        sf1.AssignSchedule("court1", new DateTime(2026, 6, 1, 9, 0, 0));
+
+        var final_ = Game.Create(tournament.Id, "p1", "g1", 2,
+            homeTeamPlaceholder: "Winner SF1",
+            awayTeamPlaceholder: "Winner SF2");
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, sf1.Id)).Returns(sf1);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, "p1"))
+            .Returns(new List<Game> { sf1, final_ });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var drawResult = new GameResultDto(
+            Sets: [new SetResultDto(25, 25)],
+            HomeScore: null, AwayScore: null);
+
+        await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{sf1.Id}/result",
+            drawResult);
+
+        // Only the completed game should be updated, not the final
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.That.Matches(
+            g => g.Id == final_.Id)))
+            .MustNotHaveHappened();
+    }
 }

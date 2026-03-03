@@ -23,7 +23,8 @@ public static class PlayoffWithPlacementGenerator
             return
             [
                 Game.Create(tournamentId, phaseId, groupId, round: 1,
-                    homeTeamId: teamIds[0], awayTeamId: teamIds[1])
+                    homeTeamId: teamIds[0], awayTeamId: teamIds[1],
+                    label: "Final")
             ];
         }
 
@@ -68,7 +69,8 @@ public static class PlayoffWithPlacementGenerator
                         var game = Game.Create(tournamentId, phaseId, groupId,
                             round: 0, // temporary, assigned below
                             homeTeamPlaceholder: loserEntries[i].LoserRef,
-                            awayTeamPlaceholder: loserEntries[i + 1].LoserRef);
+                            awayTeamPlaceholder: loserEntries[i + 1].LoserRef,
+                            label: label);
                         bGames.Add(game);
                         bPoolEntries.Add(new PoolEntry(label, null));
                     }
@@ -117,7 +119,8 @@ public static class PlayoffWithPlacementGenerator
                         var game = Game.Create(tournamentId, phaseId, groupId,
                             round: 0,
                             homeTeamId: homeTeamId, awayTeamId: awayTeamId,
-                            homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder);
+                            homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
+                            label: label);
                         aGames.Add(game);
                         aPoolEntries.Add(new PoolEntry(label, null));
                     }
@@ -186,7 +189,7 @@ public static class PlayoffWithPlacementGenerator
             gameIndex++;
             var label = PlayoffEliminationGenerator.GetMatchLabel(roundName, gameIndex);
             var game = Game.Create(tournamentId, phaseId, groupId, round: 1,
-                homeTeamId: team1, awayTeamId: team2);
+                homeTeamId: team1, awayTeamId: team2, label: label);
             games.Add(game);
             pool.Add(new PoolEntry(label, null));
         }

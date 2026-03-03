@@ -177,4 +177,64 @@ public class PlayoffEliminationGeneratorTests
         // Top half: seed1vs8, seed4vs5. Bottom half: seed2vs7, seed3vs6
         order.Should().Equal(0, 7, 3, 4, 1, 6, 2, 5);
     }
+
+    [Fact]
+    public void Generate_With2Teams_ShouldHaveFinalLabel()
+    {
+        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, ["a", "b"]);
+
+        games[0].Label.Should().Be("Final");
+    }
+
+    [Fact]
+    public void Generate_With4Teams_SetsLabelsOnGames()
+    {
+        var teams = new List<string> { "s1", "s2", "s3", "s4" };
+        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        var semiFinals = games.Where(g => g.Round == 1).OrderBy(g => g.Label).ToList();
+        semiFinals.Select(g => g.Label).Should().BeEquivalentTo(["SF1", "SF2"]);
+
+        var final_ = games.Single(g => g.Round == 2);
+        final_.Label.Should().Be("Final");
+    }
+
+    [Fact]
+    public void Generate_With8Teams_SetsLabelsOnGames()
+    {
+        var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
+        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        var qf = games.Where(g => g.Round == 1).ToList();
+        qf.Select(g => g.Label).Should().BeEquivalentTo(["QF1", "QF2", "QF3", "QF4"]);
+
+        var sf = games.Where(g => g.Round == 2).ToList();
+        sf.Select(g => g.Label).Should().BeEquivalentTo(["SF1", "SF2"]);
+
+        var final_ = games.Single(g => g.Round == 3);
+        final_.Label.Should().Be("Final");
+    }
+
+    [Fact]
+    public void Generate_LabelsMatchPlaceholderReferences()
+    {
+        var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
+        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
+
+        foreach (var game in games)
+        {
+            if (game.HomeTeamPlaceholder is not null)
+            {
+                var referencedLabel = game.HomeTeamPlaceholder.Replace("Winner ", "");
+                allLabels.Should().Contain(referencedLabel);
+            }
+            if (game.AwayTeamPlaceholder is not null)
+            {
+                var referencedLabel = game.AwayTeamPlaceholder.Replace("Winner ", "");
+                allLabels.Should().Contain(referencedLabel);
+            }
+        }
+    }
 }

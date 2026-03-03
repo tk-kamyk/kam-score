@@ -8,6 +8,7 @@ export interface GameDto {
   phaseId?: string
   groupId?: string
   round?: number
+  label?: string
   homeTeamId?: string
   awayTeamId?: string
   homeTeamPlaceholder?: string
