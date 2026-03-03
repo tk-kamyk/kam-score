@@ -60,7 +60,7 @@ function handleDelete() {
 <template>
   <div>
     <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title">Details</h3>
+      <h3 class="section-title text-title-medium text-md-title-large">Details</h3>
       <div v-if="isOwner">
         <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit" />
         <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="showDeleteDialog = true" />

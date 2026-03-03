@@ -37,7 +37,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
     </v-app-bar>
 
     <v-main class="ks-content">
-      <v-container class="main-container">
+      <v-container class="main-container px-3 px-lg-10 px-xl-16">
         <router-view />
       </v-container>
     </v-main>
@@ -70,22 +70,11 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
 
 .main-container {
     max-width: 1200px;
-    padding-left: 24px;
-    padding-right: 24px;
 }
 
 @media (min-width: 1145px) {
     .main-container {
         max-width: 1400px;
-        padding-left: 40px;
-        padding-right: 40px;
-    }
-}
-
-@media (min-width: 1545px) {
-    .main-container {
-        padding-left: 64px;
-        padding-right: 64px;
     }
 }
 
@@ -93,11 +82,6 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
     .brand-text {
         font-size: 1.15rem;
         letter-spacing: 1px;
-    }
-
-    .main-container {
-        padding-left: 12px;
-        padding-right: 12px;
     }
 }
 </style>

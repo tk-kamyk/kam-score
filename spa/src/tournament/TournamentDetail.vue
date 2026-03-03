@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
@@ -18,6 +19,7 @@ const route = useRoute()
 const auth = useAuthStore()
 const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
+const { smAndDown } = useDisplay()
 
 const validTabs = ['details', 'teams', 'courts', 'structure', 'schedule']
 const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'details')
@@ -75,7 +77,7 @@ async function handleDelete() {
 
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbItems" class="breadcrumbs px-0 mb-4 text-body-small">
+    <v-breadcrumbs :items="breadcrumbItems" class="breadcrumbs px-0 py-2 mb-4 text-body-small text-md-body-medium">
       <template #divider>
         <v-icon icon="mdi-chevron-right" size="small" />
       </template>
@@ -104,9 +106,9 @@ async function handleDelete() {
     <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" />
 
     <template v-if="tournament">
-      <h2 class="section-title tournament-name mb-6">{{ tournament.name }}</h2>
+      <h2 class="section-title text-title-large text-md-headline-medium text-lg-headline-large mb-6">{{ tournament.name }}</h2>
 
-      <v-tabs v-model="activeTab" color="primary" class="mb-6" slider-color="primary">
+      <v-tabs v-model="activeTab" color="primary" class="mb-6" slider-color="primary" :density="smAndDown ? 'compact' : 'comfortable'">
         <v-tab value="details">Details</v-tab>
         <v-tab value="teams">Teams</v-tab>
         <v-tab value="courts">Courts</v-tab>
@@ -169,15 +171,4 @@ async function handleDelete() {
     text-decoration: underline;
 }
 
-@media (min-width: 840px) {
-    .tournament-name {
-        font-size: 1.75rem;
-    }
-}
-
-@media (min-width: 1145px) {
-    .tournament-name {
-        font-size: 2rem;
-    }
-}
 </style>

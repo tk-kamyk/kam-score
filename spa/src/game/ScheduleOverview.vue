@@ -176,7 +176,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h3 class="section-title mb-6">Schedule</h3>
+    <h3 class="section-title text-title-medium text-md-title-large mb-6">Schedule</h3>
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
@@ -193,7 +193,7 @@ onMounted(async () => {
             size="small"
             class="mr-1"
           />
-          <span class="text-headline-small">{{ phase.name }}</span>
+          <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
           <v-chip size="small" color="primary" variant="tonal">
             {{ formatPhaseFormat(phase.format) }}
           </v-chip>
@@ -208,7 +208,7 @@ onMounted(async () => {
         <div
           v-for="(games, groupId) in gamesByGroup(phaseGames(phase.id!))"
           :key="groupId"
-          class="mb-4 group-content"
+          class="mb-4 mx-1 mx-sm-6"
         >
           <div class="d-flex align-center text-title-medium font-weight-medium pb-6 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
             <v-icon
@@ -227,7 +227,7 @@ onMounted(async () => {
                   <th>Home</th>
                   <th class="text-center">Result</th>
                   <th>Away</th>
-                  <th class="d-none d-sm-table-cell">Referee</th>
+                  <th>Referee</th>
                   <th />
                 </tr>
               </thead>
@@ -252,7 +252,7 @@ onMounted(async () => {
                   <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'away') }">
                     {{ displayTeam(game, 'away') }}
                   </td>
-                  <td class="d-none d-sm-table-cell">{{ game.refereeTeamName ?? '-' }}</td>
+                  <td>{{ game.refereeTeamName ?? '-' }}</td>
                   <td class="text-right">
                     <v-btn
                       v-if="game.status === 'Scheduled'"
@@ -367,17 +367,5 @@ onMounted(async () => {
 
 .group-header {
   cursor: pointer;
-}
-
-.group-content {
-  margin-left: 24px;
-  margin-right: 24px;
-}
-
-@media (max-width: 599px) {
-  .group-content {
-    margin-left: 4px;
-    margin-right: 4px;
-  }
 }
 </style>

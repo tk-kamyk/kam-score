@@ -67,7 +67,7 @@ function navigateToTournament(id: string) {
   <div>
     <div class="hero-section text-center mb-10">
       <img src="/volleyball.svg" alt="Volleyball" class="hero-icon mb-4" />
-      <h1 class="hero-title text-uppercase mb-2">Tournament Management</h1>
+      <h1 class="hero-title text-headline-small text-md-headline-large text-uppercase mb-2">Tournament Management</h1>
       <p class="hero-subtitle mb-6">Organize, schedule, and track your volleyball tournaments</p>
       <v-btn
         v-if="auth.isAuthenticated"
@@ -202,13 +202,6 @@ function navigateToTournament(id: string) {
 .hero-title {
     font-weight: 700;
     letter-spacing: 2px;
-    font-size: 1.75rem;
-}
-
-@media (min-width: 840px) {
-    .hero-title {
-        font-size: 2.25rem;
-    }
 }
 
 .hero-subtitle {

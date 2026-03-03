@@ -204,3 +204,5 @@ docker compose up              # Full stack (API + SPA)
 - Prefer Vue3 patterns with single file components
 - Group SPA code by domain (e.g., `auth/`, `tournament/`), not by layer. Each domain folder contains its store, types, and components. The `views/` folder contains thin route wrappers that import and render domain components
 - Keep shared infrastructure (`api/client.ts`, `composables/`, `router/`) separate from domain folders
+- **Responsive sizing**: Prefer Vuetify 4 responsive utility classes (e.g., `text-body-small text-md-body-medium`, `px-3 px-lg-10`) over custom CSS media queries. Use `@media` only for properties that have no Vuetify utility equivalent (e.g., `letter-spacing`, `max-width`, combined multi-property overrides)
+- **CSS Cascade Layers**: Custom CSS that targets Vuetify internal classes (`.v-btn--*`, `.v-card-title`, `.v-table`, etc.) must be wrapped in `@layer overrides { ... }` to work correctly with Vuetify 4's cascade layer system. Non-Vuetify utility classes and `:root`/`body` styles stay outside layers
