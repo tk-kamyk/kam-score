@@ -165,7 +165,7 @@ public static partial class GameEndpoints
                 .Where(g => g.GroupId == updatedGame.GroupId)
                 .ToList();
 
-            var advancedGames = BracketAdvancementService.ResolveAdvancement(updatedGame, allGames);
+            var advancedGames = BracketUtilities.ResolveAdvancement(updatedGame, allGames);
             foreach (var advancedGame in advancedGames)
             {
                 await gameRepository.UpdateAsync(advancedGame);
