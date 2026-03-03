@@ -4,9 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { formatPhaseFormat } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import type { PhaseDto } from '@/structure/types'
+import SchedulePhaseCard from '@/game/SchedulePhaseCard.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 
 const props = defineProps<{
@@ -95,45 +95,6 @@ function phaseGames(phaseId: string): GameDto[] {
   return gamesByPhase.value[phaseId] ?? []
 }
 
-function gamesByGroup(games: GameDto[]): Record<string, GameDto[]> {
-  const map: Record<string, GameDto[]> = {}
-  for (const game of games) {
-    const key = game.groupId ?? ''
-    if (!map[key]) map[key] = []
-    map[key].push(game)
-  }
-  return map
-}
-
-function groupName(phase: PhaseDto, groupId: string): string {
-  const group = phase.groups?.find(g => g.id === groupId)
-  return group?.name ?? groupId
-}
-
-function formatTime(startTime?: string): string {
-  if (!startTime) return '-'
-  const date = new Date(startTime)
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
-function displayTeam(game: GameDto, side: 'home' | 'away'): string {
-  const name = side === 'home' ? game.homeTeamName : game.awayTeamName
-  if (name) return name
-  const placeholder = side === 'home' ? game.homeTeamPlaceholder : game.awayTeamPlaceholder
-  return placeholder ?? '-'
-}
-
-function formatSets(game: GameDto): string {
-  return game.sets?.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
-}
-
-function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
-  const name = side === 'home' ? game.homeTeamName : game.awayTeamName
-  if (name) return false
-  const placeholder = side === 'home' ? game.homeTeamPlaceholder : game.awayTeamPlaceholder
-  return !!placeholder
-}
-
 async function handleGenerate(phaseId: string) {
   generating.value = phaseId
   try {
@@ -184,125 +145,21 @@ onMounted(async () => {
     </v-alert>
 
     <div class="phases-list">
-    <v-card v-for="phase in phases" :key="phase.id" class="phase-card">
-      <v-card-title class="d-flex align-center justify-space-between phase-header" @click="togglePhase(phase.id!)">
-        <div class="d-flex align-center flex-wrap ga-1">
-          <v-icon
-            :icon="expandedPhases.has(phase.id!) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
-            size="small"
-            class="mr-1"
-          />
-          <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
-          <v-chip size="small" color="primary" variant="tonal" class="ml-4">
-            {{ formatPhaseFormat(phase.format) }}
-          </v-chip>
-          <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
-            Starts {{ phase.startTime }}
-          </v-chip>
-        </div>
-      </v-card-title>
-
-      <v-card-text v-if="expandedPhases.has(phase.id!)" class="py-0">
-      <template v-if="phaseGames(phase.id!).length > 0">
-        <div
-          v-for="(games, groupId) in gamesByGroup(phaseGames(phase.id!))"
-          :key="groupId"
-          class="py-2 mx-0 mx-sm-6"
-        >
-          <div class="d-flex align-center text-title-medium font-weight-medium group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
-            <v-icon
-              :icon="expandedGroups.has(`${phase.id}:${groupId}`) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
-              size="small"
-              class="mr-1"
-            />
-            Group {{ groupName(phase, groupId as string) }}
-          </div>
-          <v-card v-if="expandedGroups.has(`${phase.id}:${groupId}`)" class="my-6 data-table-card">
-            <v-table density="compact" class="styled-table">
-              <thead>
-                <tr>
-                  <th>Time</th>
-                  <th>Court</th>
-                  <th>Home</th>
-                  <th class="text-center">Result</th>
-                  <th>Away</th>
-                  <th>Referee</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="game in games" :key="game.id">
-                  <td>{{ formatTime(game.startTime) }}</td>
-                  <td>{{ game.courtName ?? '-' }}</td>
-                  <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'home') }">
-                    {{ displayTeam(game, 'home') }}
-                  </td>
-                  <td class="text-center">
-                    <template v-if="game.status === 'Completed' && game.homeScore != null">
-                      <v-chip size="small" color="success" variant="tonal">
-                        <template v-if="!game.sets?.length || (game.sets?.length ?? 0) > 1">{{ game.homeScore }}–{{ game.awayScore }}</template>
-                        <template v-else>{{ game.sets?.[0]?.homePoints }}–{{ game.sets?.[0]?.awayPoints }}</template>
-                      </v-chip>
-                      <div v-if="(game.sets?.length ?? 0) > 1" class="text-body-small text-medium-emphasis mt-1">
-                        {{ formatSets(game) }}
-                      </div>
-                    </template>
-                    <span v-else class="text-medium-emphasis">vs</span>
-                  </td>
-                  <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'away') }">
-                    {{ displayTeam(game, 'away') }}
-                  </td>
-                  <td>{{ game.refereeTeamName ?? '-' }}</td>
-                  <td class="text-right">
-                    <v-btn
-                      size="small"
-                      color="primary"
-                      variant="tonal"
-                      prepend-icon="mdi-scoreboard"
-                      append-icon="mdi-pencil"
-                      @click="openResultDialog(game)"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </v-table>
-          </v-card>
-        </div>
-      </template>
-
-      <v-alert
-        v-else-if="!gameStore.loading"
-        class="mt-4 mb-4"
-        type="info"
-        variant="tonal"
-        density="compact"
-      >
-        No games generated for this phase yet.
-      </v-alert>
-      </v-card-text>
-
-      <v-card-actions v-if="isOwner" class="justify-end pa-4">
-        <v-btn
-          v-if="phaseGames(phase.id!).length === 0"
-          color="primary"
-          variant="tonal"
-          prepend-icon="mdi-calendar-clock"
-          :loading="generating === phase.id"
-          @click="handleGenerate(phase.id!)"
-        >
-          Generate &amp; Schedule
-        </v-btn>
-        <v-btn
-          v-else
-          color="error"
-          variant="tonal"
-          prepend-icon="mdi-delete"
-          @click="confirmDelete(phase)"
-        >
-          Delete Games
-        </v-btn>
-      </v-card-actions>
-    </v-card>
+      <SchedulePhaseCard
+        v-for="phase in phases"
+        :key="phase.id"
+        :phase="phase"
+        :games="phaseGames(phase.id!)"
+        :expanded="expandedPhases.has(phase.id!)"
+        :expanded-groups="expandedGroups"
+        :is-owner="isOwner"
+        :generating="generating === phase.id"
+        @toggle-phase="togglePhase(phase.id!)"
+        @toggle-group="(groupId) => toggleGroup(phase.id!, groupId)"
+        @generate="handleGenerate(phase.id!)"
+        @delete="confirmDelete(phase)"
+        @open-result="openResultDialog"
+      />
     </div>
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
@@ -331,33 +188,9 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.data-table-card {
-  border: 1px solid var(--ks-border);
-}
-
-.styled-table thead tr {
-  background-color: rgb(var(--v-theme-surface-bright));
-}
-
-.styled-table tbody tr:hover {
-  background-color: var(--ks-border-subtle);
-}
-
 .phases-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.phase-card {
-  border: 1px solid var(--ks-border);
-}
-
-.phase-header {
-  cursor: pointer;
-}
-
-.group-header {
-  cursor: pointer;
 }
 </style>

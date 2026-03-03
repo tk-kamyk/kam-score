@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import apiClient from '@/api/client'
 import type { GameDto } from '@/game/types'
+import GameResultDisplay from '@/game/GameResultDisplay.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 
 const props = defineProps<{
@@ -27,10 +28,6 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
   if (name) return name
   const placeholder = side === 'home' ? game.homeTeamPlaceholder : game.awayTeamPlaceholder
   return placeholder ?? '-'
-}
-
-function formatSets(game: GameDto): string {
-  return game.sets?.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
 }
 
 function openResultDialog(game: GameDto) {
@@ -78,16 +75,7 @@ onMounted(loadGames)
           <td>{{ formatTime(game.startTime) }}</td>
           <td>{{ displayTeam(game, 'home') }}</td>
           <td class="text-center">
-            <template v-if="game.status === 'Completed' && game.homeScore != null">
-              <v-chip size="small" color="success" variant="tonal">
-                <template v-if="!game.sets?.length || (game.sets?.length ?? 0) > 1">{{ game.homeScore }}–{{ game.awayScore }}</template>
-                <template v-else>{{ game.sets?.[0]?.homePoints }}–{{ game.sets?.[0]?.awayPoints }}</template>
-              </v-chip>
-              <div v-if="(game.sets?.length ?? 0) > 1" class="text-body-small text-medium-emphasis mt-1">
-                {{ formatSets(game) }}
-              </div>
-            </template>
-            <span v-else class="text-medium-emphasis">vs</span>
+            <GameResultDisplay :game="game" />
           </td>
           <td>{{ displayTeam(game, 'away') }}</td>
           <td>{{ game.refereeTeamName ?? '-' }}</td>
