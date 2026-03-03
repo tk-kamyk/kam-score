@@ -31,17 +31,17 @@ public static class PlayoffEliminationGenerator
 
         var games = new List<Game>();
         var n = teamIds.Count;
-        var bracketSize = NextPowerOfTwo(n);
+        var bracketSize = BracketUtilities.NextPowerOfTwo(n);
         var totalRounds = (int)Math.Log2(bracketSize);
         var byeCount = bracketSize - n;
 
         // Build seeded bracket positions for first round
-        var bracketOrder = BuildBracketOrder(bracketSize);
+        var bracketOrder = BracketUtilities.BuildBracketOrder(bracketSize);
 
         // Track game outcomes by bracket position for placeholder references
         // Key: (round, matchIndex) -> game
         var gameMap = new Dictionary<(int round, int matchIndex), Game>();
-        var roundNames = GetRoundNames(totalRounds);
+        var roundNames = BracketUtilities.GetRoundNames(totalRounds);
 
         // Generate first round
         var firstRoundMatchCount = bracketSize / 2;
@@ -68,7 +68,7 @@ public static class PlayoffEliminationGenerator
             }
 
             gameIndex++;
-            var matchLabel = GetMatchLabel(roundNames[0], gameIndex);
+            var matchLabel = BracketUtilities.GetMatchLabel(roundNames[0], gameIndex);
             var game = Game.Create(tournamentId, phaseId, groupId, round: 1,
                 homeTeamId: team1, awayTeamId: team2, label: matchLabel);
             games.Add(game);
@@ -99,14 +99,14 @@ public static class PlayoffEliminationGenerator
                 if (prevGame1 is not null && prevGame1.AwayTeamId is null && prevGame1.HomeTeamId is not null)
                     homeTeamId = prevGame1.HomeTeamId;
                 else
-                    homePlaceholder = $"Winner {GetMatchLabel(roundNames[round - 2], prevMatch1 + 1)}";
+                    homePlaceholder = $"Winner {BracketUtilities.GetMatchLabel(roundNames[round - 2], prevMatch1 + 1)}";
 
                 if (prevGame2 is not null && prevGame2.AwayTeamId is null && prevGame2.HomeTeamId is not null)
                     awayTeamId = prevGame2.HomeTeamId;
                 else
-                    awayPlaceholder = $"Winner {GetMatchLabel(roundNames[round - 2], prevMatch2 + 1)}";
+                    awayPlaceholder = $"Winner {BracketUtilities.GetMatchLabel(roundNames[round - 2], prevMatch2 + 1)}";
 
-                var matchLabel = GetMatchLabel(roundNames[round - 1], gameIndex);
+                var matchLabel = BracketUtilities.GetMatchLabel(roundNames[round - 1], gameIndex);
                 var game = Game.Create(tournamentId, phaseId, groupId, round: round,
                     homeTeamId: homeTeamId, awayTeamId: awayTeamId,
                     homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
@@ -118,12 +118,4 @@ public static class PlayoffEliminationGenerator
 
         return games;
     }
-
-    internal static int NextPowerOfTwo(int n) => BracketUtilities.NextPowerOfTwo(n);
-
-    internal static int[] BuildBracketOrder(int bracketSize) => BracketUtilities.BuildBracketOrder(bracketSize);
-
-    internal static string[] GetRoundNames(int totalRounds) => BracketUtilities.GetRoundNames(totalRounds);
-
-    internal static string GetMatchLabel(string roundName, int matchNumber) => BracketUtilities.GetMatchLabel(roundName, matchNumber);
 }

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import TournamentCreateDialog from '@/tournament/TournamentCreateDialog.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const router = useRouter()
@@ -12,45 +13,14 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 
 const showCreateDialog = ref(false)
-const useCustomConditions = ref(false)
-const pointsPerSetText = ref('')
-const newTournament = ref<TournamentDto>({
-  name: '',
-  discipline: 'Volleyball',
-})
-
-const disciplines = ['Volleyball', 'BeachVolleyball']
-
-watch(useCustomConditions, (on) => {
-  if (on) {
-    newTournament.value.gameConditions = { bestOfSets: undefined, pointsPerSet: undefined }
-  }
-})
 
 onMounted(() => {
   tournamentStore.fetchTournaments()
 })
 
-async function handleCreate() {
+async function handleCreated(dto: TournamentDto) {
   try {
-    const dto = { ...newTournament.value }
-    if (useCustomConditions.value) {
-      const points = pointsPerSetText.value
-        .split(',')
-        .map(s => parseInt(s.trim()))
-        .filter(n => !isNaN(n))
-      dto.gameConditions = {
-        bestOfSets: dto.gameConditions?.bestOfSets,
-        pointsPerSet: points.length > 0 ? points : undefined,
-      }
-    } else {
-      dto.gameConditions = undefined
-    }
     const created = await tournamentStore.createTournament(dto)
-    showCreateDialog.value = false
-    newTournament.value = { name: '', discipline: 'Volleyball' }
-    useCustomConditions.value = false
-    pointsPerSetText.value = ''
     showSuccess('Tournament created')
     router.push({ name: 'tournament', params: { id: created.id } })
   } catch {
@@ -127,65 +97,7 @@ function navigateToTournament(id: string) {
       <p v-if="auth.isAuthenticated" class="text-body-medium empty-hint">Click the button above to create your first tournament.</p>
     </v-card>
 
-    <v-dialog v-model="showCreateDialog" max-width="500">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Create Tournament</v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="newTournament.name"
-            label="Name"
-            autofocus
-          />
-          <v-select
-            v-model="newTournament.discipline"
-            :items="disciplines"
-            label="Discipline"
-          />
-          <v-text-field
-            v-model="newTournament.startTime"
-            label="Start Time"
-            type="datetime-local"
-          />
-          <v-text-field
-            v-model.number="newTournament.gameLength"
-            label="Game Length (minutes)"
-            type="number"
-          />
-          <v-switch
-            v-model="useCustomConditions"
-            label="Custom game conditions"
-            color="primary"
-            density="comfortable"
-            hide-details
-            class="mb-4"
-          />
-          <template v-if="useCustomConditions">
-            <v-select
-              v-model="newTournament.gameConditions!.bestOfSets"
-              :items="[1, 3, 5]"
-              label="Best of Sets"
-            />
-            <v-text-field
-              v-model="pointsPerSetText"
-              label="Points per Set (comma-separated)"
-              placeholder="25, 25, 15"
-            />
-          </template>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showCreateDialog = false">Cancel</v-btn>
-          <v-btn
-            color="primary"
-            variant="elevated"
-            :disabled="!newTournament.name"
-            @click="handleCreate"
-          >
-            Create
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <TournamentCreateDialog v-model="showCreateDialog" @created="handleCreated" />
   </div>
 </template>
 

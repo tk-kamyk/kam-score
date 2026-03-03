@@ -155,17 +155,17 @@ public class PlayoffEliminationGeneratorTests
     [Fact]
     public void NextPowerOfTwo_CalculatesCorrectly()
     {
-        PlayoffEliminationGenerator.NextPowerOfTwo(1).Should().Be(1);
-        PlayoffEliminationGenerator.NextPowerOfTwo(2).Should().Be(2);
-        PlayoffEliminationGenerator.NextPowerOfTwo(3).Should().Be(4);
-        PlayoffEliminationGenerator.NextPowerOfTwo(5).Should().Be(8);
-        PlayoffEliminationGenerator.NextPowerOfTwo(8).Should().Be(8);
+        BracketUtilities.NextPowerOfTwo(1).Should().Be(1);
+        BracketUtilities.NextPowerOfTwo(2).Should().Be(2);
+        BracketUtilities.NextPowerOfTwo(3).Should().Be(4);
+        BracketUtilities.NextPowerOfTwo(5).Should().Be(8);
+        BracketUtilities.NextPowerOfTwo(8).Should().Be(8);
     }
 
     [Fact]
     public void BuildBracketOrder_With4_ShouldHaveCorrectSeeding()
     {
-        var order = PlayoffEliminationGenerator.BuildBracketOrder(4);
+        var order = BracketUtilities.BuildBracketOrder(4);
         // Expected: [0, 3, 1, 2] so games are seed1vs4, seed2vs3
         order.Should().Equal(0, 3, 1, 2);
     }
@@ -173,7 +173,7 @@ public class PlayoffEliminationGeneratorTests
     [Fact]
     public void BuildBracketOrder_With8_ShouldHaveCorrectSeeding()
     {
-        var order = PlayoffEliminationGenerator.BuildBracketOrder(8);
+        var order = BracketUtilities.BuildBracketOrder(8);
         // Top half: seed1vs8, seed4vs5. Bottom half: seed2vs7, seed3vs6
         order.Should().Equal(0, 7, 3, 4, 1, 6, 2, 5);
     }

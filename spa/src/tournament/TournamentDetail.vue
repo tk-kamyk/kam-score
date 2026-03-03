@@ -5,6 +5,7 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import TournamentBreadcrumb from '@/tournament/TournamentBreadcrumb.vue'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
@@ -49,10 +50,6 @@ const breadcrumbItems = computed(() => [
   { title: tabLabels[activeTab.value] ?? activeTab.value, disabled: true },
 ])
 
-function handleBreadcrumbClick() {
-  activeTab.value = 'details'
-}
-
 onMounted(() => {
   tournamentStore.fetchTournament(props.id)
 })
@@ -79,31 +76,7 @@ async function handleDelete() {
 
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbItems" class="breadcrumbs px-0 py-2 mb-4 text-body-small text-md-body-medium">
-      <template #divider>
-        <v-icon icon="mdi-chevron-right" size="small" />
-      </template>
-      <template #item="{ item }">
-        <v-breadcrumbs-item
-          v-if="item.to"
-          class="breadcrumb-clickable"
-          :to="item.to"
-          :disabled="item.disabled"
-        >
-          {{ item.title }}
-        </v-breadcrumbs-item>
-        <span
-          v-else-if="!item.disabled"
-          class="breadcrumb-clickable"
-          @click="handleBreadcrumbClick()"
-        >
-          {{ item.title }}
-        </span>
-        <v-breadcrumbs-item v-else :disabled="item.disabled">
-          {{ item.title }}
-        </v-breadcrumbs-item>
-      </template>
-    </v-breadcrumbs>
+    <TournamentBreadcrumb :items="breadcrumbItems" @navigate="activeTab = 'details'" />
 
     <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" />
 
@@ -149,30 +122,3 @@ async function handleDelete() {
     </template>
   </div>
 </template>
-
-<style scoped>
-.breadcrumbs :deep(a) {
-    color: rgb(var(--v-theme-primary));
-    text-decoration: none;
-}
-
-.breadcrumbs :deep(.v-breadcrumbs-item--disabled) {
-    opacity: 0.5;
-}
-
-.breadcrumb-clickable {
-    color: rgb(var(--v-theme-primary));
-    cursor: pointer;
-    max-width: 200px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    display: inline-block;
-    vertical-align: bottom;
-}
-
-.breadcrumb-clickable:hover {
-    text-decoration: underline;
-}
-
-</style>
