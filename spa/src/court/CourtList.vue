@@ -106,7 +106,7 @@ async function handleDelete() {
 <template>
   <div>
     <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title">Courts</h3>
+      <h3 class="section-title text-title-medium text-md-title-large">Courts</h3>
       <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
         Add Court
       </v-btn>

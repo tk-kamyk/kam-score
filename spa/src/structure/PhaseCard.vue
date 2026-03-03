@@ -83,7 +83,7 @@ async function handleAutoAssign() {
   <v-card class="phase-card">
     <v-card-title class="d-flex align-center justify-space-between">
       <div class="d-flex align-center flex-wrap ga-1">
-        <span class="text-headline-small">{{ phase.name }}</span>
+        <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
         <v-chip size="small" variant="outlined">
           #{{ phase.order }}
         </v-chip>

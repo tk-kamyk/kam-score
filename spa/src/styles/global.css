@@ -41,18 +41,11 @@ body::before {
     z-index: 0;
 }
 
-/* Section title utility */
+/* Section title utility (font-size set via responsive Vuetify classes in templates) */
 .section-title {
     text-transform: uppercase;
     letter-spacing: 1.5px;
     font-weight: 600;
-    font-size: 1.25rem;
-}
-
-@media (min-width: 840px) {
-    .section-title {
-        font-size: 1.5rem;
-    }
 }
 
 /* Custom scrollbar for dark theme */
@@ -74,21 +67,6 @@ body::before {
     background: var(--ks-surface-hover);
 }
 
-/* Darker primary on filled buttons for better contrast */
-.v-btn--variant-elevated.bg-primary,
-.v-btn--variant-flat.bg-primary {
-    background-color: var(--ks-primary-dark);
-}
-
-/* Vuetify typography overrides */
-.v-application {
-    font-family: 'Dosis', sans-serif;
-}
-
-.v-toolbar-title {
-    font-family: 'Dosis', sans-serif;
-}
-
 /* Utility classes */
 .dialog-title {
     letter-spacing: 1.5px;
@@ -103,23 +81,41 @@ body::before {
     color: var(--ks-text-muted);
 }
 
-/* Global table cell padding — equivalent to Vuetify pa-4 (16px) */
-.ks-content .v-table .v-table__wrapper table tbody tr td,
-.ks-content .v-table .v-table__wrapper table tbody tr th,
-.ks-content .v-table .v-table__wrapper table tfoot tr td,
-.ks-content .v-table .v-table__wrapper table tfoot tr th,
-.ks-content .v-table .v-table__wrapper table thead tr th {
-    padding: 16px;
-}
+/* ── Vuetify overrides (in cascade layer to work with Vuetify 4) ── */
+@layer overrides {
+    /* Darker primary on filled buttons for better contrast */
+    .v-btn--variant-elevated.bg-primary,
+    .v-btn--variant-flat.bg-primary {
+        background-color: var(--ks-primary-dark);
+    }
 
-/* Lift snackbar off the bottom edge */
-.ks-snackbar .v-snackbar__wrapper {
-    margin-bottom: 24px;
-}
+    /* Vuetify typography overrides */
+    .v-application {
+        font-family: 'Dosis', sans-serif;
+    }
 
-.v-card-title {
-    padding-top: 24px;
-    padding-bottom: 24px;
+    .v-toolbar-title {
+        font-family: 'Dosis', sans-serif;
+    }
+
+    /* Global table cell padding */
+    .ks-content .v-table .v-table__wrapper table tbody tr td,
+    .ks-content .v-table .v-table__wrapper table tbody tr th,
+    .ks-content .v-table .v-table__wrapper table tfoot tr td,
+    .ks-content .v-table .v-table__wrapper table tfoot tr th,
+    .ks-content .v-table .v-table__wrapper table thead tr th {
+        padding: 16px;
+    }
+
+    /* Lift snackbar off the bottom edge */
+    .ks-snackbar .v-snackbar__wrapper {
+        margin-bottom: 24px;
+    }
+
+    .v-card-title {
+        padding-top: 24px;
+        padding-bottom: 24px;
+    }
 }
 
 /* ── Mobile overrides ── */
@@ -128,29 +124,24 @@ body::before {
         letter-spacing: 0;
     }
 
-    .section-title {
-        font-size: 1rem;
-    }
-
     .dialog-title {
         letter-spacing: 0.75px;
     }
+}
 
-    .v-card-title {
-        padding-top: 12px;
-        padding-bottom: 12px;
-    }
+@layer overrides {
+    @media (max-width: 599px) {
+        .v-card-title {
+            padding-top: 12px;
+            padding-bottom: 12px;
+        }
 
-    /* Vuetify heading used for phase/group names */
-    .ks-content .text-headline-small {
-        font-size: 1.05rem;
-    }
-
-    .ks-content .v-table .v-table__wrapper table tbody tr td,
-    .ks-content .v-table .v-table__wrapper table tbody tr th,
-    .ks-content .v-table .v-table__wrapper table tfoot tr td,
-    .ks-content .v-table .v-table__wrapper table tfoot tr th,
-    .ks-content .v-table .v-table__wrapper table thead tr th {
-        padding: 6px 8px;
+        .ks-content .v-table .v-table__wrapper table tbody tr td,
+        .ks-content .v-table .v-table__wrapper table tbody tr th,
+        .ks-content .v-table .v-table__wrapper table tfoot tr td,
+        .ks-content .v-table .v-table__wrapper table tfoot tr th,
+        .ks-content .v-table .v-table__wrapper table thead tr th {
+            padding: 6px 8px;
+        }
     }
 }
