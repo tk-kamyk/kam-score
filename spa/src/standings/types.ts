@@ -10,4 +10,7 @@ export interface StandingDto {
   setsWon?: number
   setsLost?: number
   setDifference?: number
+  pointsWon?: number
+  pointsLost?: number
+  pointDifference?: number
 }

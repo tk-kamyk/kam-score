@@ -64,6 +64,9 @@ public static class StandingsEndpoints
             s.Points,
             s.SetsWon,
             s.SetsLost,
-            s.SetDifference)));
+            s.SetDifference,
+            s.PointsWon,
+            s.PointsLost,
+            s.PointDifference)));
     }
 }

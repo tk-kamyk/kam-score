@@ -11,6 +11,7 @@ import GameResultDialog from '@/game/GameResultDialog.vue'
 const props = defineProps<{
   tournamentId: string
   isOwner: boolean
+  active: boolean
 }>()
 
 const route = useRoute()
@@ -65,6 +66,19 @@ function togglePhase(phaseId: string) {
     newSet.add(phaseId)
   }
   expandedPhases.value = newSet
+
+  // Fetch standings for newly expanded phase
+  if (newSet.has(phaseId)) {
+    if (!selectedGroups.value.has(phaseId)) {
+      const phase = phases.value.find(p => p.id === phaseId)
+      if (phase?.groups?.[0]?.id) {
+        selectGroup(phaseId, phase.groups[0].id)
+      }
+    } else {
+      const groupId = selectedGroups.value.get(phaseId)!
+      standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
+    }
+  }
 }
 
 function selectGroup(phaseId: string, groupId: string) {
@@ -82,6 +96,17 @@ watch(showResultDialog, (open) => {
     for (const [phaseId, groupId] of selectedGroups.value) {
       standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
     }
+  }
+})
+
+watch(() => props.active, async (isActive) => {
+  if (!isActive) return
+  await Promise.all([
+    structureStore.fetchStructure(props.tournamentId),
+    gameStore.fetchGames(props.tournamentId),
+  ])
+  for (const [phaseId, groupId] of selectedGroups.value) {
+    standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
   }
 })
 

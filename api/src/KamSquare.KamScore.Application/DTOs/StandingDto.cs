@@ -11,4 +11,7 @@ public record StandingDto(
     int? Points,
     int? SetsWon,
     int? SetsLost,
-    int? SetDifference);
+    int? SetDifference,
+    int? PointsWon,
+    int? PointsLost,
+    int? PointDifference);

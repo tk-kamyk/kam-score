@@ -57,6 +57,9 @@ public class StandingsCalculatorTests
             s.SetsWon.Should().Be(0);
             s.SetsLost.Should().Be(0);
             s.SetDifference.Should().Be(0);
+            s.PointsWon.Should().Be(0);
+            s.PointsLost.Should().Be(0);
+            s.PointDifference.Should().Be(0);
         });
     }
 
@@ -245,6 +248,47 @@ public class StandingsCalculatorTests
     }
 
     [Fact]
+    public void RoundRobin_PointsWonLost_CalculatedFromSets()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game>
+        {
+            CreateCompletedGame("a", "b", 2, 1, sets:
+            [
+                new SetResult(25, 20),
+                new SetResult(18, 25),
+                new SetResult(15, 10)
+            ])
+        };
+
+        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+
+        var teamA = standings.First(s => s.TeamId == "a");
+        teamA.PointsWon.Should().Be(58);   // 25 + 18 + 15
+        teamA.PointsLost.Should().Be(55);  // 20 + 25 + 10
+        teamA.PointDifference.Should().Be(3);
+
+        var teamB = standings.First(s => s.TeamId == "b");
+        teamB.PointsWon.Should().Be(55);
+        teamB.PointsLost.Should().Be(58);
+        teamB.PointDifference.Should().Be(-3);
+    }
+
+    [Fact]
+    public void RoundRobin_SimpleResult_PointsAreZero()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game> { CreateCompletedGame("a", "b", 2, 1) };
+
+        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+
+        var teamA = standings.First(s => s.TeamId == "a");
+        teamA.PointsWon.Should().Be(0);
+        teamA.PointsLost.Should().Be(0);
+        teamA.PointDifference.Should().Be(0);
+    }
+
+    [Fact]
     public void RoundRobin_PositionsAreSequential()
     {
         var teamIds = new List<string> { "a", "b", "c" };
@@ -395,6 +439,9 @@ public class StandingsCalculatorTests
             s.SetsWon.Should().BeNull();
             s.SetsLost.Should().BeNull();
             s.SetDifference.Should().BeNull();
+            s.PointsWon.Should().BeNull();
+            s.PointsLost.Should().BeNull();
+            s.PointDifference.Should().BeNull();
             s.Draws.Should().Be(0);
         });
     }
@@ -507,6 +554,9 @@ public class StandingsCalculatorTests
             s.SetsWon.Should().BeNull();
             s.SetsLost.Should().BeNull();
             s.SetDifference.Should().BeNull();
+            s.PointsWon.Should().BeNull();
+            s.PointsLost.Should().BeNull();
+            s.PointDifference.Should().BeNull();
         });
     }
 

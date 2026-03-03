@@ -139,7 +139,7 @@ async function handleDelete() {
         </v-tabs-window-item>
 
         <v-tabs-window-item value="groups">
-          <GroupOverview :tournament-id="id" :is-owner="isOwner" />
+          <GroupOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'groups'" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="schedule">

@@ -16,17 +16,14 @@ const isRoundRobin = (format: string) => format === 'RoundRobin'
         <tr>
           <th class="text-center">#</th>
           <th>Team</th>
-          <th class="text-center">GP</th>
-          <th class="text-center">W</th>
+          <th v-if="isRoundRobin(phaseFormat)" class="text-center" >Points</th>
+          <th class="text-center">Games</th>
+          <th class="text-center">Wins</th>
+          <th v-if="isRoundRobin(phaseFormat)" class="text-center">Draws</th>
+          <th class="text-center">Losses</th>
           <template v-if="isRoundRobin(phaseFormat)">
-            <th class="text-center">D</th>
-          </template>
-          <th class="text-center">L</th>
-          <template v-if="isRoundRobin(phaseFormat)">
-            <th class="text-center">Pts</th>
-            <th class="text-center">S+</th>
-            <th class="text-center">S-</th>
-            <th class="text-center">S±</th>
+            <th class="text-center">Set Diff</th>
+            <th class="text-center">Point Diff</th>
           </template>
         </tr>
       </thead>
@@ -34,17 +31,14 @@ const isRoundRobin = (format: string) => format === 'RoundRobin'
         <tr v-for="standing in standings" :key="standing.teamId">
           <td class="text-center">{{ standing.position }}</td>
           <td>{{ standing.teamName ?? standing.teamId }}</td>
+          <td v-if="isRoundRobin(phaseFormat)"class="text-center">{{ standing.points }}</td>
           <td class="text-center">{{ standing.gamesPlayed }}</td>
           <td class="text-center">{{ standing.wins }}</td>
-          <template v-if="isRoundRobin(phaseFormat)">
-            <td class="text-center">{{ standing.draws }}</td>
-          </template>
+          <td v-if="isRoundRobin(phaseFormat)" class="text-center">{{ standing.draws }}</td>
           <td class="text-center">{{ standing.losses }}</td>
           <template v-if="isRoundRobin(phaseFormat)">
-            <td class="text-center font-weight-bold">{{ standing.points }}</td>
-            <td class="text-center">{{ standing.setsWon }}</td>
-            <td class="text-center">{{ standing.setsLost }}</td>
             <td class="text-center">{{ standing.setDifference != null && standing.setDifference > 0 ? '+' : '' }}{{ standing.setDifference }}</td>
+            <td class="text-center">{{ standing.pointDifference != null && standing.pointDifference > 0 ? '+' : '' }}{{ standing.pointDifference }}</td>
           </template>
         </tr>
       </tbody>

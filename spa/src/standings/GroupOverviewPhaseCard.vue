@@ -42,13 +42,10 @@ const selectedGroupGames = computed(() => {
         <v-chip size="small" color="primary" variant="tonal" class="ml-4">
           {{ formatPhaseFormat(phase.format) }}
         </v-chip>
-        <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
-          Starts {{ phase.startTime }}
-        </v-chip>
       </div>
     </v-card-title>
 
-    <v-card-text v-if="expanded" class="py-4">
+    <v-card-text v-if="expanded" class="px-8 pb-8">
       <div v-if="phase.groups && phase.groups.length > 0" class="mb-4">
         <v-chip-group
           :model-value="selectedGroupId"
@@ -69,8 +66,8 @@ const selectedGroupGames = computed(() => {
       </div>
 
       <template v-if="selectedGroupId">
-        <div class="mb-6">
-          <h4 class="text-title-small mb-2">Standings</h4>
+        <div class="mb-8">
+          <h4 class="text-title-medium text-md-title-large mb-2 mb-md-4 text-center">Standings</h4>
           <GroupStandings
             :standings="standings"
             :phase-format="phase.format"
@@ -78,7 +75,7 @@ const selectedGroupGames = computed(() => {
         </div>
 
         <div v-if="selectedGroupGames.length > 0">
-          <h4 class="text-title-small mb-2">Games</h4>
+          <h4 class="text-title-medium text-md-title-large mb-2 mb-md-4 text-center">Games</h4>
           <GroupOverviewGames
             :games="selectedGroupGames"
             @open-result="(game) => emit('open-result', game)"
