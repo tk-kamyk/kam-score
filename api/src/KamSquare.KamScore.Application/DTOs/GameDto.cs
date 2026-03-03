@@ -5,6 +5,7 @@ public record GameDto(
     string? PhaseId,
     string? GroupId,
     int? Round,
+    string? Label,
     string? HomeTeamId,
     string? AwayTeamId,
     string? HomeTeamPlaceholder,

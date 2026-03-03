@@ -200,4 +200,87 @@ public class PlayoffWithPlacementGeneratorTests
             (g.AwayTeamPlaceholder ?? g.AwayTeamId).Should().NotBeNull();
         });
     }
+
+    [Fact]
+    public void Generate_With2Teams_ShouldHaveFinalLabel()
+    {
+        var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, ["a", "b"]);
+
+        games[0].Label.Should().Be("Final");
+    }
+
+    [Fact]
+    public void Generate_With4Teams_AllGamesHaveLabels()
+    {
+        var teams = new List<string> { "s1", "s2", "s3", "s4" };
+        var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        games.Should().AllSatisfy(g => g.Label.Should().NotBeNullOrEmpty());
+
+        var semiFinals = games.Where(g => g.Round == 1).ToList();
+        semiFinals.Select(g => g.Label).Should().BeEquivalentTo(["SF1", "SF2"]);
+    }
+
+    [Fact]
+    public void Generate_With8Teams_AllGamesHaveLabels()
+    {
+        var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
+        var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        games.Should().AllSatisfy(g => g.Label.Should().NotBeNullOrEmpty());
+    }
+
+    [Fact]
+    public void Generate_LabelsMatchPlaceholderReferences()
+    {
+        var teams = new List<string> { "s1", "s2", "s3", "s4" };
+        var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
+
+        foreach (var game in games)
+        {
+            if (game.HomeTeamPlaceholder is not null)
+            {
+                var referencedLabel = game.HomeTeamPlaceholder
+                    .Replace("Winner ", "").Replace("Loser ", "");
+                allLabels.Should().Contain(referencedLabel,
+                    $"HomeTeamPlaceholder '{game.HomeTeamPlaceholder}' references non-existent label");
+            }
+            if (game.AwayTeamPlaceholder is not null)
+            {
+                var referencedLabel = game.AwayTeamPlaceholder
+                    .Replace("Winner ", "").Replace("Loser ", "");
+                allLabels.Should().Contain(referencedLabel,
+                    $"AwayTeamPlaceholder '{game.AwayTeamPlaceholder}' references non-existent label");
+            }
+        }
+    }
+
+    [Fact]
+    public void Generate_With8Teams_LabelsMatchPlaceholderReferences()
+    {
+        var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
+        var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+
+        var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
+
+        foreach (var game in games)
+        {
+            if (game.HomeTeamPlaceholder is not null)
+            {
+                var referencedLabel = game.HomeTeamPlaceholder
+                    .Replace("Winner ", "").Replace("Loser ", "");
+                allLabels.Should().Contain(referencedLabel,
+                    $"HomeTeamPlaceholder '{game.HomeTeamPlaceholder}' references non-existent label");
+            }
+            if (game.AwayTeamPlaceholder is not null)
+            {
+                var referencedLabel = game.AwayTeamPlaceholder
+                    .Replace("Winner ", "").Replace("Loser ", "");
+                allLabels.Should().Contain(referencedLabel,
+                    $"AwayTeamPlaceholder '{game.AwayTeamPlaceholder}' references non-existent label");
+            }
+        }
+    }
 }

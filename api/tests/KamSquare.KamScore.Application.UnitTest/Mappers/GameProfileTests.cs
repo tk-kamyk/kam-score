@@ -50,7 +50,8 @@ public class GameProfileTests
     {
         var game = Game.Create("t1", "p1", "g1", 2,
             homeTeamPlaceholder: "Winner SF1",
-            awayTeamPlaceholder: "Winner SF2");
+            awayTeamPlaceholder: "Winner SF2",
+            label: "Final");
 
         var dto = _mapper.Map<GameDto>(game);
 
@@ -58,6 +59,17 @@ public class GameProfileTests
         dto.AwayTeamId.Should().BeNull();
         dto.HomeTeamPlaceholder.Should().Be("Winner SF1");
         dto.AwayTeamPlaceholder.Should().Be("Winner SF2");
+        dto.Label.Should().Be("Final");
+    }
+
+    [Fact]
+    public void Game_To_GameDto_WithNullLabel_ShouldMapToNull()
+    {
+        var game = Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b");
+
+        var dto = _mapper.Map<GameDto>(game);
+
+        dto.Label.Should().BeNull();
     }
 
     [Fact]
