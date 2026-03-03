@@ -121,3 +121,36 @@ body::before {
     padding-top: 24px;
     padding-bottom: 24px;
 }
+
+/* ── Mobile overrides ── */
+@media (max-width: 599px) {
+    body {
+        letter-spacing: 0;
+    }
+
+    .section-title {
+        font-size: 1rem;
+    }
+
+    .dialog-title {
+        letter-spacing: 0.75px;
+    }
+
+    .v-card-title {
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    /* Vuetify heading used for phase/group names */
+    .ks-content .text-h6 {
+        font-size: 1.05rem !important;
+    }
+
+    .ks-content .v-table .v-table__wrapper table tbody tr td,
+    .ks-content .v-table .v-table__wrapper table tbody tr th,
+    .ks-content .v-table .v-table__wrapper table tfoot tr td,
+    .ks-content .v-table .v-table__wrapper table tfoot tr th,
+    .ks-content .v-table .v-table__wrapper table thead tr th {
+        padding: 6px 8px;
+    }
+}

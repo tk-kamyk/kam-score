@@ -75,13 +75,14 @@ async function handleDelete() {
 
 <template>
   <div>
-    <v-breadcrumbs :items="breadcrumbItems" class="breadcrumbs px-0 mb-4">
+    <v-breadcrumbs :items="breadcrumbItems" class="breadcrumbs px-0 mb-4 text-body-small">
       <template #divider>
         <v-icon icon="mdi-chevron-right" size="small" />
       </template>
       <template #item="{ item }">
         <v-breadcrumbs-item
           v-if="item.to"
+          class="breadcrumb-clickable"
           :to="item.to"
           :disabled="item.disabled"
         >
