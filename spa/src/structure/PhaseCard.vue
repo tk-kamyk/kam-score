@@ -82,21 +82,21 @@ async function handleAutoAssign() {
 <template>
   <v-card class="phase-card">
     <v-card-title class="d-flex align-center justify-space-between">
-      <div class="d-flex align-center">
+      <div class="d-flex align-center flex-wrap ga-1">
         <span class="text-h6">{{ phase.name }}</span>
-        <v-chip size="small" class="ml-3" variant="outlined">
+        <v-chip size="small" variant="outlined">
           #{{ phase.order }}
         </v-chip>
-        <v-chip size="small" class="ml-2" color="primary" variant="tonal">
+        <v-chip size="small" color="primary" variant="tonal">
           {{ formatPhaseFormat(phase.format) }}
         </v-chip>
-        <v-chip v-if="phase.groupWinners" size="small" class="ml-2" color="success" variant="tonal">
+        <v-chip v-if="phase.groupWinners" size="small" color="success" variant="tonal">
           Top {{ phase.groupWinners }} per group
         </v-chip>
-        <v-chip v-if="phase.totalTeamsProceeding" size="small" class="ml-2" color="info" variant="tonal">
+        <v-chip v-if="phase.totalTeamsProceeding" size="small" color="info" variant="tonal">
           {{ phase.totalTeamsProceeding }} total proceed
         </v-chip>
-        <v-chip v-if="phase.startTime" size="small" class="ml-2" color="warning" variant="tonal">
+        <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
           Starts {{ phase.startTime }}
         </v-chip>
       </div>
@@ -146,7 +146,7 @@ async function handleAutoAssign() {
         No groups in this phase.
       </v-alert>
 
-      <div v-if="editing" class="mt-6 d-flex ga-2 justify-end">
+      <!-- <div v-if="editing" class="mt-6 d-flex ga-2 justify-end">
         <v-btn
           variant="tonal"
           prepend-icon="mdi-plus"
@@ -161,8 +161,27 @@ async function handleAutoAssign() {
         >
           Auto-assign Teams
         </v-btn>
-      </div>
+      </div> -->
     </v-card-text>
+
+    <v-card-actions v-if="editing" class="justify-end">
+        <v-btn
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-plus"
+          @click="openAddGroup"
+        >
+          Add Group
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-shuffle-variant"
+          @click="showAutoAssignDialog = true"
+        >
+          Auto-assign Teams
+        </v-btn>
+  </v-card-actions>
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card class="pa-2">

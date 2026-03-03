@@ -9,7 +9,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
 
 <template>
   <v-app>
-    <v-app-bar flat color="transparent" density="comfortable" class="app-bar-border">
+    <v-app-bar flat color="background" density="comfortable" class="app-bar-border">
       <v-app-bar-title>
         <router-link to="/" class="brand-link text-decoration-none">
           <span class="brand-text">Kam<sup>2</sup> Score</span>
@@ -86,6 +86,18 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
     .main-container {
         padding-left: 64px;
         padding-right: 64px;
+    }
+}
+
+@media (max-width: 599px) {
+    .brand-text {
+        font-size: 1.15rem;
+        letter-spacing: 1px;
+    }
+
+    .main-container {
+        padding-left: 12px;
+        padding-right: 12px;
     }
 }
 </style>

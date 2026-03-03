@@ -187,39 +187,19 @@ onMounted(async () => {
     <div class="phases-list">
     <v-card v-for="phase in phases" :key="phase.id" class="phase-card">
       <v-card-title class="d-flex align-center justify-space-between phase-header" @click="togglePhase(phase.id!)">
-        <div class="d-flex align-center">
+        <div class="d-flex align-center flex-wrap ga-1">
           <v-icon
             :icon="expandedPhases.has(phase.id!) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
             size="small"
             class="mr-1"
           />
           <span class="text-h6">{{ phase.name }}</span>
-          <v-chip size="small" class="ml-2" color="primary" variant="tonal">
+          <v-chip size="small" color="primary" variant="tonal">
             {{ formatPhaseFormat(phase.format) }}
           </v-chip>
-          <v-chip v-if="phase.startTime" size="small" class="ml-2" color="warning" variant="tonal">
+          <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
             Starts {{ phase.startTime }}
           </v-chip>
-        </div>
-        <div v-if="isOwner" @click.stop>
-          <v-btn
-            v-if="phaseGames(phase.id!).length === 0"
-            color="primary"
-            prepend-icon="mdi-calendar-clock"
-            :loading="generating === phase.id"
-            @click="handleGenerate(phase.id!)"
-          >
-            Generate &amp; Schedule
-          </v-btn>
-          <v-btn
-            v-else
-            color="error"
-            variant="tonal"
-            prepend-icon="mdi-delete"
-            @click="confirmDelete(phase)"
-          >
-            Delete Games
-          </v-btn>
         </div>
       </v-card-title>
 
@@ -228,7 +208,7 @@ onMounted(async () => {
         <div
           v-for="(games, groupId) in gamesByGroup(phaseGames(phase.id!))"
           :key="groupId"
-          class="mb-4 ml-6 mr-6"
+          class="mb-4 group-content"
         >
           <div class="d-flex align-center text-subtitle-1 font-weight-medium pb-6 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
             <v-icon
@@ -239,7 +219,7 @@ onMounted(async () => {
             Group {{ groupName(phase, groupId as string) }}
           </div>
           <v-card v-if="expandedGroups.has(`${phase.id}:${groupId}`)" class="data-table-card">
-            <v-table density="comfortable" class="styled-table">
+            <v-table density="compact" class="styled-table">
               <thead>
                 <tr>
                   <th>Time</th>
@@ -247,7 +227,7 @@ onMounted(async () => {
                   <th>Home</th>
                   <th class="text-center">Result</th>
                   <th>Away</th>
-                  <th>Referee</th>
+                  <th class="d-none d-sm-table-cell">Referee</th>
                   <th />
                 </tr>
               </thead>
@@ -272,7 +252,7 @@ onMounted(async () => {
                   <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'away') }">
                     {{ displayTeam(game, 'away') }}
                   </td>
-                  <td>{{ game.refereeTeamName ?? '-' }}</td>
+                  <td class="d-none d-sm-table-cell">{{ game.refereeTeamName ?? '-' }}</td>
                   <td class="text-right">
                     <v-btn
                       v-if="game.status === 'Scheduled'"
@@ -308,6 +288,28 @@ onMounted(async () => {
         No games generated for this phase yet.
       </v-alert>
       </v-card-text>
+
+      <v-card-actions v-if="isOwner" class="justify-end">
+        <v-btn
+          v-if="phaseGames(phase.id!).length === 0"
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-calendar-clock"
+          :loading="generating === phase.id"
+          @click="handleGenerate(phase.id!)"
+        >
+          Generate &amp; Schedule
+        </v-btn>
+        <v-btn
+          v-else
+          color="error"
+          variant="tonal"
+          prepend-icon="mdi-delete"
+          @click="confirmDelete(phase)"
+        >
+          Delete Games
+        </v-btn>
+      </v-card-actions>
     </v-card>
     </div>
 
@@ -365,5 +367,17 @@ onMounted(async () => {
 
 .group-header {
   cursor: pointer;
+}
+
+.group-content {
+  margin-left: 24px;
+  margin-right: 24px;
+}
+
+@media (max-width: 599px) {
+  .group-content {
+    margin-left: 4px;
+    margin-right: 4px;
+  }
 }
 </style>
