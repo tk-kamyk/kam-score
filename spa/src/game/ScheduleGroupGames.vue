@@ -67,7 +67,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
               {{ displayTeam(game, 'home') }}
             </td>
             <td class="text-center">
-              <GameResultDisplay :game="game" />
+              <GameResultDisplay :game="game" @enter-result="emit('open-result', game)" />
             </td>
             <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'away') }">
               {{ displayTeam(game, 'away') }}
@@ -75,6 +75,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
             <td>{{ game.refereeTeamName ?? '-' }}</td>
             <td class="text-right">
               <v-btn
+                v-if="game.status === 'Completed' && game.homeScore != null"
                 size="small"
                 variant="text"
                 icon="mdi-pencil"
