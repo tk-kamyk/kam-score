@@ -82,10 +82,8 @@ onMounted(loadGames)
           <td class="text-right">
             <v-btn
               size="small"
-              color="primary"
-              variant="tonal"
-              prepend-icon="mdi-scoreboard"
-              append-icon="mdi-pencil"
+              variant="text"
+              icon="mdi-pencil"
               @click="openResultDialog(game)"
             />
           </td>

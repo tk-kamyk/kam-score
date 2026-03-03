@@ -76,10 +76,8 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
             <td class="text-right">
               <v-btn
                 size="small"
-                color="primary"
-                variant="tonal"
-                prepend-icon="mdi-scoreboard"
-                append-icon="mdi-pencil"
+                variant="text"
+                icon="mdi-pencil"
                 @click="emit('open-result', game)"
               />
             </td>

@@ -37,7 +37,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
     </v-app-bar>
 
     <v-main class="ks-content">
-      <v-container class="main-container px-3 px-lg-10 px-xl-16">
+      <v-container class="main-container px-3 px-lg-10 px-xl-16 pb-14">
         <router-view />
       </v-container>
     </v-main>
