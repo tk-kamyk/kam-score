@@ -29,9 +29,9 @@ public static class PlayoffWithPlacementGenerator
         }
 
         var n = teamIds.Count;
-        var bracketSize = PlayoffEliminationGenerator.NextPowerOfTwo(n);
+        var bracketSize = BracketUtilities.NextPowerOfTwo(n);
         var totalMainRounds = (int)Math.Log2(bracketSize);
-        var roundNames = PlayoffEliminationGenerator.GetRoundNames(totalMainRounds);
+        var roundNames = BracketUtilities.GetRoundNames(totalMainRounds);
 
         // Phase 1: Generate first round (with byes)
         var (r1Games, r1Pool) = GenerateFirstRound(
@@ -163,7 +163,7 @@ public static class PlayoffWithPlacementGenerator
         string roundName)
     {
         var n = teamIds.Count;
-        var bracketOrder = PlayoffEliminationGenerator.BuildBracketOrder(bracketSize);
+        var bracketOrder = BracketUtilities.BuildBracketOrder(bracketSize);
         var games = new List<Game>();
         var pool = new List<PoolEntry>();
         var gameIndex = 0;
@@ -187,7 +187,7 @@ public static class PlayoffWithPlacementGenerator
             }
 
             gameIndex++;
-            var label = PlayoffEliminationGenerator.GetMatchLabel(roundName, gameIndex);
+            var label = BracketUtilities.GetMatchLabel(roundName, gameIndex);
             var game = Game.Create(tournamentId, phaseId, groupId, round: 1,
                 homeTeamId: team1, awayTeamId: team2, label: label);
             games.Add(game);

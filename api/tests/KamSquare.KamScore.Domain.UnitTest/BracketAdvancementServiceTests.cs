@@ -19,7 +19,7 @@ public class BracketAdvancementServiceTests
             awayTeamPlaceholder: "Winner SF2",
             label: "Final");
 
-        var modified = BracketAdvancementService.ResolveAdvancement(sf1, [sf1, final_]);
+        var modified = BracketUtilities.ResolveAdvancement(sf1, [sf1, final_]);
 
         modified.Should().HaveCount(1);
         final_.HomeTeamId.Should().Be("eagles");
@@ -38,7 +38,7 @@ public class BracketAdvancementServiceTests
             awayTeamPlaceholder: "Winner SF2",
             label: "Final");
 
-        var modified = BracketAdvancementService.ResolveAdvancement(sf2, [sf2, final_]);
+        var modified = BracketUtilities.ResolveAdvancement(sf2, [sf2, final_]);
 
         modified.Should().HaveCount(1);
         final_.AwayTeamId.Should().Be("bears");
@@ -56,7 +56,7 @@ public class BracketAdvancementServiceTests
             homeTeamPlaceholder: "Loser SF1",
             awayTeamPlaceholder: "Loser SF2");
 
-        var modified = BracketAdvancementService.ResolveAdvancement(sf1, [sf1, thirdPlace]);
+        var modified = BracketUtilities.ResolveAdvancement(sf1, [sf1, thirdPlace]);
 
         modified.Should().HaveCount(1);
         thirdPlace.HomeTeamId.Should().Be("hawks");
@@ -73,7 +73,7 @@ public class BracketAdvancementServiceTests
             homeTeamPlaceholder: "Winner SF1",
             awayTeamPlaceholder: "Winner SF2");
 
-        var modified = BracketAdvancementService.ResolveAdvancement(sf1, [sf1, final_]);
+        var modified = BracketUtilities.ResolveAdvancement(sf1, [sf1, final_]);
 
         modified.Should().BeEmpty();
         final_.HomeTeamId.Should().BeNull();
@@ -86,7 +86,7 @@ public class BracketAdvancementServiceTests
             homeTeamId: "eagles", awayTeamId: "hawks");
         rrGame.RecordSimpleResult(2, 1);
 
-        var modified = BracketAdvancementService.ResolveAdvancement(rrGame, [rrGame]);
+        var modified = BracketUtilities.ResolveAdvancement(rrGame, [rrGame]);
 
         modified.Should().BeEmpty();
     }
@@ -102,11 +102,11 @@ public class BracketAdvancementServiceTests
             homeTeamPlaceholder: "Winner SF1",
             awayTeamPlaceholder: "Winner SF2");
 
-        BracketAdvancementService.ResolveAdvancement(sf1, [sf1, final_]);
+        BracketUtilities.ResolveAdvancement(sf1, [sf1, final_]);
         final_.HomeTeamId.Should().Be("eagles");
 
         sf1.RecordSimpleResult(1, 2);
-        var modified = BracketAdvancementService.ResolveAdvancement(sf1, [sf1, final_]);
+        var modified = BracketUtilities.ResolveAdvancement(sf1, [sf1, final_]);
 
         modified.Should().HaveCount(1);
         final_.HomeTeamId.Should().Be("hawks");
@@ -126,7 +126,7 @@ public class BracketAdvancementServiceTests
             homeTeamPlaceholder: "Loser SF1",
             awayTeamPlaceholder: "Loser SF2");
 
-        var modified = BracketAdvancementService.ResolveAdvancement(
+        var modified = BracketUtilities.ResolveAdvancement(
             sf1, [sf1, final_, thirdPlace]);
 
         modified.Should().HaveCount(2);
@@ -145,7 +145,7 @@ public class BracketAdvancementServiceTests
             homeTeamPlaceholder: "Winner SF2",
             awayTeamPlaceholder: "Winner SF3");
 
-        var modified = BracketAdvancementService.ResolveAdvancement(
+        var modified = BracketUtilities.ResolveAdvancement(
             sf1, [sf1, unrelatedGame]);
 
         modified.Should().BeEmpty();
@@ -166,7 +166,7 @@ public class BracketAdvancementServiceTests
         final_.RecordSimpleResult(2, 0);
 
         sf1.RecordSimpleResult(1, 2);
-        var modified = BracketAdvancementService.ResolveAdvancement(sf1, [sf1, final_]);
+        var modified = BracketUtilities.ResolveAdvancement(sf1, [sf1, final_]);
 
         modified.Should().HaveCount(1);
         final_.HomeTeamId.Should().Be("hawks");
@@ -181,7 +181,7 @@ public class BracketAdvancementServiceTests
             homeTeamId: "eagles", awayTeamId: "hawks", label: "SF1");
         sf1.RecordSimpleResult(2, 1);
 
-        var modified = BracketAdvancementService.ResolveAdvancement(sf1, [sf1]);
+        var modified = BracketUtilities.ResolveAdvancement(sf1, [sf1]);
 
         modified.Should().BeEmpty();
     }

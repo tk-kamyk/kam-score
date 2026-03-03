@@ -83,7 +83,7 @@ public static class StandingsCalculator
 
     public static List<Standing> CalculatePlayoffElimination(List<Game> games, List<string> teamIds)
     {
-        var bracketSize = PlayoffEliminationGenerator.NextPowerOfTwo(teamIds.Count);
+        var bracketSize = BracketUtilities.NextPowerOfTwo(teamIds.Count);
         var completedGames = games
             .Where(g => g.Status == GameStatus.Completed
                         && g.HomeTeamId is not null
