@@ -27,8 +27,8 @@
 - Group is represented by:
     - name
     - teams
-    - games (TBC)
-    - standings (TBC)
+    - games
+    - standings
 - Group name is unique within one phase
 - Teams can be assigned to and removed from groups individually
 - A team cannot be assigned to two groups in the same phase
@@ -65,9 +65,17 @@
 - The following overviews of the tournament structure should be provided:
     - Phase/group overview
         - Accessible in a dedicated tab
+        - Phases and groups should be collapsible
     - Court overview
         - Accessible from the Court tab
         - Accessible after selecting a court
+    - Group overview
+        - Accessible in a dedicated tab
+        - Phases should be collapsible
+        - Groups should be selectable
+        - For each group, should present the standings of the group based on the game results
+        - For each group, should present the list of games and the results
+        - The expanded phases and selected groups (max one from each phase) should be a part of the URL query params
 
 # Results
 
@@ -83,14 +91,33 @@
     - Detailed result with exactly 1 set: a tie is allowed (equal points permitted)
     - Detailed result with more than 1 set: a tie in set count is not allowed (one team must win more sets), and each individual set must also have a winner (no drawn sets)
 
+# Standings
+
+- Standings are calculated from completed game results for each group
+- Standings calculation depends on the phase format:
+
+## Round Robin
+- 2 points for winning a game, 1 point for a draw, 0 points for losing
+- Ordering: win points (descending), then set difference (descending), then direct result between the tied teams
+- Set difference = sets won minus sets lost (from HomeScore/AwayScore)
+- Direct result tiebreaker: when teams are tied on points and set difference, their head-to-head match result is used
+- Teams still tied after all tiebreakers share the same position
+
+## Playoff Elimination
+- No point system; positions are determined by the elimination round in which a team lost
+- Position formula: `bracketSize / 2^round + 1` where round is 1-indexed
+- Multiple teams share the same position (e.g., in an 8-team bracket: 4 QF losers all finish 5th, 2 SF losers finish 3rd)
+- The winner of the final gets position 1, the runner-up gets position 2
+
+## Playoff with Placement
+- Each team gets a unique final position via placement games
+- Placement games are single-game rounds at the end of the bracket (generated worst-to-best, Final last)
+- The winner of the Final is 1st, loser is 2nd; winner of 3rd-place game is 3rd, loser is 4th; and so on
+- Positions are only assigned for completed placement games
+
 # TBC
 
 # Phase
 
 - Phases structure can be copied from another tournament
-- Phases and groups should be collapsible
-
-# Group
-
-- Groups collect teams, games, and standings
 
