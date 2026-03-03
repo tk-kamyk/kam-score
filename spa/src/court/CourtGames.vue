@@ -75,12 +75,13 @@ onMounted(loadGames)
           <td>{{ formatTime(game.startTime) }}</td>
           <td>{{ displayTeam(game, 'home') }}</td>
           <td class="text-center">
-            <GameResultDisplay :game="game" />
+            <GameResultDisplay :game="game" @enter-result="openResultDialog(game)" />
           </td>
           <td>{{ displayTeam(game, 'away') }}</td>
           <td>{{ game.refereeTeamName ?? '-' }}</td>
           <td class="text-right">
             <v-btn
+              v-if="game.status === 'Completed' && game.homeScore != null"
               size="small"
               variant="text"
               icon="mdi-pencil"

@@ -5,6 +5,10 @@ defineProps<{
   game: GameDto
 }>()
 
+defineEmits<{
+  'enter-result': []
+}>()
+
 function formatSets(game: GameDto): string {
   return game.sets?.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
 }
@@ -24,5 +28,5 @@ function formatSets(game: GameDto): string {
       {{ formatSets(game) }}
     </div>
   </template>
-  <span v-else class="text-medium-emphasis">vs</span>
+  <v-btn v-else size="small" variant="tonal" color="primary" @click="$emit('enter-result')" prepend-icon="mdi-scoreboard">Enter result</v-btn>
 </template>
