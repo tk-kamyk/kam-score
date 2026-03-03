@@ -67,7 +67,7 @@ function navigateToTournament(id: string) {
   <div>
     <div class="hero-section text-center mb-10">
       <img src="/volleyball.svg" alt="Volleyball" class="hero-icon mb-4" />
-      <h1 class="hero-title text-headline-small text-md-headline-large text-uppercase mb-2">Tournament Management</h1>
+      <h1 class="hero-title text-title-large text-md-headline-large text-uppercase mb-2">Tournament Management</h1>
       <p class="hero-subtitle mb-6">Organize, schedule, and track your volleyball tournaments</p>
       <v-btn
         v-if="auth.isAuthenticated"
@@ -123,7 +123,7 @@ function navigateToTournament(id: string) {
 
     <v-card v-if="!tournamentStore.loading && tournamentStore.tournaments.length === 0" class="pa-12 text-center">
       <v-icon size="72" color="secondary" class="mb-4 empty-icon">mdi-trophy-outline</v-icon>
-      <p class="text-headline-small text-uppercase mb-2 dialog-title empty-heading">No tournaments yet</p>
+      <p class="text-title-medium text-sm-headline-small text-uppercase mb-2 dialog-title empty-heading">No tournaments yet</p>
       <p v-if="auth.isAuthenticated" class="text-body-medium empty-hint">Click the button above to create your first tournament.</p>
     </v-card>
 

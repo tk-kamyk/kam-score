@@ -84,7 +84,7 @@ async function handleAutoAssign() {
     <v-card-title class="d-flex align-center justify-space-between">
       <div class="d-flex align-center flex-wrap ga-1">
         <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
-        <v-chip size="small" variant="outlined">
+        <v-chip size="small" variant="outlined" class="ml-4">
           #{{ phase.order }}
         </v-chip>
         <v-chip size="small" color="primary" variant="tonal">
@@ -145,26 +145,9 @@ async function handleAutoAssign() {
       <v-alert class="mt-4 mb-4" v-else type="info" variant="tonal" density="compact">
         No groups in this phase.
       </v-alert>
-
-      <!-- <div v-if="editing" class="mt-6 d-flex ga-2 justify-end">
-        <v-btn
-          variant="tonal"
-          prepend-icon="mdi-plus"
-          @click="openAddGroup"
-        >
-          Add Group
-        </v-btn>
-        <v-btn
-          variant="tonal"
-          prepend-icon="mdi-shuffle-variant"
-          @click="showAutoAssignDialog = true"
-        >
-          Auto-assign Teams
-        </v-btn>
-      </div> -->
     </v-card-text>
 
-    <v-card-actions v-if="editing" class="justify-end">
+    <v-card-actions v-if="editing" class="justify-end pa-4">
         <v-btn
           color="primary"
           variant="tonal"

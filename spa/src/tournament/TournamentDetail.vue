@@ -106,14 +106,12 @@ async function handleDelete() {
     <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" />
 
     <template v-if="tournament">
-      <h2 class="section-title text-title-large text-md-headline-medium text-lg-headline-large mb-6">{{ tournament.name }}</h2>
+      <h2 class="section-title text-title-medium text-md-title-large text-lg-headline-medium mb-6">{{ tournament.name }}</h2>
 
-      <v-tabs v-model="activeTab" color="primary" class="mb-6" slider-color="primary" :density="smAndDown ? 'compact' : 'comfortable'">
-        <v-tab value="details">Details</v-tab>
-        <v-tab value="teams">Teams</v-tab>
-        <v-tab value="courts">Courts</v-tab>
-        <v-tab value="structure">Structure</v-tab>
-        <v-tab value="schedule">Schedule</v-tab>
+      <v-tabs v-model="activeTab" color="primary" class="mb-4" slider-color="primary" :density="smAndDown ? 'compact' : 'comfortable'">
+        <v-tab v-for="tab in validTabs" :key="tab" :value="tab" :size="smAndDown ? 'default' : 'large'">
+          {{ tabLabels[tab] }}
+        </v-tab>
       </v-tabs>
 
       <v-tabs-window v-model="activeTab">

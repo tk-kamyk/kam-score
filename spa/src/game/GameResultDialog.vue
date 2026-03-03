@@ -111,28 +111,30 @@ function awayName(): string {
       </v-card-title>
 
       <v-card-text>
-        <div class="text-body-medium text-medium-emphasis mb-4">
-          {{ homeName() }} vs {{ awayName() }}
+        <div class="text-center mb-4">
+          <div class="text-body-medium text-medium-emphasis mb-4">
+            {{ homeName() }} vs {{ awayName() }}
+          </div>
+
+          <v-btn-toggle v-model="mode" mandatory variant="outlined" density="comfortable" class="mb-4">
+            <v-btn value="detailed">Detailed</v-btn>
+            <v-btn value="simple">Simple</v-btn>
+          </v-btn-toggle>
         </div>
 
-        <v-btn-toggle v-model="mode" mandatory variant="outlined" density="compact" class="mb-4">
-          <v-btn value="detailed">Detailed (per set)</v-btn>
-          <v-btn value="simple">Simple (sets won)</v-btn>
-        </v-btn-toggle>
-
         <template v-if="mode === 'detailed'">
-          <div class="d-flex text-body-small text-medium-emphasis mb-1 px-1">
+          <div class="d-flex text-body-small text-medium-emphasis mb-1 ga-2">
             <span class="flex-1-1">Set</span>
             <span class="set-column text-center">{{ homeName() }}</span>
             <span class="set-column text-center">{{ awayName() }}</span>
             <span class="remove-btn-column" />
           </div>
-          <div v-for="(set, i) in sets" :key="i" class="d-flex align-center gap-2 mb-2">
+          <div v-for="(set, i) in sets" :key="i" class="d-flex align-center ga-2 mb-2">
             <span class="text-body-medium text-medium-emphasis flex-1-1">Set {{ i + 1 }}</span>
             <v-text-field
               v-model.number="set.homePoints"
               type="number"
-              density="compact"
+              density="comfortable"
               hide-details
               min="0"
               class="set-input"
@@ -140,7 +142,7 @@ function awayName(): string {
             <v-text-field
               v-model.number="set.awayPoints"
               type="number"
-              density="compact"
+              density="comfortable"
               hide-details
               min="0"
               class="set-input"

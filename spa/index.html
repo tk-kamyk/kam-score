@@ -8,6 +8,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Dosis:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>KamScore</title>
+    <!-- Establish CSS cascade layer order before any Vuetify CSS loads -->
+    <style>@layer vuetify-core, vuetify-components, vuetify-overrides, vuetify-utilities, vuetify-final, overrides;</style>
   </head>
   <body>
     <div id="app"></div>
