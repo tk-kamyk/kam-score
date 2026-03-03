@@ -66,8 +66,8 @@ async function handleDeletePhase(phaseId: string) {
 <template>
   <div>
     <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title text-title-medium text-md-title-large">Structure</h3>
-      <div v-if="isOwner">
+      <h3 class="section-title text-title-small text-md-title-medium">Structure</h3>
+      <div v-if="isOwner" class="d-flex ga-2">
         <v-btn
           v-if="!hasStructure"
           color="primary"
@@ -80,21 +80,27 @@ async function handleDeletePhase(phaseId: string) {
           <v-btn
             v-if="!editing"
             color="primary"
-            variant="outlined"
             prepend-icon="mdi-pencil"
             @click="editing = true"
           >
             Edit
           </v-btn>
-          <v-btn
-            v-else
-            color="primary"
-            variant="outlined"
-            prepend-icon="mdi-check"
-            @click="editing = false"
-          >
-            Done
-          </v-btn>
+          <template v-else>
+            <v-btn
+              color="primary"
+              prepend-icon="mdi-plus"
+              @click="openAddPhase"
+            >
+              Add Phase
+            </v-btn>
+            <v-btn
+              color="primary"
+              prepend-icon="mdi-check"
+              @click="editing = false"
+            >
+              Done
+            </v-btn>
+          </template>
         </template>
       </div>
     </div>
@@ -102,17 +108,6 @@ async function handleDeletePhase(phaseId: string) {
     <v-progress-linear v-if="structureStore.loading" indeterminate color="primary" class="mb-4" />
 
     <template v-if="hasStructure">
-      <div v-if="editing" class="text-right">
-        <v-btn
-          color="primary"
-          prepend-icon="mdi-plus"
-          class="mb-4"
-          @click="openAddPhase"
-        >
-          Add Phase
-        </v-btn>
-      </div>
-
       <div v-if="phases.length > 0" class="phases-list">
         <PhaseCard
           v-for="phase in phases"

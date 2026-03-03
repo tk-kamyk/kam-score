@@ -89,12 +89,10 @@ body::before {
         background-color: var(--ks-primary-dark);
     }
 
-    /* Vuetify typography overrides */
-    .v-application {
-        font-family: 'Dosis', sans-serif;
-    }
-
-    .v-toolbar-title {
+    /* Force Dosis everywhere — beats Vuetify's hardcoded Roboto in all
+       typography utility classes (text-title-medium, text-md-headline-small, etc.).
+       Non-layered CSS (.code-chip monospace, MDI icon font) still wins. */
+    * {
         font-family: 'Dosis', sans-serif;
     }
 

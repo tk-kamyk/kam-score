@@ -30,8 +30,7 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
 }
 
 function formatSets(game: GameDto): string {
-  if (!game.sets?.length) return ''
-  return game.sets.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ')
+  return game.sets?.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
 }
 
 function openResultDialog(game: GameDto) {
@@ -81,9 +80,10 @@ onMounted(loadGames)
           <td class="text-center">
             <template v-if="game.status === 'Completed' && game.homeScore != null">
               <v-chip size="small" color="success" variant="tonal">
-                {{ game.homeScore }}–{{ game.awayScore }}
+                <template v-if="!game.sets?.length || (game.sets?.length ?? 0) > 1">{{ game.homeScore }}–{{ game.awayScore }}</template>
+                <template v-else>{{ game.sets?.[0]?.homePoints }}–{{ game.sets?.[0]?.awayPoints }}</template>
               </v-chip>
-              <div v-if="formatSets(game)" class="text-body-small text-medium-emphasis mt-1">
+              <div v-if="(game.sets?.length ?? 0) > 1" class="text-body-small text-medium-emphasis mt-1">
                 {{ formatSets(game) }}
               </div>
             </template>
@@ -93,19 +93,11 @@ onMounted(loadGames)
           <td>{{ game.refereeTeamName ?? '-' }}</td>
           <td class="text-right">
             <v-btn
-              v-if="game.status === 'Scheduled'"
-              size="x-small"
-              variant="tonal"
+              size="small"
               color="primary"
-              @click="openResultDialog(game)"
-            >
-              Enter Result
-            </v-btn>
-            <v-btn
-              v-else-if="game.status === 'Completed'"
-              size="x-small"
-              variant="text"
-              icon="mdi-pencil"
+              variant="tonal"
+              prepend-icon="mdi-scoreboard"
+              append-icon="mdi-pencil"
               @click="openResultDialog(game)"
             />
           </td>

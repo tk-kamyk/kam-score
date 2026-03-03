@@ -124,8 +124,7 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
 }
 
 function formatSets(game: GameDto): string {
-  if (!game.sets?.length) return ''
-  return game.sets.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ')
+  return game.sets?.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
 }
 
 function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
@@ -176,7 +175,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h3 class="section-title text-title-medium text-md-title-large mb-6">Schedule</h3>
+    <h3 class="section-title text-title-small text-md-title-medium mb-6">Schedule</h3>
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
@@ -194,7 +193,7 @@ onMounted(async () => {
             class="mr-1"
           />
           <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
-          <v-chip size="small" color="primary" variant="tonal">
+          <v-chip size="small" color="primary" variant="tonal" class="ml-4">
             {{ formatPhaseFormat(phase.format) }}
           </v-chip>
           <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
@@ -203,14 +202,14 @@ onMounted(async () => {
         </div>
       </v-card-title>
 
-      <v-card-text v-if="expandedPhases.has(phase.id!)">
+      <v-card-text v-if="expandedPhases.has(phase.id!)" class="py-0">
       <template v-if="phaseGames(phase.id!).length > 0">
         <div
           v-for="(games, groupId) in gamesByGroup(phaseGames(phase.id!))"
           :key="groupId"
-          class="mb-4 mx-1 mx-sm-6"
+          class="py-2 mx-0 mx-sm-6"
         >
-          <div class="d-flex align-center text-title-medium font-weight-medium pb-6 group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
+          <div class="d-flex align-center text-title-medium font-weight-medium group-header" @click.stop="toggleGroup(phase.id!, groupId as string)">
             <v-icon
               :icon="expandedGroups.has(`${phase.id}:${groupId}`) ? 'mdi-chevron-down' : 'mdi-chevron-right'"
               size="small"
@@ -218,7 +217,7 @@ onMounted(async () => {
             />
             Group {{ groupName(phase, groupId as string) }}
           </div>
-          <v-card v-if="expandedGroups.has(`${phase.id}:${groupId}`)" class="data-table-card">
+          <v-card v-if="expandedGroups.has(`${phase.id}:${groupId}`)" class="my-6 data-table-card">
             <v-table density="compact" class="styled-table">
               <thead>
                 <tr>
@@ -241,9 +240,10 @@ onMounted(async () => {
                   <td class="text-center">
                     <template v-if="game.status === 'Completed' && game.homeScore != null">
                       <v-chip size="small" color="success" variant="tonal">
-                        {{ game.homeScore }}–{{ game.awayScore }}
+                        <template v-if="!game.sets?.length || (game.sets?.length ?? 0) > 1">{{ game.homeScore }}–{{ game.awayScore }}</template>
+                        <template v-else>{{ game.sets?.[0]?.homePoints }}–{{ game.sets?.[0]?.awayPoints }}</template>
                       </v-chip>
-                      <div v-if="formatSets(game)" class="text-body-small text-medium-emphasis mt-1">
+                      <div v-if="(game.sets?.length ?? 0) > 1" class="text-body-small text-medium-emphasis mt-1">
                         {{ formatSets(game) }}
                       </div>
                     </template>
@@ -255,19 +255,11 @@ onMounted(async () => {
                   <td>{{ game.refereeTeamName ?? '-' }}</td>
                   <td class="text-right">
                     <v-btn
-                      v-if="game.status === 'Scheduled'"
                       size="small"
-                      variant="tonal"
                       color="primary"
-                      @click="openResultDialog(game)"
-                    >
-                      Enter Result
-                    </v-btn>
-                    <v-btn
-                      v-else-if="game.status === 'Completed'"
-                      size="small"
-                      variant="text"
-                      icon="mdi-pencil"
+                      variant="tonal"
+                      prepend-icon="mdi-scoreboard"
+                      append-icon="mdi-pencil"
                       @click="openResultDialog(game)"
                     />
                   </td>
@@ -289,7 +281,7 @@ onMounted(async () => {
       </v-alert>
       </v-card-text>
 
-      <v-card-actions v-if="isOwner" class="justify-end">
+      <v-card-actions v-if="isOwner" class="justify-end pa-4">
         <v-btn
           v-if="phaseGames(phase.id!).length === 0"
           color="primary"
