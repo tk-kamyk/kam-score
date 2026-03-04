@@ -9,4 +9,5 @@ public record PhaseDto(
     int? GroupWinners = null,
     int? TotalTeamsProceeding = null,
     string? StartTime = null,
+    string? Status = null,
     List<GroupDto>? Groups = null);

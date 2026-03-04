@@ -19,6 +19,7 @@ public class StructureProfile : Profile
 
         CreateMap<Phase, PhaseDto>()
             .ForMember(dest => dest.Format, opt => opt.MapFrom(src => src.Format.ToString()))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
             .ForMember(dest => dest.NumberOfGroups, opt => opt.Ignore());
 
         CreateMap<Group, GroupDto>();

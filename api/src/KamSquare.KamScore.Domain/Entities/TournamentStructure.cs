@@ -112,6 +112,50 @@ public class TournamentStructure : Entity
         return phase.Groups.Any(g => g.HasTeam(teamId));
     }
 
+    public void ActivatePhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        phase.Activate();
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void CompletePhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        phase.Complete();
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void ReopenPhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        phase.Reopen();
+
+        var nextPhase = GetNextPhase(phaseId);
+        if (nextPhase is not null)
+        {
+            nextPhase.Status = PhaseStatus.New;
+            foreach (var group in nextPhase.Groups)
+            {
+                group.ClearTeams();
+            }
+        }
+
+        LastModified = DateTime.UtcNow;
+    }
+
+    public Phase? GetNextPhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        return Phases.FirstOrDefault(p => p.Order == phase.Order + 1);
+    }
+
+    public Phase? GetPreviousPhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        return Phases.FirstOrDefault(p => p.Order == phase.Order - 1);
+    }
+
     public void AutoAssignTeams(string phaseId, List<Team> teams)
     {
         var phase = GetPhase(phaseId);

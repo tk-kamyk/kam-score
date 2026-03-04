@@ -127,15 +127,35 @@
 
 # Phase advancement
 
-- Phase defines the amount of teams progressing
+## Phase status
+
+- Each phase has a status: `New` (default), `InProgress`, `Completed`
+- **New → InProgress**: for the first phase, this happens when games are generated; for subsequent phases, when the previous phase completes (placeholders are resolved, teams are assigned)
+- **InProgress → Completed**: owner explicitly marks the phase as complete via the Schedule tab
+- Completing a phase requires all games in the phase to have results recorded
+- Reopening a completed phase reverts it to `InProgress` and clears progression in the next phase (next phase reverts to `New`)
+
+## Progression
+
+- Phase defines the amount of teams progressing via `GroupWinners` and/or `TotalTeamsProceeding`
 - The progressing teams are the input to the next phase
-- Progression is based on the rules defined (top of the group progression and total progression)
-- Only teams that progress are available in the next phase
-- Teams in the next phase are seeded based on their results and standings in the previous phase
-- In the first phase, the schedule, games, etc. is generated using real team names
-- In the next phase (and the following phases), the schedule, games, etc. is generated using placeholders (e.g. Phase 1 - Seed 1)
-- Phase can be marked as completed in the Schedule tab
-- Once the phase is marked as completed, the placeholders in the next phase are replaced by real team names/ids
+- Progression is automatic when the phase is marked as completed:
+    1. From each group, the top `GroupWinners` teams qualify automatically
+    2. Remaining teams across all groups are ranked together using the same standings criteria (points → set difference → point difference)
+    3. The best remaining teams are added until `TotalTeamsProceeding` is reached
+    4. If only `GroupWinners` is set, total qualifying = `GroupWinners` × number of groups
+    5. If only `TotalTeamsProceeding` is set, the top N teams across all groups qualify
+    6. If neither is set, no progression occurs
+- All qualifying teams are then ranked together in a single seeding order using standings criteria — this produces Seed 1, Seed 2, ..., Seed N
+- Seeded teams are assigned to the next phase's groups via snake draft (same as existing auto-assign)
+
+## Cross-phase placeholders
+
+- In the first phase, games are generated using real team names/IDs
+- In subsequent phases, games can be generated before the previous phase completes — they use placeholders (e.g., "Group Stage - Seed 1")
+- Placeholder format: `"{SourcePhaseName} - Seed {N}"` where N is the overall seed position
+- When the previous phase is marked as completed, placeholders in the next phase are resolved — replaced with real team IDs based on the seeding order
+- Placeholders are kept intact after resolution (not cleared), allowing re-resolution when a phase is reopened and re-completed
 
 # TBC
 

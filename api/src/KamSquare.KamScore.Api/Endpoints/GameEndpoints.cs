@@ -50,8 +50,28 @@ public static partial class GameEndpoints
         var phase = structure.GetPhase(phaseId);
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
 
-        await ValidateGenerationPrerequisitesAsync(tournament, phase, courts, tournamentId, phaseId, gameRepository);
-        var allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
+        // Determine if this is a placeholder generation (phase 2+ with no teams assigned)
+        var hasTeamsAssigned = phase.Groups.Any(g => g.TeamIds.Count > 0);
+        var isPlaceholderGeneration = phase.Order > 1 && !hasTeamsAssigned;
+
+        await ValidateGenerationPrerequisitesAsync(
+            tournament, phase, courts, tournamentId, phaseId, gameRepository, isPlaceholderGeneration, structure);
+
+        List<Game> allGames;
+        if (isPlaceholderGeneration)
+        {
+            var previousPhase = structure.GetPreviousPhase(phaseId)!;
+            var totalTeams = PhaseAdvancementCalculator.GetExpectedTeamCount(previousPhase)
+                ?? throw new ValidationException(
+                    [new ValidationFailure("Progression", "Previous phase must have GroupWinners or TotalTeamsProceeding configured.")]);
+
+            allGames = CrossPhaseGameGenerator.GenerateWithPlaceholders(
+                tournamentId, phaseId, phase, previousPhase.Name, totalTeams);
+        }
+        else
+        {
+            allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
+        }
 
         var courtIds = courts.Select(c => c.Id).ToList();
         var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime!.Value.ToTimeSpan())
@@ -59,6 +79,14 @@ public static partial class GameEndpoints
         GameScheduler.Schedule(allGames, courtIds, startDateTime, tournament.GameLength!.Value);
 
         var savedGames = (await gameRepository.CreateBatchAsync(allGames)).ToList();
+
+        // Activate phase 1 when games are generated (New → InProgress)
+        if (phase.Order == 1 && phase.Status == PhaseStatus.New)
+        {
+            structure.ActivatePhase(phaseId);
+            await structureRepository.UpdateAsync(structure);
+        }
+
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
 
         return Results.Created(
@@ -178,7 +206,8 @@ public static partial class GameEndpoints
     private static async Task ValidateGenerationPrerequisitesAsync(
         Tournament tournament, Phase phase, List<Court> courts,
         string tournamentId, string phaseId,
-        IGameRepository gameRepository)
+        IGameRepository gameRepository, bool isPlaceholderGeneration = false,
+        TournamentStructure? structure = null)
     {
         if (tournament.GameLength is null or <= 0)
             throw new ValidationException(
@@ -192,9 +221,24 @@ public static partial class GameEndpoints
             throw new ValidationException(
                 [new ValidationFailure("Courts", "At least one court is required.")]);
 
-        if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
-            throw new ValidationException(
-                [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
+        if (isPlaceholderGeneration)
+        {
+            if (phase.Groups.Count == 0)
+                throw new ValidationException(
+                    [new ValidationFailure("Groups", "Phase must have at least one group.")]);
+
+            var previousPhase = structure?.GetPreviousPhase(phaseId);
+            if (previousPhase is null ||
+                (previousPhase.GroupWinners is null && previousPhase.TotalTeamsProceeding is null))
+                throw new ValidationException(
+                    [new ValidationFailure("Progression", "Previous phase must have GroupWinners or TotalTeamsProceeding configured.")]);
+        }
+        else
+        {
+            if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
+                throw new ValidationException(
+                    [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
+        }
 
         if (await gameRepository.GamesExistForPhaseAsync(tournamentId, phaseId))
             throw new ValidationException(

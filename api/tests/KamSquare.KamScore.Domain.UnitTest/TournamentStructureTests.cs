@@ -379,4 +379,116 @@ public class TournamentStructureTests
 
         structure.LastModified.Should().BeOnOrAfter(initialModified!.Value);
     }
+
+    // --- Phase Status Lifecycle ---
+
+    [Fact]
+    public void AddPhase_ShouldHaveStatusNew()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        phase.Status.Should().Be(PhaseStatus.New);
+    }
+
+    [Fact]
+    public void ActivatePhase_ShouldSetStatusToInProgress()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        structure.ActivatePhase(phase.Id);
+
+        phase.Status.Should().Be(PhaseStatus.InProgress);
+    }
+
+    [Fact]
+    public void CompletePhase_ShouldSetStatusToCompleted()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        structure.ActivatePhase(phase.Id);
+
+        structure.CompletePhase(phase.Id);
+
+        phase.Status.Should().Be(PhaseStatus.Completed);
+    }
+
+    [Fact]
+    public void ReopenPhase_ShouldSetStatusToInProgress()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        structure.ActivatePhase(phase.Id);
+        structure.CompletePhase(phase.Id);
+
+        structure.ReopenPhase(phase.Id);
+
+        phase.Status.Should().Be(PhaseStatus.InProgress);
+    }
+
+    [Fact]
+    public void ReopenPhase_ShouldClearNextPhaseTeamsAndRevertToNew()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+        structure.ActivatePhase(phase1.Id);
+        structure.CompletePhase(phase1.Id);
+        structure.AutoAssignTeams(phase2.Id, ["t1", "t2", "t3", "t4"]);
+        structure.ActivatePhase(phase2.Id);
+
+        structure.ReopenPhase(phase1.Id);
+
+        phase2.Status.Should().Be(PhaseStatus.New);
+        phase2.Groups.Should().AllSatisfy(g => g.TeamIds.Should().BeEmpty());
+    }
+
+    [Fact]
+    public void GetNextPhase_ShouldReturnNextPhaseByOrder()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+
+        var next = structure.GetNextPhase(phase1.Id);
+
+        next.Should().NotBeNull();
+        next!.Id.Should().Be(phase2.Id);
+    }
+
+    [Fact]
+    public void GetNextPhase_ShouldReturnNull_WhenLastPhase()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        var next = structure.GetNextPhase(phase.Id);
+
+        next.Should().BeNull();
+    }
+
+    [Fact]
+    public void GetPreviousPhase_ShouldReturnPreviousPhaseByOrder()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+
+        var prev = structure.GetPreviousPhase(phase2.Id);
+
+        prev.Should().NotBeNull();
+        prev!.Id.Should().Be(phase1.Id);
+    }
+
+    [Fact]
+    public void GetPreviousPhase_ShouldReturnNull_WhenFirstPhase()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        var prev = structure.GetPreviousPhase(phase.Id);
+
+        prev.Should().BeNull();
+    }
 }
