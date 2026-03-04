@@ -125,6 +125,18 @@
 - Round-robin games have no label and no advancement
 - If a downstream game has already been played, its team IDs are updated but its result and status are preserved — the organizer is responsible for reviewing cascading changes
 
+# Phase advancement
+
+- Phase defines the amount of teams progressing
+- The progressing teams are the input to the next phase
+- Progression is based on the rules defined (top of the group progression and total progression)
+- Only teams that progress are available in the next phase
+- Teams in the next phase are seeded based on their results and standings in the previous phase
+- In the first phase, the schedule, games, etc. is generated using real team names
+- In the next phase (and the following phases), the schedule, games, etc. is generated using placeholders (e.g. Phase 1 - Seed 1)
+- Phase can be marked as completed in the Schedule tab
+- Once the phase is marked as completed, the placeholders in the next phase are replaced by real team names/ids
+
 # TBC
 
 # Phase
