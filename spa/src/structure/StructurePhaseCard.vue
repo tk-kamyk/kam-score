@@ -90,9 +90,6 @@ async function handleAutoAssign() {
       <v-chip v-if="phase.totalTeamsProceeding" size="small" color="info" variant="tonal" prepend-icon="mdi-arrow-up">
         Total {{ phase.totalTeamsProceeding }}
       </v-chip>
-      <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal" prepend-icon="mdi-calendar-clock">
-        {{ phase.startTime }}
-      </v-chip>
     </template>
 
     <template #header-actions>

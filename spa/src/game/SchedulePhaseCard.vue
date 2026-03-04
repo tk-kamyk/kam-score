@@ -39,12 +39,6 @@ function groupName(groupId: string): string {
 
 <template>
   <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
-    <template #chips>
-      <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal" prepend-icon="mdi-calendar-clock">
-        {{ phase.startTime }}
-      </v-chip>
-    </template>
-
     <v-card-text class="py-0">
       <template v-if="games.length > 0">
         <ScheduleGroupGames
