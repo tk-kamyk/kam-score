@@ -14,6 +14,7 @@ public class Phase
     public int? GroupWinners { get; set; }
     public int? TotalTeamsProceeding { get; set; }
     public TimeOnly? StartTime { get; set; }
+    public PhaseStatus Status { get; set; } = PhaseStatus.New;
     public List<Group> Groups { get; set; } = [];
 
     public static Phase Create(string name, PhaseFormat format, int order, int numberOfGroups,
@@ -46,6 +47,21 @@ public class Phase
         GroupWinners = groupWinners;
         TotalTeamsProceeding = totalTeamsProceeding;
         StartTime = startTime;
+    }
+
+    public void Activate()
+    {
+        Status = PhaseStatus.InProgress;
+    }
+
+    public void Complete()
+    {
+        Status = PhaseStatus.Completed;
+    }
+
+    public void Reopen()
+    {
+        Status = PhaseStatus.InProgress;
     }
 
     private static string GetGroupName(int index)
