@@ -67,7 +67,7 @@ const selectedGroupGames = computed(() => {
 
       <template v-if="selectedGroupId">
         <div class="mb-8">
-          <h4 class="text-title-medium text-md-title-large mb-2 mb-md-4 text-center">Standings</h4>
+          <h4 class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase">Standings</h4>
           <GroupStandings
             :standings="standings"
             :phase-format="phase.format"
@@ -75,7 +75,7 @@ const selectedGroupGames = computed(() => {
         </div>
 
         <div v-if="selectedGroupGames.length > 0">
-          <h4 class="text-title-medium text-md-title-large mb-2 mb-md-4 text-center">Games</h4>
+          <h4 class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase">Games</h4>
           <GroupOverviewGames
             :games="selectedGroupGames"
             @open-result="(game) => emit('open-result', game)"
