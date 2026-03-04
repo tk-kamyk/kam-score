@@ -28,6 +28,9 @@ const slots = useSlots()
         <v-chip size="small" color="primary" variant="tonal" class="ml-4" prepend-icon="mdi-sitemap">
           {{ formatPhaseFormat(phase.format) }}
         </v-chip>
+        <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal" prepend-icon="mdi-calendar-clock">
+          {{ phase.startTime }}
+        </v-chip>
         <slot name="chips" />
       </div>
       <slot name="header-actions" />
