@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCourtStore } from '@/court/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import SectionHeader from '@/components/SectionHeader.vue'
 import CourtGames from '@/court/CourtGames.vue'
 import type { CourtDto } from '@/court/types'
 import type { VForm } from 'vuetify/components'
@@ -105,12 +106,11 @@ async function handleDelete() {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title text-title-small text-md-title-medium">Courts</h3>
+    <SectionHeader title="Courts">
       <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
         Add Court
       </v-btn>
-    </div>
+    </SectionHeader>
 
     <v-progress-linear v-if="courtStore.loading" indeterminate color="primary" class="mb-4" />
 

@@ -5,7 +5,8 @@ import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useStandingsStore } from '@/standings/store'
 import type { GameDto } from '@/game/types'
-import GroupOverviewPhaseCard from '@/standings/GroupOverviewPhaseCard.vue'
+import SectionHeader from '@/components/SectionHeader.vue'
+import StandingsPhaseCard from '@/standings/StandingsPhaseCard.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 
 const props = defineProps<{
@@ -154,9 +155,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div class="mb-6">
-      <h3 class="section-title text-title-small text-md-title-medium">Groups</h3>
-    </div>
+    <SectionHeader title="Groups" />
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
@@ -165,7 +164,7 @@ onMounted(async () => {
     </v-alert>
 
     <div class="phases-list">
-      <GroupOverviewPhaseCard
+      <StandingsPhaseCard
         v-for="phase in phases"
         :key="phase.id"
         :phase="phase"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import SectionHeader from '@/components/SectionHeader.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{
@@ -59,13 +60,12 @@ function handleDelete() {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title text-title-small text-md-title-medium">Details</h3>
+    <SectionHeader title="Details">
       <div v-if="isOwner">
         <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit" />
         <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="showDeleteDialog = true" />
       </div>
-    </div>
+    </SectionHeader>
 
     <v-card class="data-table-card">
       <v-table density="comfortable" class="styled-table">

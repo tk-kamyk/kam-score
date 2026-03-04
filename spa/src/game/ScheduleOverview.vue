@@ -6,6 +6,7 @@ import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import type { GameDto } from '@/game/types'
 import type { PhaseDto } from '@/structure/types'
+import SectionHeader from '@/components/SectionHeader.vue'
 import SchedulePhaseCard from '@/game/SchedulePhaseCard.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 
@@ -136,9 +137,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div class="mb-6">
-      <h3 class="section-title text-title-small text-md-title-medium">Schedule</h3>
-    </div>
+    <SectionHeader title="Schedule" />
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 

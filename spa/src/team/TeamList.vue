@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import SectionHeader from '@/components/SectionHeader.vue'
 import type { TeamDto } from '@/team/types'
 import type { VForm } from 'vuetify/components'
 
@@ -92,12 +93,11 @@ async function handleDelete() {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title text-title-small text-md-title-medium">Teams</h3>
+    <SectionHeader title="Teams">
       <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
         Add Team
       </v-btn>
-    </div>
+    </SectionHeader>
 
     <v-progress-linear v-if="teamStore.loading" indeterminate color="primary" class="mb-4" />
 
