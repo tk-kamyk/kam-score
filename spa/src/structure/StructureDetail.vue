@@ -4,7 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import PhaseCard from '@/structure/PhaseCard.vue'
+import SectionHeader from '@/components/SectionHeader.vue'
+import StructurePhaseCard from '@/structure/StructurePhaseCard.vue'
 import PhaseForm from '@/structure/PhaseForm.vue'
 import type { PhaseDto } from '@/structure/types'
 
@@ -95,8 +96,7 @@ async function handleDeletePhase(phaseId: string) {
 
 <template>
   <div>
-    <div class="d-flex justify-space-between align-center mb-6">
-      <h3 class="section-title text-title-small text-md-title-medium">Structure</h3>
+    <SectionHeader title="Structure">
       <div v-if="isOwner" class="d-flex ga-2">
         <v-btn
           v-if="!hasStructure"
@@ -133,13 +133,13 @@ async function handleDeletePhase(phaseId: string) {
           </template>
         </template>
       </div>
-    </div>
+    </SectionHeader>
 
     <v-progress-linear v-if="structureStore.loading" indeterminate color="primary" class="mb-4" />
 
     <template v-if="hasStructure">
       <div v-if="phases.length > 0" class="phases-list">
-        <PhaseCard
+        <StructurePhaseCard
           v-for="phase in phases"
           :key="phase.id"
           :phase="phase"

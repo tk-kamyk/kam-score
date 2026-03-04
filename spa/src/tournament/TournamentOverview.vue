@@ -11,7 +11,7 @@ import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
 import StructureDetail from '@/structure/StructureDetail.vue'
 import ScheduleOverview from '@/game/ScheduleOverview.vue'
-import GroupOverview from '@/standings/GroupOverview.vue'
+import StandingsOverview from '@/standings/StandingsOverview.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -112,7 +112,7 @@ async function handleDelete() {
         </v-tabs-window-item>
 
         <v-tabs-window-item value="groups">
-          <GroupOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'groups'" />
+          <StandingsOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'groups'" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="schedule">

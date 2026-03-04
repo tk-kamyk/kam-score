@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatPhaseFormat } from '@/structure/types'
 import type { PhaseDto } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import type { StandingDto } from '@/standings/types'
-import GroupStandings from '@/standings/GroupStandings.vue'
-import GroupOverviewGames from '@/standings/GroupOverviewGames.vue'
+import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
+import StandingsGroup from '@/standings/StandingsGroup.vue'
+import StandingsGames from '@/standings/StandingsGames.vue'
 
 const props = defineProps<{
   phase: PhaseDto
@@ -30,22 +30,17 @@ const selectedGroupGames = computed(() => {
 </script>
 
 <template>
-  <v-card class="phase-card">
-    <v-card-title class="d-flex align-center justify-space-between phase-header" @click="emit('toggle-phase')">
-      <div class="d-flex align-center flex-wrap ga-1">
-        <v-icon
-          :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
-          size="small"
-          class="mr-1"
-        />
-        <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
-        <v-chip size="small" color="primary" variant="tonal" class="ml-4">
-          {{ formatPhaseFormat(phase.format) }}
-        </v-chip>
-      </div>
-    </v-card-title>
+  <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
+    <template #chips>
+      <v-chip v-if="phase.groupWinners" size="small" color="success" variant="tonal" prepend-icon="mdi-arrow-up">
+        Top {{ phase.groupWinners }}
+      </v-chip>
+      <v-chip v-if="phase.totalTeamsProceeding" size="small" color="info" variant="tonal" prepend-icon="mdi-arrow-up">
+        Total {{ phase.totalTeamsProceeding }}
+      </v-chip>
+    </template>
 
-    <v-card-text v-if="expanded" class="px-8 pb-8">
+    <v-card-text class="px-8 pb-8">
       <div v-if="phase.groups && phase.groups.length > 0" class="mb-4">
         <v-chip-group
           :model-value="selectedGroupId"
@@ -68,7 +63,7 @@ const selectedGroupGames = computed(() => {
       <template v-if="selectedGroupId">
         <div class="mb-8">
           <h4 class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase">Standings</h4>
-          <GroupStandings
+          <StandingsGroup
             :standings="standings"
             :phase-format="phase.format"
           />
@@ -76,7 +71,7 @@ const selectedGroupGames = computed(() => {
 
         <div v-if="selectedGroupGames.length > 0">
           <h4 class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase">Games</h4>
-          <GroupOverviewGames
+          <StandingsGames
             :games="selectedGroupGames"
             @open-result="(game) => emit('open-result', game)"
           />
@@ -93,15 +88,5 @@ const selectedGroupGames = computed(() => {
         </v-alert>
       </template>
     </v-card-text>
-  </v-card>
+  </CollapsiblePhaseCard>
 </template>
-
-<style scoped>
-.phase-card {
-  border: 1px solid var(--ks-border);
-}
-
-.phase-header {
-  cursor: pointer;
-}
-</style>

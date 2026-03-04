@@ -3,8 +3,8 @@ import { ref } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
-import { formatPhaseFormat } from '@/structure/types'
-import GroupCard from '@/structure/GroupCard.vue'
+import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
+import StructureGroupCard from '@/structure/StructureGroupCard.vue'
 import TeamAssignmentForm from '@/structure/TeamAssignmentForm.vue'
 import type { PhaseDto } from '@/structure/types'
 import type { TeamDto } from '@/team/types'
@@ -82,31 +82,20 @@ async function handleAutoAssign() {
 </script>
 
 <template>
-  <v-card class="phase-card">
-    <v-card-title class="d-flex align-center justify-space-between phase-header" @click="emit('toggle-phase')">
-      <div class="d-flex align-center flex-wrap ga-1">
-        <v-icon
-          :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
-          size="small"
-          class="mr-1"
-        />
-        <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
-        <v-chip size="small" variant="outlined" class="ml-4">
-          #{{ phase.order }}
-        </v-chip>
-        <v-chip size="small" color="primary" variant="tonal">
-          {{ formatPhaseFormat(phase.format) }}
-        </v-chip>
-        <v-chip v-if="phase.groupWinners" size="small" color="success" variant="tonal">
-          Top {{ phase.groupWinners }} per group
-        </v-chip>
-        <v-chip v-if="phase.totalTeamsProceeding" size="small" color="info" variant="tonal">
-          {{ phase.totalTeamsProceeding }} total proceed
-        </v-chip>
-        <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
-          Starts {{ phase.startTime }}
-        </v-chip>
-      </div>
+  <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
+    <template #chips>
+      <v-chip v-if="phase.groupWinners" size="small" color="success" variant="tonal" prepend-icon="mdi-arrow-up">
+        Top {{ phase.groupWinners }}
+      </v-chip>
+      <v-chip v-if="phase.totalTeamsProceeding" size="small" color="info" variant="tonal" prepend-icon="mdi-arrow-up">
+        Total {{ phase.totalTeamsProceeding }}
+      </v-chip>
+      <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal" prepend-icon="mdi-calendar-clock">
+        {{ phase.startTime }}
+      </v-chip>
+    </template>
+
+    <template #header-actions>
       <div v-if="editing">
         <v-btn icon="mdi-pencil" variant="text" size="small" @click="emit('edit', phase)" />
         <v-btn
@@ -117,9 +106,9 @@ async function handleAutoAssign() {
           @click="confirmDelete"
         />
       </div>
-    </v-card-title>
+    </template>
 
-    <v-card-text v-if="expanded">
+    <v-card-text>
       <div v-if="phase.groups && phase.groups.length > 0" class="groups-grid">
         <v-card
           v-for="group in phase.groups"
@@ -129,7 +118,7 @@ async function handleAutoAssign() {
         >
           <v-card-title class="d-flex align-center justify-space-between py-2">
             <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
-            <GroupCard
+            <StructureGroupCard
               v-if="editing"
               :tournament-id="tournamentId"
               :phase-id="phase.id!"
@@ -154,24 +143,24 @@ async function handleAutoAssign() {
       </v-alert>
     </v-card-text>
 
-    <v-card-actions v-if="expanded && editing" class="justify-end pa-4">
-        <v-btn
-          color="primary"
-          variant="elevated"
-          prepend-icon="mdi-plus"
-          @click="openAddGroup"
-        >
-          Add Group
-        </v-btn>
-        <v-btn
-          color="primary"
-          variant="elevated"
-          prepend-icon="mdi-shuffle-variant"
-          @click="showAutoAssignDialog = true"
-        >
-          Auto-assign Teams
-        </v-btn>
-  </v-card-actions>
+    <template v-if="editing" #actions>
+      <v-btn
+        color="primary"
+        variant="elevated"
+        prepend-icon="mdi-plus"
+        @click="openAddGroup"
+      >
+        Add Group
+      </v-btn>
+      <v-btn
+        color="primary"
+        variant="elevated"
+        prepend-icon="mdi-shuffle-variant"
+        @click="showAutoAssignDialog = true"
+      >
+        Auto-assign Teams
+      </v-btn>
+    </template>
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card class="pa-2">
@@ -230,18 +219,10 @@ async function handleAutoAssign() {
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-card>
+  </CollapsiblePhaseCard>
 </template>
 
 <style scoped>
-.phase-card {
-  border: 1px solid var(--ks-border);
-}
-
-.phase-header {
-  cursor: pointer;
-}
-
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

@@ -11,7 +11,7 @@ const router = createRouter({
     {
       path: '/tournaments/:id',
       name: 'tournament',
-      component: () => import('@/views/TournamentDetailView.vue'),
+      component: () => import('@/views/TournamentOverviewView.vue'),
       props: true,
     },
     {

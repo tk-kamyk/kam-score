@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { formatPhaseFormat } from '@/structure/types'
 import type { PhaseDto } from '@/structure/types'
 import type { GameDto } from '@/game/types'
+import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
 import ScheduleGroupGames from '@/game/ScheduleGroupGames.vue'
 
 const props = defineProps<{
@@ -38,25 +38,14 @@ function groupName(groupId: string): string {
 </script>
 
 <template>
-  <v-card class="phase-card">
-    <v-card-title class="d-flex align-center justify-space-between phase-header" @click="emit('toggle-phase')">
-      <div class="d-flex align-center flex-wrap ga-1">
-        <v-icon
-          :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
-          size="small"
-          class="mr-1"
-        />
-        <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
-        <v-chip size="small" color="primary" variant="tonal" class="ml-4">
-          {{ formatPhaseFormat(phase.format) }}
-        </v-chip>
-        <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal">
-          Starts {{ phase.startTime }}
-        </v-chip>
-      </div>
-    </v-card-title>
+  <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
+    <template #chips>
+      <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal" prepend-icon="mdi-calendar-clock">
+        {{ phase.startTime }}
+      </v-chip>
+    </template>
 
-    <v-card-text v-if="expanded" class="py-0">
+    <v-card-text class="py-0">
       <template v-if="games.length > 0">
         <ScheduleGroupGames
           v-for="(groupGames, groupId) in gamesByGroup(games)"
@@ -82,7 +71,7 @@ function groupName(groupId: string): string {
       </v-alert>
     </v-card-text>
 
-    <v-card-actions v-if="isOwner" class="justify-end pa-4">
+    <template v-if="isOwner" #actions>
       <v-btn
         v-if="games.length === 0"
         color="primary"
@@ -102,16 +91,6 @@ function groupName(groupId: string): string {
       >
         Delete Games
       </v-btn>
-    </v-card-actions>
-  </v-card>
+    </template>
+  </CollapsiblePhaseCard>
 </template>
-
-<style scoped>
-.phase-card {
-  border: 1px solid var(--ks-border);
-}
-
-.phase-header {
-  cursor: pointer;
-}
-</style>
