@@ -136,7 +136,9 @@ onMounted(async () => {
 
 <template>
   <div>
-    <h3 class="section-title text-title-small text-md-title-medium mb-6">Schedule</h3>
+    <div class="mb-6">
+      <h3 class="section-title text-title-small text-md-title-medium">Schedule</h3>
+    </div>
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 

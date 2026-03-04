@@ -14,10 +14,12 @@ const props = defineProps<{
   phase: PhaseDto
   tournamentId: string
   editing: boolean
+  expanded: boolean
   teams: TeamDto[]
 }>()
 
 const emit = defineEmits<{
+  'toggle-phase': []
   edit: [phase: PhaseDto]
   delete: [phaseId: string]
 }>()
@@ -81,8 +83,13 @@ async function handleAutoAssign() {
 
 <template>
   <v-card class="phase-card">
-    <v-card-title class="d-flex align-center justify-space-between">
+    <v-card-title class="d-flex align-center justify-space-between phase-header" @click="emit('toggle-phase')">
       <div class="d-flex align-center flex-wrap ga-1">
+        <v-icon
+          :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+          size="small"
+          class="mr-1"
+        />
         <span class="text-title-medium text-sm-headline-small">{{ phase.name }}</span>
         <v-chip size="small" variant="outlined" class="ml-4">
           #{{ phase.order }}
@@ -112,7 +119,7 @@ async function handleAutoAssign() {
       </div>
     </v-card-title>
 
-    <v-card-text>
+    <v-card-text v-if="expanded">
       <div v-if="phase.groups && phase.groups.length > 0" class="groups-grid">
         <v-card
           v-for="group in phase.groups"
@@ -147,7 +154,7 @@ async function handleAutoAssign() {
       </v-alert>
     </v-card-text>
 
-    <v-card-actions v-if="editing" class="justify-end pa-4">
+    <v-card-actions v-if="expanded && editing" class="justify-end pa-4">
         <v-btn
           color="primary"
           variant="elevated"
@@ -229,6 +236,10 @@ async function handleAutoAssign() {
 <style scoped>
 .phase-card {
   border: 1px solid var(--ks-border);
+}
+
+.phase-header {
+  cursor: pointer;
 }
 
 .groups-grid {
