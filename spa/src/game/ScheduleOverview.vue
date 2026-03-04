@@ -69,9 +69,13 @@ function toggleGroup(phaseId: string, groupId: string) {
 }
 
 const generating = ref<string | null>(null)
+const completing = ref<string | null>(null)
+const reopening = ref<string | null>(null)
 const showDeleteDialog = ref(false)
-const deletingPhaseId = ref<string | null>(null)
-const deletingPhaseName = ref('')
+const showCompleteDialog = ref(false)
+const showReopenDialog = ref(false)
+const actionPhaseId = ref<string | null>(null)
+const actionPhaseName = ref('')
 const showResultDialog = ref(false)
 const selectedGame = ref<GameDto | null>(null)
 
@@ -100,7 +104,10 @@ async function handleGenerate(phaseId: string) {
   generating.value = phaseId
   try {
     await gameStore.generateSchedule(props.tournamentId, phaseId)
-    await gameStore.fetchGames(props.tournamentId)
+    await Promise.all([
+      structureStore.fetchStructure(props.tournamentId),
+      gameStore.fetchGames(props.tournamentId),
+    ])
     showSuccess('Schedule generated')
   } catch {
     showError('Failed to generate schedule')
@@ -110,20 +117,68 @@ async function handleGenerate(phaseId: string) {
 }
 
 function confirmDelete(phase: PhaseDto) {
-  deletingPhaseId.value = phase.id!
-  deletingPhaseName.value = phase.name
+  actionPhaseId.value = phase.id!
+  actionPhaseName.value = phase.name
   showDeleteDialog.value = true
 }
 
 async function handleDelete() {
-  if (!deletingPhaseId.value) return
+  if (!actionPhaseId.value) return
   try {
-    await gameStore.deleteGames(props.tournamentId, deletingPhaseId.value)
+    await gameStore.deleteGames(props.tournamentId, actionPhaseId.value)
     await gameStore.fetchGames(props.tournamentId)
     showDeleteDialog.value = false
     showSuccess('Games deleted')
   } catch {
     showError('Failed to delete games')
+  }
+}
+
+function confirmComplete(phase: PhaseDto) {
+  actionPhaseId.value = phase.id!
+  actionPhaseName.value = phase.name
+  showCompleteDialog.value = true
+}
+
+async function handleComplete() {
+  if (!actionPhaseId.value) return
+  completing.value = actionPhaseId.value
+  try {
+    await structureStore.completePhase(props.tournamentId, actionPhaseId.value)
+    await Promise.all([
+      structureStore.fetchStructure(props.tournamentId),
+      gameStore.fetchGames(props.tournamentId),
+    ])
+    showCompleteDialog.value = false
+    showSuccess('Phase completed')
+  } catch {
+    showError('Failed to complete phase')
+  } finally {
+    completing.value = null
+  }
+}
+
+function confirmReopen(phase: PhaseDto) {
+  actionPhaseId.value = phase.id!
+  actionPhaseName.value = phase.name
+  showReopenDialog.value = true
+}
+
+async function handleReopen() {
+  if (!actionPhaseId.value) return
+  reopening.value = actionPhaseId.value
+  try {
+    await structureStore.reopenPhase(props.tournamentId, actionPhaseId.value)
+    await Promise.all([
+      structureStore.fetchStructure(props.tournamentId),
+      gameStore.fetchGames(props.tournamentId),
+    ])
+    showReopenDialog.value = false
+    showSuccess('Phase reopened')
+  } catch {
+    showError('Failed to reopen phase')
+  } finally {
+    reopening.value = null
   }
 }
 
@@ -155,10 +210,14 @@ onMounted(async () => {
         :expanded-groups="expandedGroups"
         :is-owner="isOwner"
         :generating="generating === phase.id"
+        :completing="completing === phase.id"
+        :reopening="reopening === phase.id"
         @toggle-phase="togglePhase(phase.id!)"
         @toggle-group="(groupId) => toggleGroup(phase.id!, groupId)"
         @generate="handleGenerate(phase.id!)"
         @delete="confirmDelete(phase)"
+        @complete="confirmComplete(phase)"
+        @reopen="confirmReopen(phase)"
         @open-result="openResultDialog"
       />
     </div>
@@ -167,13 +226,41 @@ onMounted(async () => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Games</v-card-title>
         <v-card-text>
-          Are you sure you want to delete all games for "{{ deletingPhaseName }}"?
+          Are you sure you want to delete all games for "{{ actionPhaseName }}"?
           You can regenerate them afterwards.
         </v-card-text>
         <v-card-actions>
           <v-spacer />
           <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
           <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showCompleteDialog" max-width="400">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase dialog-title">Complete Phase</v-card-title>
+        <v-card-text>
+          Complete "{{ actionPhaseName }}"? Teams will advance to the next phase based on standings.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showCompleteDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="elevated" @click="handleComplete">Complete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="showReopenDialog" max-width="400">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase dialog-title">Reopen Phase</v-card-title>
+        <v-card-text>
+          Reopen "{{ actionPhaseName }}"? This will clear team assignments and revert the next phase.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showReopenDialog = false">Cancel</v-btn>
+          <v-btn color="warning" variant="elevated" @click="handleReopen">Reopen</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

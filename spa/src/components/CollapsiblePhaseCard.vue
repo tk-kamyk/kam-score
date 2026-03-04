@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useSlots } from 'vue'
+import { computed, useSlots } from 'vue'
 import { formatPhaseFormat } from '@/structure/types'
 import type { PhaseDto } from '@/structure/types'
 
-defineProps<{
+const props = defineProps<{
   phase: PhaseDto
   expanded: boolean
 }>()
@@ -13,6 +13,12 @@ const emit = defineEmits<{
 }>()
 
 const slots = useSlots()
+
+const statusChip = computed(() => {
+  if (props.phase.status === 'InProgress') return { color: 'warning', icon: 'mdi-play-circle-outline', label: 'In Progress' }
+  if (props.phase.status === 'Completed') return { color: 'success', icon: 'mdi-check-circle-outline', label: 'Completed' }
+  return null
+})
 </script>
 
 <template>
@@ -30,6 +36,9 @@ const slots = useSlots()
         </v-chip>
         <v-chip v-if="phase.startTime" size="small" color="warning" variant="tonal" prepend-icon="mdi-calendar-clock">
           {{ phase.startTime }}
+        </v-chip>
+        <v-chip v-if="statusChip" size="small" :color="statusChip.color" variant="tonal" :prepend-icon="statusChip.icon">
+          {{ statusChip.label }}
         </v-chip>
         <slot name="chips" />
       </div>

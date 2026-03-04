@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { PhaseDto } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
@@ -11,6 +12,8 @@ const props = defineProps<{
   expandedGroups: Set<string>
   isOwner: boolean
   generating: boolean
+  completing: boolean
+  reopening: boolean
 }>()
 
 const emit = defineEmits<{
@@ -18,8 +21,14 @@ const emit = defineEmits<{
   'toggle-group': [groupId: string]
   generate: []
   delete: []
+  complete: []
+  reopen: []
   'open-result': [game: GameDto]
 }>()
+
+const allGamesCompleted = computed(() =>
+  props.games.length > 0 && props.games.every(g => g.status === 'Completed'),
+)
 
 function gamesByGroup(games: GameDto[]): Record<string, GameDto[]> {
   const map: Record<string, GameDto[]> = {}
@@ -76,15 +85,36 @@ function groupName(groupId: string): string {
       >
         Generate &amp; Schedule
       </v-btn>
-      <v-btn
-        v-else
-        color="error"
-        variant="elevated"
-        prepend-icon="mdi-delete"
-        @click="emit('delete')"
-      >
-        Delete Games
-      </v-btn>
+      <template v-else>
+        <v-btn
+          v-if="phase.status === 'InProgress' && allGamesCompleted"
+          color="primary"
+          variant="elevated"
+          prepend-icon="mdi-check-circle-outline"
+          :loading="completing"
+          @click="emit('complete')"
+        >
+          Complete Phase
+        </v-btn>
+        <v-btn
+          v-if="phase.status === 'Completed'"
+          color="warning"
+          variant="elevated"
+          prepend-icon="mdi-restart"
+          :loading="reopening"
+          @click="emit('reopen')"
+        >
+          Reopen Phase
+        </v-btn>
+        <v-btn
+          color="error"
+          variant="elevated"
+          prepend-icon="mdi-delete"
+          @click="emit('delete')"
+        >
+          Delete Games
+        </v-btn>
+      </template>
     </template>
   </CollapsiblePhaseCard>
 </template>

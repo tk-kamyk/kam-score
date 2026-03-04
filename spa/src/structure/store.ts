@@ -158,6 +158,32 @@ export const useStructureStore = defineStore('structure', () => {
     return data
   }
 
+  async function completePhase(tournamentId: string, phaseId: string) {
+    const { data } = await apiClient.post<PhaseDto>(
+      `/tournaments/${tournamentId}/structure/phases/${phaseId}/complete`,
+    )
+    if (structure.value?.phases) {
+      const index = structure.value.phases.findIndex(p => p.id === phaseId)
+      if (index >= 0) {
+        structure.value.phases[index] = data
+      }
+    }
+    return data
+  }
+
+  async function reopenPhase(tournamentId: string, phaseId: string) {
+    const { data } = await apiClient.post<PhaseDto>(
+      `/tournaments/${tournamentId}/structure/phases/${phaseId}/reopen`,
+    )
+    if (structure.value?.phases) {
+      const index = structure.value.phases.findIndex(p => p.id === phaseId)
+      if (index >= 0) {
+        structure.value.phases[index] = data
+      }
+    }
+    return data
+  }
+
   return {
     structure,
     loading,
@@ -172,5 +198,7 @@ export const useStructureStore = defineStore('structure', () => {
     assignTeam,
     removeTeam,
     autoAssignTeams,
+    completePhase,
+    reopenPhase,
   }
 })
