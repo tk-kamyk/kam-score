@@ -12,7 +12,7 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_EmptyGames_ShouldReturnEmpty()
     {
-        var result = GameScheduler.Schedule([], ["c1"], StartTime, GameLength);
+        var result = GameScheduler.Schedule([], ["c1"], [], StartTime, GameLength);
         result.Should().BeEmpty();
     }
 
@@ -24,7 +24,7 @@ public class GameSchedulerTests
             Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b")
         };
 
-        var result = GameScheduler.Schedule(games, [], StartTime, GameLength);
+        var result = GameScheduler.Schedule(games, [], ["g1"], StartTime, GameLength);
         result.Should().AllSatisfy(g => g.CourtId.Should().BeNull());
     }
 
@@ -34,7 +34,7 @@ public class GameSchedulerTests
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1", "c2" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
         games.Should().AllSatisfy(g =>
         {
@@ -49,7 +49,7 @@ public class GameSchedulerTests
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1", "c2" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
         AssertNoSameSlotConflicts(games);
     }
@@ -61,7 +61,7 @@ public class GameSchedulerTests
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
         var courts = new List<string> { "c1" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
         var times = games.Select(g => g.StartTime!.Value).OrderBy(t => t).ToList();
         for (var i = 1; i < times.Count; i++)
@@ -72,16 +72,32 @@ public class GameSchedulerTests
     }
 
     [Fact]
-    public void Schedule_CourtsUniformlyDistributed()
+    public void Schedule_CourtsAssignedSequentiallyPerSlot()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
-        var courts = new List<string> { "c1", "c2", "c3" };
+        // 4 independent games, 4 courts — each slot should fill courts starting from c1
+        var games = new List<Game>
+        {
+            Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b"),
+            Game.Create("t1", "p1", "g1", 1, homeTeamId: "c", awayTeamId: "d"),
+            Game.Create("t1", "p1", "g1", 2, homeTeamId: "a", awayTeamId: "c"),
+            Game.Create("t1", "p1", "g1", 2, homeTeamId: "b", awayTeamId: "d")
+        };
+        var courts = new List<string> { "c1", "c2", "c3", "c4" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
-        var courtCounts = games.GroupBy(g => g.CourtId).Select(g => g.Count()).ToList();
-        var maxDiff = courtCounts.Max() - courtCounts.Min();
-        maxDiff.Should().BeLessThanOrEqualTo(1);
+        // Slot 0: should use c1 and c2 (first two courts)
+        var slot0Games = games.Where(g => g.StartTime == StartTime).OrderBy(g => g.CourtId).ToList();
+        slot0Games.Should().HaveCount(2);
+        slot0Games[0].CourtId.Should().Be("c1");
+        slot0Games[1].CourtId.Should().Be("c2");
+
+        // Slot 1: should also use c1 and c2 (not c3 and c4)
+        var slot1Time = StartTime.AddMinutes(GameLength);
+        var slot1Games = games.Where(g => g.StartTime == slot1Time).OrderBy(g => g.CourtId).ToList();
+        slot1Games.Should().HaveCount(2);
+        slot1Games[0].CourtId.Should().Be("c1");
+        slot1Games[1].CourtId.Should().Be("c2");
     }
 
     [Fact]
@@ -92,7 +108,7 @@ public class GameSchedulerTests
         var allGames = gamesA.Concat(gamesB).ToList();
         var courts = new List<string> { "c1", "c2" };
 
-        GameScheduler.Schedule(allGames, courts, StartTime, GameLength);
+        GameScheduler.Schedule(allGames, courts, ["gA", "gB"], StartTime, GameLength);
 
         // Check that games from both groups are interleaved
         var orderedByTime = allGames.OrderBy(g => g.StartTime).ToList();
@@ -110,12 +126,36 @@ public class GameSchedulerTests
     }
 
     [Fact]
+    public void Schedule_GroupsFollowProvidedOrder()
+    {
+        // Group IDs are GUIDs — ordering by GUID would be unpredictable
+        // Provide explicit order: gB first, then gA
+        var gamesA = RoundRobinGenerator.Generate("t1", "p1", "gA", ["a1", "a2", "a3"]);
+        var gamesB = RoundRobinGenerator.Generate("t1", "p1", "gB", ["b1", "b2", "b3"]);
+        var allGames = gamesA.Concat(gamesB).ToList();
+        var courts = new List<string> { "c1", "c2" };
+
+        // gB should be scheduled first (on c1), gA second (on c2)
+        GameScheduler.Schedule(allGames, courts, ["gB", "gA"], StartTime, GameLength);
+
+        var firstSlotGames = allGames
+            .Where(g => g.StartTime == StartTime)
+            .ToList();
+
+        firstSlotGames.Should().HaveCount(2);
+        var gameOnCourt1 = firstSlotGames.First(g => g.CourtId == "c1");
+        var gameOnCourt2 = firstSlotGames.First(g => g.CourtId == "c2");
+        gameOnCourt1.GroupId.Should().Be("gB", "first group in order should get first court");
+        gameOnCourt2.GroupId.Should().Be("gA", "second group in order should get second court");
+    }
+
+    [Fact]
     public void Schedule_SingleCourt_AllGamesSequential()
     {
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
         var courts = new List<string> { "c1" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
         games.Should().AllSatisfy(g => g.CourtId.Should().Be("c1"));
 
@@ -133,7 +173,7 @@ public class GameSchedulerTests
             ["s1", "s2", "s3", "s4"]);
         var courts = new List<string> { "c1", "c2" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
         var round1MaxTime = games.Where(g => g.Round == 1).Max(g => g.StartTime!.Value);
         var round2MinTime = games.Where(g => g.Round == 2).Min(g => g.StartTime!.Value);
@@ -148,7 +188,7 @@ public class GameSchedulerTests
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1" };
 
-        GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
         var ordered = games.OrderBy(g => g.StartTime).ToList();
         for (var i = 1; i < ordered.Count; i++)
@@ -180,7 +220,7 @@ public class GameSchedulerTests
         };
         var courts = new List<string> { "c1" };
 
-        GameScheduler.Schedule(games, courts, StartTime, 45);
+        GameScheduler.Schedule(games, courts, ["g1", "g2"], StartTime, 45);
 
         var times = games.OrderBy(g => g.StartTime).Select(g => g.StartTime!.Value).ToList();
         (times[1] - times[0]).TotalMinutes.Should().Be(45);
@@ -189,34 +229,12 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_UnschedulableGame_ThrowsInvalidOperationException()
     {
-        // Create a scenario where scheduling is impossible:
-        // Two games with overlapping teams and only one court — but also one game
-        // referees the other's team in every possible slot arrangement.
-        // Actually, the simplest way: a game where the same team is home, away, and referee
-        // on a single court with many such games that all conflict.
-        // Simpler: create many games that all share the same team, with only 1 court.
-        // With maxSlotLimit = games.Count * 10, we'd need games.Count * 10 + 1 games
-        // all with the same team to exhaust slots.
-        // Better approach: use a small set where the constraint is truly impossible.
-        // Actually the limit is just a safety valve — it's hard to create a truly
-        // unschedulable case with the current algorithm. Let's verify the exception
-        // by checking the limit is respected.
-
-        // 1 game, limit = 10 slots. All slots blocked because the only court is taken.
-        // We can't easily do that with the public API. Instead, create many conflicting games.
-        // Actually, let's just create a large number of games with 2 teams and 1 court.
-        // They'll each need their own slot. With N games, limit = N*10, so they'll fit.
-        // The simplest unschedulable case: no courts available at all should return unchanged
-        // (handled by early return). Let's test that the exception message is correct
-        // by mocking the internal state... Actually we can't.
-
         // The safest test: verify the loop terminates (doesn't hang) with a reasonable case.
-        // The infinite loop was the original bug. Let's just verify it terminates:
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         var courts = new List<string> { "c1" };
 
-        var act = () => GameScheduler.Schedule(games, courts, StartTime, GameLength);
+        var act = () => GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
         act.Should().NotThrow("scheduler should terminate within the slot limit");
     }
 

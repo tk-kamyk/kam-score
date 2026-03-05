@@ -36,10 +36,11 @@ public class ScheduleGenerationService
 
         var allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
 
-        var courtIds = courts.Select(c => c.Id).ToList();
+        var courtIds = courts.OrderBy(c => c.Name).Select(c => c.Id).ToList();
+        var groupOrder = phase.Groups.Select(g => g.Id).ToList();
         var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime!.Value.ToTimeSpan())
             ?? DateTime.Today.Add(phase.StartTime!.Value.ToTimeSpan());
-        GameScheduler.Schedule(allGames, courtIds, startDateTime, tournament.GameLength!.Value);
+        GameScheduler.Schedule(allGames, courtIds, groupOrder, startDateTime, tournament.GameLength!.Value);
 
         var savedGames = (await _gameRepository.CreateBatchAsync(allGames)).ToList();
 
