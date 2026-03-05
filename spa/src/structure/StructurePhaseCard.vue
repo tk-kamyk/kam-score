@@ -101,15 +101,32 @@ async function handleAutoAssign() {
 
     <template #header-actions>
       <div v-if="editing">
-        <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click="emit('edit', phase)" />
+        <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click.stop="emit('edit', phase)" />
         <v-btn
           icon="mdi-delete"
           variant="text"
           size="small"
           color="error"
           :aria-label="'Delete phase ' + phase.name"
-          @click="confirmDelete"
+          @click.stop="confirmDelete"
         />
+
+        <v-dialog v-model="showDeleteDialog" max-width="400">
+          <v-card class="pa-2">
+            <v-card-title class="text-uppercase dialog-title"
+              >Delete Phase</v-card-title
+            >
+            <v-card-text>
+              Are you sure you want to delete "{{ phase.name }}"? This will remove all groups and team
+              assignments within this phase.
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
+              <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </div>
     </template>
 
@@ -168,23 +185,6 @@ async function handleAutoAssign() {
         Auto-assign Teams
       </v-btn>
     </template>
-
-    <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title"
-          >Delete Phase</v-card-title
-        >
-        <v-card-text>
-          Are you sure you want to delete "{{ phase.name }}"? This will remove all groups and team
-          assignments within this phase.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
 
     <v-dialog v-model="showAutoAssignDialog" max-width="400">
       <v-card class="pa-2">
