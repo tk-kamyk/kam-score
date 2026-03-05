@@ -135,10 +135,6 @@ public class TournamentStructure : Entity
         if (nextPhase is not null)
         {
             nextPhase.Status = PhaseStatus.New;
-            foreach (var group in nextPhase.Groups)
-            {
-                group.ClearTeams();
-            }
         }
 
         LastModified = DateTime.UtcNow;

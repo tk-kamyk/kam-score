@@ -337,6 +337,9 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         // Placeholder teams should have ResolvedTeamId cleared
         placeholders[0].ResolvedTeamId.Should().BeNull();
         placeholders[1].ResolvedTeamId.Should().BeNull();
+        // Groups should have placeholder team IDs restored (not empty)
+        phase2.Groups[0].TeamIds.Should().Contain(placeholders[0].Id);
+        phase2.Groups[0].TeamIds.Should().Contain(placeholders[1].Id);
     }
 
     [Fact]

@@ -428,7 +428,7 @@ public class TournamentStructureTests
     }
 
     [Fact]
-    public void ReopenPhase_ShouldClearNextPhaseTeamsAndRevertToNew()
+    public void ReopenPhase_ShouldRevertNextPhaseToNew_ButKeepTeams()
     {
         var structure = TournamentStructure.Create("tournament-1");
         var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
@@ -441,7 +441,7 @@ public class TournamentStructureTests
         structure.ReopenPhase(phase1.Id);
 
         phase2.Status.Should().Be(PhaseStatus.New);
-        phase2.Groups.Should().AllSatisfy(g => g.TeamIds.Should().BeEmpty());
+        phase2.Groups.SelectMany(g => g.TeamIds).Should().HaveCount(4);
     }
 
     [Fact]
