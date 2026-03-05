@@ -126,6 +126,13 @@ public class TournamentStructure : Entity
         LastModified = DateTime.UtcNow;
     }
 
+    public void ResetPhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        phase.Reset();
+        LastModified = DateTime.UtcNow;
+    }
+
     public void ReopenPhase(string phaseId)
     {
         var phase = GetPhase(phaseId);

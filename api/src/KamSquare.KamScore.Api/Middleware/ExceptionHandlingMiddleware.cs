@@ -55,6 +55,18 @@ public class ExceptionHandlingMiddleware
             },
             ValidationException ex => CreateValidationProblemDetails(ex),
             ArgumentException ex => CreateArgumentProblemDetails(ex),
+            PhaseStateException ex => new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Phase State Conflict",
+                Detail = ex.Message
+            },
+            ReferentialIntegrityException ex => new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "Referential Integrity Conflict",
+                Detail = ex.Message
+            },
             CosmosException { StatusCode: System.Net.HttpStatusCode.PreconditionFailed } => new ProblemDetails
             {
                 Status = StatusCodes.Status409Conflict,

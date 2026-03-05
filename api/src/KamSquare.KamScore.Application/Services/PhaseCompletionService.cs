@@ -3,6 +3,7 @@ using FluentValidation.Results;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.Services;
 
 namespace KamSquare.KamScore.Application.Services;
@@ -152,13 +153,19 @@ public class PhaseCompletionService
 
         var nextPhase = structure.GetNextPhase(phaseId);
 
-        // Unresolve placeholder teams before reopening, or clear groups if no placeholders
         if (nextPhase is not null)
         {
+            var nextPhaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, nextPhase.Id)).ToList();
+
+            // Block reopen if next phase has completed games
+            if (nextPhaseGames.Any(g => g.Status == GameStatus.Completed))
+                throw new PhaseStateException(phase.Name, "reopen",
+                    "the next phase has completed games. Delete those results first");
+
+            // Unresolve placeholder teams before reopening, or clear groups if no placeholders
             var placeholderTeams = (await _teamRepository.GetBySourcePhaseIdAsync(tournamentId, phaseId)).ToList();
             if (placeholderTeams.Count > 0)
             {
-                var nextPhaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, nextPhase.Id)).ToList();
                 var modifiedGames = PlaceholderResolver.Unresolve(nextPhaseGames, nextPhase, placeholderTeams);
 
                 await Task.WhenAll(modifiedGames.Select(game => _gameRepository.UpdateAsync(game)));

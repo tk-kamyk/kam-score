@@ -12,4 +12,5 @@ public interface IGameRepository
     Task<Game> UpdateAsync(Game game);
     Task DeleteByPhaseIdAsync(string tournamentId, string phaseId);
     Task<bool> GamesExistForPhaseAsync(string tournamentId, string phaseId);
+    Task<bool> TeamIsReferencedInGamesAsync(string tournamentId, string teamId);
 }

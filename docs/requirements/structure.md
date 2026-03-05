@@ -169,6 +169,47 @@
 - Reopening a completed phase reverses the swap: real team IDs are replaced back with placeholder team IDs, `ResolvedTeamId` is cleared, and the next phase reverts to `New`
 - Within-phase playoff placeholders (`HomeTeamPlaceholder` / `AwayTeamPlaceholder` strings like "Winner SF1") remain unchanged — these are separate from cross-phase placeholder teams
 
+# Phase State Restrictions
+
+Operations on phases, groups, teams, and courts are restricted based on phase status and game existence to protect data integrity:
+
+## Completed phases (status = Completed)
+- Cannot edit (update name, format, start time, progression config)
+- Cannot delete
+- Cannot add/rename/delete groups
+- Cannot assign/remove teams
+- Cannot auto-assign teams
+- Cannot delete games
+- Cannot record game results
+- Must reopen first to make any changes
+
+## Phases with generated games (InProgress or New with games)
+- Cannot change structural fields (format, groupWinners, totalTeamsProceeding)
+- Cannot add/delete groups
+- Cannot assign/remove teams or auto-assign teams
+- Cannot delete the phase
+- **Can** change non-structural fields (name, start time)
+- **Can** rename groups
+- Must delete games first to modify structure
+
+## Game deletion resets phase status
+- When games are deleted from an InProgress phase, the phase status resets to New
+- This ensures the phase is not left in an inconsistent state without games
+
+## Reopen guard
+- Cannot reopen a phase if the next phase has any completed games
+- Must delete results in the next phase first
+
+## Result recording guard
+- Cannot record a result when either team is unassigned (null team ID, e.g. unresolved playoff placeholders)
+
+## Referential integrity
+- Cannot delete a team that is assigned to any group or referenced in any game
+- Cannot delete a court that has scheduled games
+- Must remove the references first (unassign team, delete games)
+
+All state violations return HTTP 409 Conflict. Validation errors (e.g., unassigned teams) return HTTP 400.
+
 # TBC
 
 # Phase

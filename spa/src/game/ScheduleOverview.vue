@@ -71,7 +71,10 @@ async function handleDelete() {
   if (!actionPhaseId.value) return
   try {
     await gameStore.deleteGames(props.tournamentId, actionPhaseId.value)
-    await gameStore.fetchGames(props.tournamentId)
+    await Promise.all([
+      gameStore.fetchGames(props.tournamentId),
+      structureStore.fetchStructure(props.tournamentId),
+    ])
     showDeleteDialog.value = false
     showSuccess('Games deleted')
   } catch {

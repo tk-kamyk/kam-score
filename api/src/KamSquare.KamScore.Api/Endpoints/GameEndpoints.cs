@@ -1,8 +1,11 @@
 using AutoMapper;
+using FluentValidation;
+using FluentValidation.Results;
 using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Api.Helpers;
 using KamSquare.KamScore.Domain.Services;
@@ -80,12 +83,27 @@ public static class GameEndpoints
         string tournamentId,
         string phaseId,
         ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
         IGameRepository gameRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
+            ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureGamesDeletableAsync(phase);
+
         await gameRepository.DeleteByPhaseIdAsync(tournamentId, phaseId);
+
+        // Reset phase status to New since games were the trigger for activation
+        if (phase.Status == PhaseStatus.InProgress)
+        {
+            structure.ResetPhase(phaseId);
+            await structureRepository.UpdateAsync(structure);
+        }
 
         return Results.NoContent();
     }
@@ -95,7 +113,9 @@ public static class GameEndpoints
         string gameId,
         GameResultDto resultDto,
         ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
         IGameRepository gameRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser,
         HttpContext httpContext,
         IMapper mapper)
@@ -109,6 +129,16 @@ public static class GameEndpoints
         var game = await gameRepository.GetByIdAsync(tournamentId, gameId);
         if (game is null)
             throw new NotFoundException(nameof(Game), gameId);
+
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
+            ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(game.PhaseId);
+        await phaseGuardService.EnsureResultsCanBeRecordedAsync(phase);
+
+        if (game.HomeTeamId is null || game.AwayTeamId is null)
+            throw new ValidationException(
+                [new ValidationFailure("Teams", "Cannot record result: both teams must be assigned.")]);
 
         if (resultDto.Sets is { Count: > 0 })
         {

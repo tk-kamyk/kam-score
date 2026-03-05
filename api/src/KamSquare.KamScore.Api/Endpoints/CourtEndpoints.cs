@@ -92,6 +92,7 @@ public static class CourtEndpoints
         string courtId,
         ICourtRepository courtRepository,
         ITournamentRepository tournamentRepository,
+        IGameRepository gameRepository,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
@@ -99,6 +100,11 @@ public static class CourtEndpoints
         var court = await courtRepository.GetByIdAsync(courtId, tournamentId);
         if (court is null)
             throw new NotFoundException(nameof(Court), courtId);
+
+        var gamesOnCourt = await gameRepository.GetGamesAsync(tournamentId, courtId: courtId);
+        if (gamesOnCourt.Any())
+            throw new ReferentialIntegrityException("court", court.Name,
+                "court has scheduled games. Delete those games first");
 
         await courtRepository.DeleteAsync(courtId, tournamentId);
 

@@ -100,6 +100,8 @@ public static class TeamEndpoints
         string teamId,
         ITeamRepository teamRepository,
         ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
+        IGameRepository gameRepository,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
@@ -107,6 +109,22 @@ public static class TeamEndpoints
         var team = await teamRepository.GetByIdAsync(teamId, tournamentId);
         if (team is null)
             throw new NotFoundException(nameof(Team), teamId);
+
+        // Check if team is assigned to any phase group
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId);
+        if (structure is not null)
+        {
+            var assignedInPhase = structure.Phases
+                .FirstOrDefault(p => p.Groups.Any(g => g.HasTeam(teamId)));
+            if (assignedInPhase is not null)
+                throw new ReferentialIntegrityException("team", team.Name,
+                    $"team is assigned to a group in phase '{assignedInPhase.Name}'. Remove the team assignment first");
+        }
+
+        // Check if team is referenced in any games
+        if (await gameRepository.TeamIsReferencedInGamesAsync(tournamentId, teamId))
+            throw new ReferentialIntegrityException("team", team.Name,
+                "team is referenced in games. Delete the related games first");
 
         await teamRepository.DeleteAsync(teamId, tournamentId);
 

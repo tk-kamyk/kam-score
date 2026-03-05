@@ -1,4 +1,5 @@
 using KamSquare.KamScore.Application.Interfaces;
+using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Api.Helpers;
@@ -28,12 +29,16 @@ public static class TeamAssignmentEndpoints
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
         ITeamRepository teamRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
 
         var team = await teamRepository.GetByIdAsync(request.TeamId, tournamentId);
         if (team is null)
@@ -58,12 +63,16 @@ public static class TeamAssignmentEndpoints
         string teamId,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
 
         structure.RemoveTeam(phaseId, groupId, teamId);
         await structureRepository.UpdateAsync(structure);

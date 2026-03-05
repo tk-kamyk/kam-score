@@ -63,6 +63,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<PhaseCompletionService>();
+        services.AddScoped<PhaseGuardService>();
         services.AddScoped<ScheduleGenerationService>();
         services.AddHttpContextAccessor();
 

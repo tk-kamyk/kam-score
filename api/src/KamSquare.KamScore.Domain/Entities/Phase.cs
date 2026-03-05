@@ -64,6 +64,11 @@ public class Phase
         Status = PhaseStatus.InProgress;
     }
 
+    public void Reset()
+    {
+        Status = PhaseStatus.New;
+    }
+
     private static string GetGroupName(int index)
     {
         return ((char)('A' + index)).ToString();

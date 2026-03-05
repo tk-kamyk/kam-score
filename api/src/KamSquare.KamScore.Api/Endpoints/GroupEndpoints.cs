@@ -1,6 +1,7 @@
 using AutoMapper;
 using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
+using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Api.Helpers;
@@ -29,6 +30,7 @@ public static class GroupEndpoints
         GroupDto request,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -36,6 +38,9 @@ public static class GroupEndpoints
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
 
         if (structure.GroupNameExistsInPhase(phaseId, request.Name))
             throw new ValidationException(
@@ -56,6 +61,7 @@ public static class GroupEndpoints
         GroupDto request,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -63,6 +69,9 @@ public static class GroupEndpoints
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureEditableAsync(phase);
 
         if (structure.GroupNameExistsInPhase(phaseId, request.Name, groupId))
             throw new ValidationException(
@@ -82,12 +91,16 @@ public static class GroupEndpoints
         string groupId,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
 
         structure.RemoveGroup(phaseId, groupId);
         await structureRepository.UpdateAsync(structure);
