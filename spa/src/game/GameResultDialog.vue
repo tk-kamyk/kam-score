@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useGameStore } from '@/game/store'
+import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import type { GameDto, SetResultDto } from '@/game/types'
 
@@ -16,7 +17,12 @@ const emit = defineEmits<{
 }>()
 
 const gameStore = useGameStore()
+const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
+
+const defaultSetCount = computed(() =>
+  tournamentStore.currentTournament?.gameConditions?.bestOfSets ?? 1
+)
 
 const mode = ref<'detailed' | 'simple'>('detailed')
 const tournamentCode = ref('')
@@ -44,10 +50,10 @@ watch(
         mode.value = 'detailed'
         homeScore.value = 0
         awayScore.value = 0
-        sets.value = [
-          { homePoints: 0, awayPoints: 0 },
-          { homePoints: 0, awayPoints: 0 },
-        ]
+        sets.value = Array.from({ length: defaultSetCount.value }, () => ({
+          homePoints: 0,
+          awayPoints: 0,
+        }))
       }
     }
   },
@@ -71,10 +77,13 @@ async function submit() {
   try {
     const code = props.isOwner ? undefined : tournamentCode.value.toUpperCase() || undefined
     if (mode.value === 'detailed') {
+      const filledSets = sets.value.filter(
+        s => s.homePoints !== 0 || s.awayPoints !== 0,
+      )
       await gameStore.recordResult(
         props.tournamentId,
         props.game.id!,
-        { sets: sets.value },
+        { sets: filledSets },
         code,
       )
     } else {
