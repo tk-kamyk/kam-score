@@ -40,7 +40,9 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             var response = await Container.ReadItemAsync<Game>(
                 gameId,
                 new PartitionKey(tournamentId));
-            return response.Resource;
+            var game = response.Resource;
+            SetETag(game, response.ETag);
+            return game;
         }
         catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -50,30 +52,37 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
 
     public async Task<Game> UpdateAsync(Game game)
     {
-        var response = await Container.UpsertItemAsync(game, new PartitionKey(game.TournamentId));
-        return response.Resource;
+        var requestOptions = game.ETag is not null
+            ? new ItemRequestOptions { IfMatchEtag = game.ETag }
+            : null;
+        var response = await Container.ReplaceItemAsync(
+            game,
+            game.Id,
+            new PartitionKey(game.TournamentId),
+            requestOptions);
+        var updated = response.Resource;
+        SetETag(updated, response.ETag);
+        return updated;
     }
 
     public async Task<IEnumerable<Game>> CreateBatchAsync(IEnumerable<Game> games)
     {
-        var created = new List<Game>();
-        foreach (var game in games)
+        var tasks = games.Select(async game =>
         {
             var response = await Container.CreateItemAsync(
                 game,
                 new PartitionKey(game.TournamentId));
-            created.Add(response.Resource);
-        }
-        return created;
+            return response.Resource;
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.ToList();
     }
 
     public async Task DeleteByPhaseIdAsync(string tournamentId, string phaseId)
     {
         var games = await GetByPhaseIdAsync(tournamentId, phaseId);
-        foreach (var game in games)
-        {
-            await Container.DeleteItemAsync<Game>(game.Id, new PartitionKey(tournamentId));
-        }
+        await Task.WhenAll(games.Select(game =>
+            Container.DeleteItemAsync<Game>(game.Id, new PartitionKey(tournamentId))));
     }
 
     public async Task<bool> GamesExistForPhaseAsync(string tournamentId, string phaseId)

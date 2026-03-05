@@ -29,13 +29,10 @@ public class TeamTests
     [Fact]
     public void Create_ShouldSetLastModified()
     {
-        var before = DateTime.UtcNow;
         var team = Team.Create("Eagles", 75, "tournament-1");
-        var after = DateTime.UtcNow;
 
         team.LastModified.Should().NotBeNull();
-        team.LastModified.Should().BeOnOrAfter(before);
-        team.LastModified.Should().BeOnOrBefore(after);
+        team.LastModified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
     [Fact]

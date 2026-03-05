@@ -1,6 +1,6 @@
-namespace KamSquare.KamScore.Domain.Exceptions;
+namespace KamSquare.KamScore.Application.Exceptions;
 
-public class UnauthorizedException : DomainException
+public class UnauthorizedException : Exception
 {
     public UnauthorizedException(string message) : base(message) { }
 

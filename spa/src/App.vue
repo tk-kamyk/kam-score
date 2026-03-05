@@ -24,6 +24,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
           icon="mdi-logout"
           variant="text"
           size="small"
+          aria-label="Log out"
           @click="auth.logout()"
         />
         <v-btn
@@ -31,6 +32,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
           icon="mdi-login"
           variant="text"
           size="small"
+          aria-label="Log in"
           @click="auth.showLoginDialog = true"
         />
       </template>
@@ -44,7 +46,7 @@ const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = u
 
     <LoginDialog />
 
-    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="3000" class="ks-snackbar">
+    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="3000" role="status" aria-live="polite" class="ks-snackbar">
       {{ snackbarMessage }}
     </v-snackbar>
   </v-app>

@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onMounted, ref, computed } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
+import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import type { GameDto } from '@/game/types'
 import type { PhaseDto } from '@/structure/types'
 import SectionHeader from '@/components/SectionHeader.vue'
@@ -15,57 +16,15 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
-const route = useRoute()
-const router = useRouter()
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const { showSuccess, showError } = useSnackbar()
-
-function parseQuerySet(param: unknown): Set<string> {
-  if (!param || typeof param !== 'string') return new Set()
-  return new Set(param.split(',').filter(Boolean))
-}
-
-const expandedPhases = ref(parseQuerySet(route.query.phase))
-const expandedGroups = ref(parseQuerySet(route.query.group))
-
-watch(expandedPhases, (phases) => {
-  const query = { ...route.query }
-  if (phases.size > 0) {
-    query.phase = [...phases].join(',')
-  } else {
-    delete query.phase
-  }
-  router.replace({ query })
-})
-
-watch(expandedGroups, (groups) => {
-  const query = { ...route.query }
-  if (groups.size > 0) {
-    query.group = [...groups].join(',')
-  } else {
-    delete query.group
-  }
-  router.replace({ query })
-})
-
-function togglePhase(phaseId: string) {
-  if (expandedPhases.value.has(phaseId)) {
-    expandedPhases.value.delete(phaseId)
-  } else {
-    expandedPhases.value.add(phaseId)
-  }
-  expandedPhases.value = new Set(expandedPhases.value)
-}
+const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
+const { expanded: expandedGroups, toggle: toggleGroupKey } = useExpandedQueryParam('group')
+const { phaseGames } = useGamesByPhase()
 
 function toggleGroup(phaseId: string, groupId: string) {
-  const key = `${phaseId}:${groupId}`
-  if (expandedGroups.value.has(key)) {
-    expandedGroups.value.delete(key)
-  } else {
-    expandedGroups.value.add(key)
-  }
-  expandedGroups.value = new Set(expandedGroups.value)
+  toggleGroupKey(`${phaseId}:${groupId}`)
 }
 
 const generating = ref<string | null>(null)
@@ -85,20 +44,6 @@ function openResultDialog(game: GameDto) {
 }
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
-
-const gamesByPhase = computed(() => {
-  const map: Record<string, GameDto[]> = {}
-  for (const game of gameStore.games) {
-    const key = game.phaseId ?? ''
-    if (!map[key]) map[key] = []
-    map[key].push(game)
-  }
-  return map
-})
-
-function phaseGames(phaseId: string): GameDto[] {
-  return gamesByPhase.value[phaseId] ?? []
-}
 
 async function handleGenerate(phaseId: string) {
   generating.value = phaseId

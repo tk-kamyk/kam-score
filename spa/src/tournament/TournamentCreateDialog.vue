@@ -43,9 +43,9 @@ function handleCreate() {
 </script>
 
 <template>
-  <v-dialog v-model="model" max-width="500">
+  <v-dialog v-model="model" max-width="500" aria-labelledby="create-tournament-dialog-title">
     <v-card class="pa-2">
-      <v-card-title class="text-uppercase dialog-title">Create Tournament</v-card-title>
+      <v-card-title id="create-tournament-dialog-title" class="text-uppercase dialog-title">Create Tournament</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="newTournament.name"

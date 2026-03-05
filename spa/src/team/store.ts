@@ -20,7 +20,7 @@ export const useTeamStore = defineStore('team', () => {
 
   async function createTeam(tournamentId: string, dto: TeamDto): Promise<TeamDto> {
     const { data } = await apiClient.post<TeamDto>(`/tournaments/${tournamentId}/teams`, dto)
-    teams.value.push(data)
+    teams.value = [...teams.value, data]
     return data
   }
 

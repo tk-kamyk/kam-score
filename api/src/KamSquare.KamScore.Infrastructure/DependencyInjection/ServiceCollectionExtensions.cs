@@ -2,6 +2,7 @@ using System.Text;
 using FluentValidation;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Application.Mappers;
+using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Infrastructure.Options;
 using KamSquare.KamScore.Infrastructure.Persistence;
@@ -61,6 +62,8 @@ public static class ServiceCollectionExtensions
         // Services
         services.AddSingleton<IAuthService, AuthService>();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+        services.AddScoped<PhaseCompletionService>();
+        services.AddScoped<ScheduleGenerationService>();
         services.AddHttpContextAccessor();
 
         // AutoMapper
@@ -84,7 +87,8 @@ public static class ServiceCollectionExtensions
                     ValidateIssuerSigningKey = true,
                     ValidIssuer = jwt.Issuer,
                     ValidAudience = jwt.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Secret)),
+                    ClockSkew = TimeSpan.Zero
                 };
             });
         services.AddAuthorization();

@@ -14,16 +14,16 @@ const isRoundRobin = (format: string) => format === 'RoundRobin'
     <v-table density="compact" class="styled-table">
       <thead>
         <tr>
-          <th class="text-center">#</th>
-          <th>Team</th>
-          <th v-if="isRoundRobin(phaseFormat)" class="text-center" >Points</th>
-          <th class="text-center">Games</th>
-          <th class="text-center">Wins</th>
-          <th v-if="isRoundRobin(phaseFormat)" class="text-center">Draws</th>
-          <th class="text-center">Losses</th>
+          <th scope="col" class="text-center">#</th>
+          <th scope="col">Team</th>
+          <th v-if="isRoundRobin(phaseFormat)" scope="col" class="text-center">Points</th>
+          <th scope="col" class="text-center">Games</th>
+          <th scope="col" class="text-center">Wins</th>
+          <th v-if="isRoundRobin(phaseFormat)" scope="col" class="text-center">Draws</th>
+          <th scope="col" class="text-center">Losses</th>
           <template v-if="isRoundRobin(phaseFormat)">
-            <th class="text-center">Set Diff</th>
-            <th class="text-center">Point Diff</th>
+            <th scope="col" class="text-center">Set Diff</th>
+            <th scope="col" class="text-center">Point Diff</th>
           </template>
         </tr>
       </thead>

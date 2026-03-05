@@ -34,7 +34,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
           <th>Home</th>
           <th class="text-center">Result</th>
           <th>Away</th>
-          <th />
+          <th aria-label="Actions" />
         </tr>
       </thead>
       <tbody>
@@ -55,6 +55,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
               size="small"
               variant="text"
               icon="mdi-pencil"
+              :aria-label="'Edit result for ' + displayTeam(game, 'home') + ' vs ' + displayTeam(game, 'away')"
               @click="emit('open-result', game)"
             />
           </td>

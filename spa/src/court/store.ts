@@ -19,7 +19,7 @@ export const useCourtStore = defineStore('court', () => {
 
   async function createCourt(tournamentId: string, dto: CourtDto): Promise<CourtDto> {
     const { data } = await apiClient.post<CourtDto>(`/tournaments/${tournamentId}/courts`, dto)
-    courts.value.push(data)
+    courts.value = [...courts.value, data]
     return data
   }
 

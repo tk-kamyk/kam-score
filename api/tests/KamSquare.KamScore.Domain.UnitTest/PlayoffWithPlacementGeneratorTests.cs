@@ -1,4 +1,5 @@
 using FluentAssertions;
+using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Services;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
@@ -236,25 +237,7 @@ public class PlayoffWithPlacementGeneratorTests
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
         var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
 
-        var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
-
-        foreach (var game in games)
-        {
-            if (game.HomeTeamPlaceholder is not null)
-            {
-                var referencedLabel = game.HomeTeamPlaceholder
-                    .Replace("Winner ", "").Replace("Loser ", "");
-                allLabels.Should().Contain(referencedLabel,
-                    $"HomeTeamPlaceholder '{game.HomeTeamPlaceholder}' references non-existent label");
-            }
-            if (game.AwayTeamPlaceholder is not null)
-            {
-                var referencedLabel = game.AwayTeamPlaceholder
-                    .Replace("Winner ", "").Replace("Loser ", "");
-                allLabels.Should().Contain(referencedLabel,
-                    $"AwayTeamPlaceholder '{game.AwayTeamPlaceholder}' references non-existent label");
-            }
-        }
+        AssertLabelsMatchPlaceholderReferences(games);
     }
 
     [Fact]
@@ -263,6 +246,11 @@ public class PlayoffWithPlacementGeneratorTests
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
         var games = PlayoffWithPlacementGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
 
+        AssertLabelsMatchPlaceholderReferences(games);
+    }
+
+    private static void AssertLabelsMatchPlaceholderReferences(List<Game> games)
+    {
         var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
 
         foreach (var game in games)

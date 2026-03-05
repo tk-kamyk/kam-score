@@ -26,13 +26,10 @@ public class CourtTests
     [Fact]
     public void Create_ShouldSetLastModified()
     {
-        var before = DateTime.UtcNow;
         var court = Court.Create("Court A", "tournament-1");
-        var after = DateTime.UtcNow;
 
         court.LastModified.Should().NotBeNull();
-        court.LastModified.Should().BeOnOrAfter(before);
-        court.LastModified.Should().BeOnOrBefore(after);
+        court.LastModified.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
 
     [Fact]

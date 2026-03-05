@@ -3,6 +3,7 @@ using FluentValidation;
 using FluentValidation.Results;
 using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
+using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
@@ -156,8 +157,7 @@ public static class PhaseEndpoints
         string phaseId,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
-        IGameRepository gameRepository,
-        ITeamRepository teamRepository,
+        PhaseCompletionService phaseCompletionService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -166,65 +166,7 @@ public static class PhaseEndpoints
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
-        var phase = structure.GetPhase(phaseId);
-
-        if (phase.Status != PhaseStatus.InProgress)
-            throw new ValidationException(
-                [new ValidationFailure("Status", "Phase must be in progress to complete.")]);
-
-        var phaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, phaseId)).ToList();
-        if (phaseGames.Count == 0 || phaseGames.Any(g => g.Status != GameStatus.Completed))
-            throw new ValidationException(
-                [new ValidationFailure("Games", "All games must be completed before completing the phase.")]);
-
-        structure.CompletePhase(phaseId);
-
-        var nextPhase = structure.GetNextPhase(phaseId);
-        var hasProgressionConfig = phase.GroupWinners is not null || phase.TotalTeamsProceeding is not null;
-
-        if (nextPhase is not null && hasProgressionConfig)
-        {
-            // Calculate standings for each group
-            var groupStandings = phase.Groups
-                .Select(g =>
-                {
-                    var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                    var standings = StandingsCalculator.Calculate(phase.Format, groupGames, g.TeamIds);
-                    return (g.Id, standings);
-                })
-                .ToList();
-
-            // Calculate qualifying teams and seeding
-            var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
-            var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings);
-
-            // Resolve placeholder teams to real teams
-            var placeholderTeams = (await teamRepository.GetBySourcePhaseIdAsync(tournamentId, phaseId)).ToList();
-            if (placeholderTeams.Count > 0)
-            {
-                var nextPhaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, nextPhase.Id)).ToList();
-                var modifiedGames = PlaceholderResolver.Resolve(nextPhaseGames, nextPhase, placeholderTeams, seededIds);
-
-                foreach (var game in modifiedGames)
-                {
-                    await gameRepository.UpdateAsync(game);
-                }
-
-                foreach (var placeholder in placeholderTeams)
-                {
-                    await teamRepository.UpdateAsync(placeholder);
-                }
-            }
-            else
-            {
-                // No placeholder teams — assign real teams directly (legacy/fallback)
-                structure.AutoAssignTeams(nextPhase.Id, seededIds);
-            }
-
-            structure.ActivatePhase(nextPhase.Id);
-        }
-
-        await structureRepository.UpdateAsync(structure);
+        var phase = await phaseCompletionService.CompletePhaseAsync(tournamentId, phaseId, structure);
 
         var dto = mapper.Map<PhaseDto>(phase);
         return Results.Ok(dto);
@@ -235,8 +177,7 @@ public static class PhaseEndpoints
         string phaseId,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
-        IGameRepository gameRepository,
-        ITeamRepository teamRepository,
+        PhaseCompletionService phaseCompletionService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -245,37 +186,7 @@ public static class PhaseEndpoints
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
-        var phase = structure.GetPhase(phaseId);
-
-        if (phase.Status != PhaseStatus.Completed)
-            throw new ValidationException(
-                [new ValidationFailure("Status", "Phase must be completed to reopen.")]);
-
-        var nextPhase = structure.GetNextPhase(phaseId);
-
-        // Unresolve placeholder teams before reopening
-        if (nextPhase is not null)
-        {
-            var placeholderTeams = (await teamRepository.GetBySourcePhaseIdAsync(tournamentId, phaseId)).ToList();
-            if (placeholderTeams.Count > 0)
-            {
-                var nextPhaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, nextPhase.Id)).ToList();
-                var modifiedGames = PlaceholderResolver.Unresolve(nextPhaseGames, nextPhase, placeholderTeams);
-
-                foreach (var game in modifiedGames)
-                {
-                    await gameRepository.UpdateAsync(game);
-                }
-
-                foreach (var placeholder in placeholderTeams)
-                {
-                    await teamRepository.UpdateAsync(placeholder);
-                }
-            }
-        }
-
-        structure.ReopenPhase(phaseId);
-        await structureRepository.UpdateAsync(structure);
+        var phase = await phaseCompletionService.ReopenPhaseAsync(tournamentId, phaseId, structure);
 
         var dto = mapper.Map<PhaseDto>(phase);
         return Results.Ok(dto);

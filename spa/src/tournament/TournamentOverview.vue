@@ -78,12 +78,12 @@ async function handleDelete() {
   <div>
     <TournamentBreadcrumb :items="breadcrumbItems" @navigate="activeTab = 'details'" />
 
-    <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" />
+    <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" aria-label="Loading tournament" />
 
     <template v-if="tournament">
       <h2 class="section-title text-title-medium text-md-title-large text-lg-headline-medium mb-6">{{ tournament.name }}</h2>
 
-      <v-tabs v-model="activeTab" color="primary" class="mb-4" slider-color="primary" :density="smAndDown ? 'compact' : 'comfortable'">
+      <v-tabs v-model="activeTab" color="primary" class="mb-4" slider-color="primary" aria-label="Tournament sections" :density="smAndDown ? 'compact' : 'comfortable'">
         <v-tab v-for="tab in validTabs" :key="tab" :value="tab" :size="smAndDown ? 'default' : 'large'">
           {{ tabLabels[tab] }}
         </v-tab>

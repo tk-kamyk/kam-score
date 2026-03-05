@@ -103,6 +103,7 @@ async function handleRemove(teamId: string) {
             variant="text"
             size="x-small"
             color="error"
+            :aria-label="'Remove ' + team.name"
             @click="handleRemove(team.id!)"
           />
         </template>
@@ -119,7 +120,7 @@ async function handleRemove(teamId: string) {
         item-value="id"
         density="compact"
         variant="outlined"
-        placeholder="Select team..."
+        label="Add team"
         hide-details
         class="flex-grow-1"
       />
@@ -128,6 +129,7 @@ async function handleRemove(teamId: string) {
         size="small"
         color="primary"
         variant="tonal"
+        aria-label="Assign selected team"
         :disabled="!selectedTeamId"
         @click="handleAssign"
       />

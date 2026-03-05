@@ -23,7 +23,7 @@ const statusChip = computed(() => {
 
 <template>
   <v-card class="phase-card">
-    <v-card-title class="d-flex align-center justify-space-between phase-header" @click="emit('toggle')">
+    <v-card-title class="d-flex align-center justify-space-between phase-header" role="button" tabindex="0" :aria-expanded="expanded" @click="emit('toggle')" @keydown.enter.space.prevent="emit('toggle')">
       <div class="d-flex align-center flex-wrap ga-1">
         <v-icon
           :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"

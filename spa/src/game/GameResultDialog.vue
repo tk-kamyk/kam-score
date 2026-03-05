@@ -104,9 +104,9 @@ function awayName(): string {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="500" @update:model-value="emit('update:modelValue', $event)">
+  <v-dialog :model-value="modelValue" max-width="500" aria-labelledby="result-dialog-title" @update:model-value="emit('update:modelValue', $event)">
     <v-card class="pa-2">
-      <v-card-title class="text-uppercase dialog-title">
+      <v-card-title id="result-dialog-title" class="text-uppercase dialog-title">
         {{ game.status === 'Completed' ? 'Edit Result' : 'Enter Result' }}
       </v-card-title>
 
@@ -116,7 +116,7 @@ function awayName(): string {
             {{ homeName() }} vs {{ awayName() }}
           </div>
 
-          <v-btn-toggle v-model="mode" mandatory variant="outlined" density="comfortable" class="mb-4">
+          <v-btn-toggle v-model="mode" mandatory variant="outlined" density="comfortable" class="mb-4" aria-label="Result entry mode">
             <v-btn value="detailed">Detailed</v-btn>
             <v-btn value="simple">Simple</v-btn>
           </v-btn-toggle>
@@ -137,6 +137,7 @@ function awayName(): string {
               density="comfortable"
               hide-details
               min="0"
+              :aria-label="homeName() + ' points, set ' + (i + 1)"
               class="set-input"
             />
             <v-text-field
@@ -145,6 +146,7 @@ function awayName(): string {
               density="comfortable"
               hide-details
               min="0"
+              :aria-label="awayName() + ' points, set ' + (i + 1)"
               class="set-input"
             />
             <v-btn
@@ -153,6 +155,7 @@ function awayName(): string {
               size="x-small"
               variant="text"
               color="error"
+              :aria-label="'Remove set ' + (i + 1)"
               @click="removeSet(i)"
             />
             <span v-else class="remove-btn-spacer" />
@@ -198,7 +201,6 @@ function awayName(): string {
           density="compact"
           class="mt-4"
           maxlength="4"
-          hide-details
           :rules="[(v: string) => v.length === 4 || 'Enter a 4-character code']"
         />
       </v-card-text>

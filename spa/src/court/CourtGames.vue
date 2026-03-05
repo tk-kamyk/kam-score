@@ -67,7 +67,7 @@ onMounted(loadGames)
           <th class="text-center">Result</th>
           <th>Away</th>
           <th>Referee</th>
-          <th />
+          <th aria-label="Actions" />
         </tr>
       </thead>
       <tbody>
@@ -85,6 +85,7 @@ onMounted(loadGames)
               size="small"
               variant="text"
               icon="mdi-pencil"
+              :aria-label="'Edit result for ' + displayTeam(game, 'home') + ' vs ' + displayTeam(game, 'away')"
               @click="openResultDialog(game)"
             />
           </td>

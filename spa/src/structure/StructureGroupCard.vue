@@ -63,12 +63,13 @@ async function handleDelete() {
 
 <template>
   <div class="d-inline">
-    <v-btn icon="mdi-pencil" variant="text" size="x-small" @click="openRename" />
+    <v-btn icon="mdi-pencil" variant="text" size="x-small" :aria-label="'Rename group ' + group.name" @click="openRename" />
     <v-btn
       icon="mdi-delete"
       variant="text"
       size="x-small"
       color="error"
+      :aria-label="'Delete group ' + group.name"
       @click="showDeleteDialog = true"
     />
 

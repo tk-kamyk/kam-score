@@ -4,6 +4,8 @@ import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useStandingsStore } from '@/standings/store'
+import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
+import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import type { GameDto } from '@/game/types'
 import SectionHeader from '@/components/SectionHeader.vue'
 import StandingsPhaseCard from '@/standings/StandingsPhaseCard.vue'
@@ -20,11 +22,8 @@ const router = useRouter()
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const standingsStore = useStandingsStore()
-
-function parseQuerySet(param: unknown): Set<string> {
-  if (!param || typeof param !== 'string') return new Set()
-  return new Set(param.split(',').filter(Boolean))
-}
+const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
+const { phaseGames } = useGamesByPhase()
 
 function parseGroupSelections(param: unknown): Map<string, string> {
   if (!param || typeof param !== 'string') return new Map()
@@ -36,18 +35,7 @@ function parseGroupSelections(param: unknown): Map<string, string> {
   return map
 }
 
-const expandedPhases = ref(parseQuerySet(route.query.phase))
 const selectedGroups = ref(parseGroupSelections(route.query.group))
-
-watch(expandedPhases, (phases) => {
-  const query = { ...route.query }
-  if (phases.size > 0) {
-    query.phase = [...phases].join(',')
-  } else {
-    delete query.phase
-  }
-  router.replace({ query })
-}, { deep: true })
 
 watch(selectedGroups, (groups) => {
   const query = { ...route.query }
@@ -60,16 +48,10 @@ watch(selectedGroups, (groups) => {
 }, { deep: true })
 
 function togglePhase(phaseId: string) {
-  const newSet = new Set(expandedPhases.value)
-  if (newSet.has(phaseId)) {
-    newSet.delete(phaseId)
-  } else {
-    newSet.add(phaseId)
-  }
-  expandedPhases.value = newSet
+  togglePhaseBase(phaseId)
 
   // Fetch standings for newly expanded phase
-  if (newSet.has(phaseId)) {
+  if (expandedPhases.value.has(phaseId)) {
     if (!selectedGroups.value.has(phaseId)) {
       const phase = phases.value.find(p => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
@@ -117,20 +99,6 @@ function openResultDialog(game: GameDto) {
 }
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
-
-const gamesByPhase = computed(() => {
-  const map: Record<string, GameDto[]> = {}
-  for (const game of gameStore.games) {
-    const key = game.phaseId ?? ''
-    if (!map[key]) map[key] = []
-    map[key].push(game)
-  }
-  return map
-})
-
-function phaseGames(phaseId: string): GameDto[] {
-  return gamesByPhase.value[phaseId] ?? []
-}
 
 onMounted(async () => {
   await Promise.all([

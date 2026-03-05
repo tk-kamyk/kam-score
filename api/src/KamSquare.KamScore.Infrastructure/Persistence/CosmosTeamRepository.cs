@@ -54,16 +54,15 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
 
     public async Task<IEnumerable<Team>> CreateBatchAsync(IEnumerable<Team> teams)
     {
-        var created = new List<Team>();
-        foreach (var team in teams)
+        var tasks = teams.Select(async team =>
         {
             var response = await Container.CreateItemAsync(
                 team,
                 new PartitionKey(team.TournamentId));
-            created.Add(response.Resource);
-        }
-
-        return created;
+            return response.Resource;
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.ToList();
     }
 
     public async Task<Team> UpdateAsync(Team team)
@@ -84,10 +83,8 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
     public async Task DeleteBySourcePhaseIdAsync(string tournamentId, string sourcePhaseId)
     {
         var teams = await GetBySourcePhaseIdAsync(tournamentId, sourcePhaseId);
-        foreach (var team in teams)
-        {
-            await Container.DeleteItemAsync<Team>(team.Id, new PartitionKey(tournamentId));
-        }
+        await Task.WhenAll(teams.Select(team =>
+            Container.DeleteItemAsync<Team>(team.Id, new PartitionKey(tournamentId))));
     }
 
     public async Task<bool> ExistsByNameAsync(string tournamentId, string name, string? excludeTeamId = null)

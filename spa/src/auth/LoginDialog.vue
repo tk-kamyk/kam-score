@@ -25,9 +25,9 @@ async function handleLogin() {
 </script>
 
 <template>
-  <v-dialog v-model="auth.showLoginDialog" max-width="400" persistent>
+  <v-dialog v-model="auth.showLoginDialog" max-width="400" persistent aria-labelledby="login-dialog-title">
     <v-card class="pa-2 login-card">
-      <v-card-title class="text-uppercase dialog-title">Login</v-card-title>
+      <v-card-title id="login-dialog-title" class="text-uppercase dialog-title">Login</v-card-title>
       <v-card-text>
         <v-text-field
           v-model="username"
