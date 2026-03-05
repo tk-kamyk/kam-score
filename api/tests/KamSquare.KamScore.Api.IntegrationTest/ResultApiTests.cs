@@ -198,6 +198,25 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task RecordResult_BothSetsAndScores_Returns400()
+    {
+        var tournament = CreateTestTournament("alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var bothResult = new GameResultDto(
+            Sets: [new SetResultDto(25, 20), new SetResultDto(25, 18)],
+            HomeScore: 2,
+            AwayScore: 0);
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/some-game/result",
+            bothResult);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task RecordResult_InvalidBody_NeitherSetsNorScore_Returns400()
     {
         var tournament = CreateTestTournament("alice");

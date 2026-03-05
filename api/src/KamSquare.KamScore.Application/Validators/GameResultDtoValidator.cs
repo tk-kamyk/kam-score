@@ -8,6 +8,11 @@ public class GameResultDtoValidator : AbstractValidator<GameResultDto>
     public GameResultDtoValidator()
     {
         RuleFor(x => x)
+            .Must(x => !(x.Sets is { Count: > 0 } && (x.HomeScore.HasValue || x.AwayScore.HasValue)))
+            .WithName("Result")
+            .WithMessage("Sets and HomeScore/AwayScore are mutually exclusive. Provide one or the other, not both.");
+
+        RuleFor(x => x)
             .Must(x => (x.Sets is { Count: > 0 }) || (x.HomeScore.HasValue && x.AwayScore.HasValue))
             .WithName("Result")
             .WithMessage("Either Sets (non-empty) or both HomeScore and AwayScore must be provided.");

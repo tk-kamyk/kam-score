@@ -7,7 +7,6 @@ using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
-using KamSquare.KamScore.Domain.Services;
 using KamSquare.KamScore.Api.Helpers;
 
 namespace KamSquare.KamScore.Api.Endpoints;
@@ -34,7 +33,7 @@ public static class PhaseEndpoints
         PhaseDto request,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
-        ITeamRepository teamRepository,
+        PhaseCompletionService phaseCompletionService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -51,19 +50,7 @@ public static class PhaseEndpoints
             request.GroupWinners, request.TotalTeamsProceeding, startTime);
         await structureRepository.UpdateAsync(structure);
 
-        // Auto-create placeholder teams if previous phase has progression config
-        if (phase.Order > 1)
-        {
-            var previousPhase = structure.GetPreviousPhase(phase.Id);
-            if (previousPhase is not null)
-            {
-                var placeholders = PlaceholderTeamGenerator.Generate(previousPhase, tournamentId);
-                if (placeholders is not null)
-                {
-                    await teamRepository.CreateBatchAsync(placeholders);
-                }
-            }
-        }
+        await phaseCompletionService.CreatePlaceholdersForNewPhaseAsync(structure, phase, tournamentId);
 
         var dto = mapper.Map<PhaseDto>(phase);
         return Results.Created($"/api/tournaments/{tournamentId}/structure/phases/{dto.Id}", dto);
@@ -75,8 +62,7 @@ public static class PhaseEndpoints
         PhaseDto request,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
-        ITeamRepository teamRepository,
-        IGameRepository gameRepository,
+        PhaseCompletionService phaseCompletionService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -95,35 +81,10 @@ public static class PhaseEndpoints
             request.GroupWinners, request.TotalTeamsProceeding, startTime);
         await structureRepository.UpdateAsync(structure);
 
-        // Regenerate placeholder teams for the next phase if progression config changed
-        var progressionChanged = oldGroupWinners != request.GroupWinners
-                                 || oldTotalTeamsProceeding != request.TotalTeamsProceeding;
-        if (progressionChanged)
-        {
-            var nextPhase = structure.GetNextPhase(phaseId);
-            if (nextPhase is not null)
-            {
-                // Delete existing placeholder teams and games for the next phase
-                await teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, phaseId);
-                await gameRepository.DeleteByPhaseIdAsync(tournamentId, nextPhase.Id);
-
-                // Clear group assignments in next phase (placeholder team IDs are now invalid)
-                foreach (var group in nextPhase.Groups)
-                {
-                    group.ClearTeams();
-                }
-
-                await structureRepository.UpdateAsync(structure);
-
-                // Create new placeholder teams
-                var updatedPhase = structure.GetPhase(phaseId);
-                var placeholders = PlaceholderTeamGenerator.Generate(updatedPhase, tournamentId);
-                if (placeholders is not null)
-                {
-                    await teamRepository.CreateBatchAsync(placeholders);
-                }
-            }
-        }
+        await phaseCompletionService.RegeneratePlaceholdersOnUpdateAsync(
+            structure, phaseId, tournamentId,
+            oldGroupWinners, oldTotalTeamsProceeding,
+            request.GroupWinners, request.TotalTeamsProceeding);
 
         var updated = structure.GetPhase(phaseId);
         var dto = mapper.Map<PhaseDto>(updated);

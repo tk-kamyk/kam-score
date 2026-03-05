@@ -84,6 +84,61 @@ public class PhaseCompletionService
         return phase;
     }
 
+    public async Task CreatePlaceholdersForNewPhaseAsync(
+        TournamentStructure structure,
+        Phase phase,
+        string tournamentId)
+    {
+        if (phase.Order <= 1)
+            return;
+
+        var previousPhase = structure.GetPreviousPhase(phase.Id);
+        if (previousPhase is null)
+            return;
+
+        var placeholders = PlaceholderTeamGenerator.Generate(previousPhase, tournamentId);
+        if (placeholders is not null)
+        {
+            await _teamRepository.CreateBatchAsync(placeholders);
+        }
+    }
+
+    public async Task RegeneratePlaceholdersOnUpdateAsync(
+        TournamentStructure structure,
+        string phaseId,
+        string tournamentId,
+        int? oldGroupWinners,
+        int? oldTotalTeamsProceeding,
+        int? newGroupWinners,
+        int? newTotalTeamsProceeding)
+    {
+        var progressionChanged = oldGroupWinners != newGroupWinners
+                                 || oldTotalTeamsProceeding != newTotalTeamsProceeding;
+        if (!progressionChanged)
+            return;
+
+        var nextPhase = structure.GetNextPhase(phaseId);
+        if (nextPhase is null)
+            return;
+
+        await _teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, phaseId);
+        await _gameRepository.DeleteByPhaseIdAsync(tournamentId, nextPhase.Id);
+
+        foreach (var group in nextPhase.Groups)
+        {
+            group.ClearTeams();
+        }
+
+        await _structureRepository.UpdateAsync(structure);
+
+        var updatedPhase = structure.GetPhase(phaseId);
+        var placeholders = PlaceholderTeamGenerator.Generate(updatedPhase, tournamentId);
+        if (placeholders is not null)
+        {
+            await _teamRepository.CreateBatchAsync(placeholders);
+        }
+    }
+
     public async Task<Phase> ReopenPhaseAsync(
         string tournamentId,
         string phaseId,

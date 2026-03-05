@@ -68,20 +68,12 @@ public static class GameEndpoints
         if (tournament is null)
             throw new NotFoundException(nameof(Tournament), tournamentId);
 
-        var games = phaseId is not null
-            ? await gameRepository.GetByPhaseIdAsync(tournamentId, phaseId)
-            : await gameRepository.GetByTournamentIdAsync(tournamentId);
-
-        var gameList = games.ToList();
-        if (groupId is not null)
-            gameList = gameList.Where(g => g.GroupId == groupId).ToList();
-        if (courtId is not null)
-            gameList = gameList.Where(g => g.CourtId == courtId).ToList();
+        var games = (await gameRepository.GetGamesAsync(tournamentId, phaseId, groupId, courtId)).ToList();
 
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
 
-        return Results.Ok(EnrichGamesWithNames(gameList.OrderBy(g => g.StartTime), teams, courts, mapper));
+        return Results.Ok(EnrichGamesWithNames(games.OrderBy(g => g.StartTime), teams, courts, mapper));
     }
 
     private static async Task<IResult> DeleteGames(

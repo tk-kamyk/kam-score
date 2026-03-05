@@ -30,49 +30,26 @@ public static class GameScheduler
         var courtGameCount = courtIds.ToDictionary(c => c, _ => 0);
         var courtIndex = 0;
 
+        var maxSlotLimit = games.Count * 10;
+
         foreach (var game in sorted)
         {
             var involvedTeamIds = GetInvolvedTeamIds(game);
+            var scheduled = false;
 
-            // Find earliest valid time slot
-            for (var slot = 0; ; slot++)
+            for (var slot = 0; slot < maxSlotLimit; slot++)
             {
-                // Check same-slot conflict: no team can play/referee two games at the same time
-                if (involvedTeamIds.Any(t => IsInSet(busyInSlot, slot, t)))
-                    continue;
-
-                // Check consecutive referee: referee must not have refereed in previous slot
-                if (slot > 0 && game.RefereeTeamId is not null
-                    && IsInSet(refereedInSlot, slot - 1, game.RefereeTeamId))
-                    continue;
-
-                // Find an available court in this slot (prefer least-used for uniformity)
-                var court = FindAvailableCourt(courtIds, slot, courtSlotUsed, courtGameCount, ref courtIndex);
-                if (court is null)
-                    continue;
-
-                // Assign schedule
-                var gameStartTime = startTime.AddMinutes(slot * gameLengthMinutes);
-                game.AssignSchedule(court, gameStartTime);
-
-                // Record occupancy
-                courtSlotUsed[(slot, court)] = true;
-
-                if (!busyInSlot.ContainsKey(slot))
-                    busyInSlot[slot] = [];
-                foreach (var teamId in involvedTeamIds)
-                    busyInSlot[slot].Add(teamId);
-
-                if (game.RefereeTeamId is not null)
+                if (TryScheduleGameInSlot(game, slot, involvedTeamIds, courtIds, startTime, gameLengthMinutes,
+                        busyInSlot, refereedInSlot, courtSlotUsed, courtGameCount, ref courtIndex))
                 {
-                    if (!refereedInSlot.ContainsKey(slot))
-                        refereedInSlot[slot] = [];
-                    refereedInSlot[slot].Add(game.RefereeTeamId);
+                    scheduled = true;
+                    break;
                 }
-
-                courtGameCount[court]++;
-                break;
             }
+
+            if (!scheduled)
+                throw new InvalidOperationException(
+                    $"Unable to schedule game {game.Id} within {maxSlotLimit} time slots.");
         }
 
         return games;
@@ -111,6 +88,51 @@ public static class GameScheduler
                 return interleaved;
             })
             .ToList();
+    }
+
+    private static bool TryScheduleGameInSlot(
+        Game game,
+        int slot,
+        List<string> involvedTeamIds,
+        List<string> courtIds,
+        DateTime startTime,
+        int gameLengthMinutes,
+        Dictionary<int, HashSet<string>> busyInSlot,
+        Dictionary<int, HashSet<string>> refereedInSlot,
+        Dictionary<(int slot, string courtId), bool> courtSlotUsed,
+        Dictionary<string, int> courtGameCount,
+        ref int courtIndex)
+    {
+        if (involvedTeamIds.Any(t => IsInSet(busyInSlot, slot, t)))
+            return false;
+
+        if (slot > 0 && game.RefereeTeamId is not null
+            && IsInSet(refereedInSlot, slot - 1, game.RefereeTeamId))
+            return false;
+
+        var court = FindAvailableCourt(courtIds, slot, courtSlotUsed, courtGameCount, ref courtIndex);
+        if (court is null)
+            return false;
+
+        var gameStartTime = startTime.AddMinutes(slot * gameLengthMinutes);
+        game.AssignSchedule(court, gameStartTime);
+
+        courtSlotUsed[(slot, court)] = true;
+
+        if (!busyInSlot.ContainsKey(slot))
+            busyInSlot[slot] = [];
+        foreach (var teamId in involvedTeamIds)
+            busyInSlot[slot].Add(teamId);
+
+        if (game.RefereeTeamId is not null)
+        {
+            if (!refereedInSlot.ContainsKey(slot))
+                refereedInSlot[slot] = [];
+            refereedInSlot[slot].Add(game.RefereeTeamId);
+        }
+
+        courtGameCount[court]++;
+        return true;
     }
 
     private static List<string> GetInvolvedTeamIds(Game game)

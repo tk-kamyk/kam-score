@@ -282,7 +282,7 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         testGames[0].AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
 
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeGameRepository.GetByTournamentIdAsync(tournament.Id)).Returns(testGames);
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null)).Returns(testGames);
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
         A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
 
@@ -312,7 +312,7 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         };
 
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, "p1"))
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, "p1", null, null))
             .Returns(new List<Game> { testGames[0] });
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
         A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
@@ -331,7 +331,7 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
     {
         var tournament = CreateTestTournament();
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeGameRepository.GetByTournamentIdAsync(tournament.Id))
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null))
             .Returns(new List<Game>());
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
             .Returns(new List<Team>());

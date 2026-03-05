@@ -19,65 +19,11 @@ public static class StandingsCalculator
 
     public static List<Standing> CalculateRoundRobin(List<Game> games, List<string> teamIds)
     {
-        var stats = teamIds.ToDictionary(id => id, _ => new TeamStats());
-        var completedGames = games
-            .Where(g => g.Status == GameStatus.Completed
-                        && g.HomeTeamId is not null
-                        && g.AwayTeamId is not null)
-            .ToList();
+        var completedGames = GetCompletedGames(games);
+        var stats = BuildTeamStatistics(completedGames, teamIds);
 
-        foreach (var game in completedGames)
-        {
-            var home = stats.GetValueOrDefault(game.HomeTeamId!);
-            var away = stats.GetValueOrDefault(game.AwayTeamId!);
-            if (home is null || away is null) continue;
+        var entries = teamIds.Select(id => new RoundRobinEntry(id, stats[id])).ToList();
 
-            home.GamesPlayed++;
-            away.GamesPlayed++;
-
-            var homeScore = game.HomeScore ?? 0;
-            var awayScore = game.AwayScore ?? 0;
-
-            home.SetsWon += homeScore;
-            home.SetsLost += awayScore;
-            away.SetsWon += awayScore;
-            away.SetsLost += homeScore;
-
-            if (game.Sets is not null)
-            {
-                foreach (var set in game.Sets)
-                {
-                    home.PointsWon += set.HomePoints;
-                    home.PointsLost += set.AwayPoints;
-                    away.PointsWon += set.AwayPoints;
-                    away.PointsLost += set.HomePoints;
-                }
-            }
-
-            if (homeScore > awayScore)
-            {
-                home.Wins++;
-                away.Losses++;
-            }
-            else if (awayScore > homeScore)
-            {
-                away.Wins++;
-                home.Losses++;
-            }
-            else
-            {
-                home.Draws++;
-                away.Draws++;
-            }
-        }
-
-        var entries = teamIds.Select(id =>
-        {
-            var s = stats[id];
-            return new RoundRobinEntry(id, s);
-        }).ToList();
-
-        // Sort by Points desc, SetDifference desc
         entries.Sort((a, b) =>
         {
             var cmp = b.Stats.Points.CompareTo(a.Stats.Points);
@@ -85,21 +31,82 @@ public static class StandingsCalculator
             return b.Stats.SetDifference.CompareTo(a.Stats.SetDifference);
         });
 
-        // Apply direct result tiebreaker for tied groups
         entries = ApplyDirectResultTiebreaker(entries, completedGames);
 
-        // Assign positions (tied teams share position)
         return AssignRoundRobinPositions(entries);
+    }
+
+    private static List<Game> GetCompletedGames(List<Game> games)
+    {
+        return games
+            .Where(g => g.Status == GameStatus.Completed
+                        && g.HomeTeamId is not null
+                        && g.AwayTeamId is not null)
+            .ToList();
+    }
+
+    private static Dictionary<string, TeamStats> BuildTeamStatistics(
+        List<Game> completedGames, List<string> teamIds)
+    {
+        var stats = teamIds.ToDictionary(id => id, _ => new TeamStats());
+
+        foreach (var game in completedGames)
+        {
+            var home = stats.GetValueOrDefault(game.HomeTeamId!);
+            var away = stats.GetValueOrDefault(game.AwayTeamId!);
+            if (home is null || away is null) continue;
+
+            AccumulateGameStats(home, away, game);
+        }
+
+        return stats;
+    }
+
+    private static void AccumulateGameStats(TeamStats home, TeamStats away, Game game)
+    {
+        home.GamesPlayed++;
+        away.GamesPlayed++;
+
+        var homeScore = game.HomeScore ?? 0;
+        var awayScore = game.AwayScore ?? 0;
+
+        home.SetsWon += homeScore;
+        home.SetsLost += awayScore;
+        away.SetsWon += awayScore;
+        away.SetsLost += homeScore;
+
+        if (game.Sets is not null)
+        {
+            foreach (var set in game.Sets)
+            {
+                home.PointsWon += set.HomePoints;
+                home.PointsLost += set.AwayPoints;
+                away.PointsWon += set.AwayPoints;
+                away.PointsLost += set.HomePoints;
+            }
+        }
+
+        if (homeScore > awayScore)
+        {
+            home.Wins++;
+            away.Losses++;
+        }
+        else if (awayScore > homeScore)
+        {
+            away.Wins++;
+            home.Losses++;
+        }
+        else
+        {
+            home.Draws++;
+            away.Draws++;
+        }
     }
 
     public static List<Standing> CalculatePlayoffElimination(List<Game> games, List<string> teamIds)
     {
         var bracketSize = BracketUtilities.NextPowerOfTwo(teamIds.Count);
-        var completedGames = games
-            .Where(g => g.Status == GameStatus.Completed
-                        && g.HomeTeamId is not null
-                        && g.AwayTeamId is not null)
-            .ToList();
+        var completedGames = GetCompletedGames(games);
 
         var maxRound = completedGames.Count > 0 ? completedGames.Max(g => g.Round) : 0;
         var teamResults = new Dictionary<string, (int Wins, int Losses, int Position)>();
@@ -185,12 +192,7 @@ public static class StandingsCalculator
             teamLosses[teamId] = 0;
         }
 
-        // Count wins/losses from all completed games with real team IDs
-        var completedGames = games
-            .Where(g => g.Status == GameStatus.Completed
-                        && g.HomeTeamId is not null
-                        && g.AwayTeamId is not null)
-            .ToList();
+        var completedGames = GetCompletedGames(games);
 
         foreach (var game in completedGames)
         {
