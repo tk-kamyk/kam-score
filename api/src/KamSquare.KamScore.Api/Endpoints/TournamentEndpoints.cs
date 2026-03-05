@@ -51,7 +51,7 @@ public static class TournamentEndpoints
             var teamCountTask = teamRepository.CountByTournamentIdAsync(dto.Id!);
             var courtCountTask = courtRepository.CountByTournamentIdAsync(dto.Id!);
             await Task.WhenAll(teamCountTask, courtCountTask);
-            return dto with { TeamCount = teamCountTask.Result, CourtCount = courtCountTask.Result };
+            return dto with { TeamCount = await teamCountTask, CourtCount = await courtCountTask };
         });
         var enrichedDtos = await Task.WhenAll(enrichmentTasks);
 

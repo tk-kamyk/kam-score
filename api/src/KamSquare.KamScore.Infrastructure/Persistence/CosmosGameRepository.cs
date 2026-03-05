@@ -33,6 +33,32 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
     }
 
+    public async Task<IEnumerable<Game>> GetGamesAsync(
+        string tournamentId, string? phaseId = null, string? groupId = null, string? courtId = null)
+    {
+        var conditions = new List<string> { "c.tournamentId = @tournamentId" };
+
+        if (phaseId is not null)
+            conditions.Add("c.phaseId = @phaseId");
+        if (groupId is not null)
+            conditions.Add("c.groupId = @groupId");
+        if (courtId is not null)
+            conditions.Add("c.courtId = @courtId");
+
+        var query = new QueryDefinition("SELECT * FROM c WHERE " + string.Join(" AND ", conditions))
+            .WithParameter("@tournamentId", tournamentId);
+
+        if (phaseId is not null)
+            query = query.WithParameter("@phaseId", phaseId);
+        if (groupId is not null)
+            query = query.WithParameter("@groupId", groupId);
+        if (courtId is not null)
+            query = query.WithParameter("@courtId", courtId);
+
+        return await ExecuteQueryAsync<Game>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
+    }
+
     public async Task<Game?> GetByIdAsync(string tournamentId, string gameId)
     {
         try

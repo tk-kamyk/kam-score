@@ -1,9 +1,10 @@
+using System.Text.RegularExpressions;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Entities;
 
-public class Tournament : Entity
+public partial class Tournament : Entity
 {
     public string Name { get; set; } = null!;
     public Discipline Discipline { get; set; }
@@ -46,6 +47,18 @@ public class Tournament : Entity
     public bool IsOwnedBy(string userId)
     {
         return OwnerId == userId;
+    }
+
+    [GeneratedRegex("^[0-9A-Fa-f]{4}$")]
+    private static partial Regex TournamentCodeRegex();
+
+    public bool IsCodeValid(string? code)
+    {
+        if (string.IsNullOrEmpty(code))
+            return false;
+        if (!TournamentCodeRegex().IsMatch(code))
+            return false;
+        return TournamentCode.Equals(code, StringComparison.OrdinalIgnoreCase);
     }
 
     public static string GenerateTournamentCode()
