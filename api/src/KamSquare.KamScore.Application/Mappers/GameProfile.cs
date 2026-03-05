@@ -25,6 +25,8 @@ public class GameProfile : Profile
             .ForMember(dest => dest.HomeTeamName, opt => opt.Ignore())
             .ForMember(dest => dest.AwayTeamName, opt => opt.Ignore())
             .ForMember(dest => dest.RefereeTeamName, opt => opt.Ignore())
-            .ForMember(dest => dest.CourtName, opt => opt.Ignore());
+            .ForMember(dest => dest.CourtName, opt => opt.Ignore())
+            .ForMember(dest => dest.HomeTeamIsPlaceholder, opt => opt.Ignore())
+            .ForMember(dest => dest.AwayTeamIsPlaceholder, opt => opt.Ignore());
     }
 }

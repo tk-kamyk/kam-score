@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
@@ -33,6 +33,13 @@ const showAddGroupDialog = ref(false)
 const showAutoAssignDialog = ref(false)
 const newGroupName = ref('')
 const groupFormRef = ref<InstanceType<typeof VForm> | null>(null)
+
+const previousPhaseId = computed(() => {
+  const phases = structureStore.structure?.phases ?? []
+  const currentOrder = props.phase.order ?? 1
+  if (currentOrder <= 1) return undefined
+  return phases.find(p => p.order === currentOrder - 1)?.id
+})
 
 const groupNameRules = [
   (v: string) => !!v || 'Group name is required.',
@@ -130,6 +137,8 @@ async function handleAutoAssign() {
               :teams="teams"
               :editing="editing"
               :all-groups="phase.groups ?? []"
+              :phase-order="phase.order ?? 1"
+              :previous-phase-id="previousPhaseId"
             />
           </v-card-text>
         </v-card>

@@ -5,4 +5,7 @@ public record TeamDto(
     string Name,
     int Level,
     string? Email,
-    string? Phone);
+    string? Phone,
+    bool IsPlaceholder = false,
+    string? SourcePhaseId = null,
+    int? Seed = null);

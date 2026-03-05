@@ -56,7 +56,7 @@ function togglePhase(phaseId: string) {
 
 onMounted(() => {
   structureStore.fetchStructure(props.tournamentId)
-  teamStore.fetchTeams(props.tournamentId)
+  teamStore.fetchTeams(props.tournamentId, true)
 })
 
 async function handleInitialize() {
@@ -82,12 +82,14 @@ function openEditPhase(phase: PhaseDto) {
 async function handlePhaseSaved() {
   showPhaseForm.value = false
   await structureStore.fetchStructure(props.tournamentId)
+  await teamStore.fetchTeams(props.tournamentId, true)
 }
 
 async function handleDeletePhase(phaseId: string) {
   try {
     await structureStore.deletePhase(props.tournamentId, phaseId)
     showSuccess('Phase deleted')
+    await teamStore.fetchTeams(props.tournamentId, true)
   } catch {
     showError('Failed to delete phase')
   }

@@ -52,6 +52,13 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         return structure;
     }
 
+    private static List<Team> CreatePlaceholderTeams(string sourcePhaseId, int count)
+    {
+        return Enumerable.Range(1, count)
+            .Select(seed => Team.CreatePlaceholder($"Group Stage - Seed {seed}", "t1", sourcePhaseId, seed))
+            .ToList();
+    }
+
     private List<Game> CreateCompletedGamesForPhase(
         string tournamentId, Phase phase, List<(int home, int away)>? scores = null)
     {
@@ -87,6 +94,11 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
             .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
         A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
             .ReturnsLazily((Game g) => Task.FromResult(g));
+        A.CallTo(() => _factory.FakeTeamRepository.GetBySourcePhaseIdAsync(
+            A<string>.Ignored, A<string>.Ignored))
+            .Returns(new List<Team>());
+        A.CallTo(() => _factory.FakeTeamRepository.UpdateAsync(A<Team>.Ignored))
+            .ReturnsLazily((Team t) => Task.FromResult(t));
     }
 
     // --- Complete Phase ---
@@ -139,7 +151,7 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
     }
 
     [Fact]
-    public async Task CompletePhase_ResolvesPlaceholdersInNextPhaseGames()
+    public async Task CompletePhase_ResolvesPlaceholderTeamsInNextPhaseGames()
     {
         var tournament = CreateTestTournament();
         var structure = CreateTwoPhaseStructure(tournament.Id);
@@ -147,32 +159,42 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         var phase2 = structure.Phases[1];
         var games = CreateCompletedGamesForPhase(tournament.Id, phase1);
 
-        // Create placeholder games for phase 2
-        var placeholderGames = new List<Game>
+        // Create placeholder teams for phase 2
+        var placeholders = CreatePlaceholderTeams(phase1.Id, 4);
+
+        // Assign placeholder teams to phase 2 group
+        foreach (var p in placeholders)
+            phase2.Groups[0].AddTeam(p.Id);
+
+        // Create games with placeholder team IDs
+        var phase2Games = new List<Game>
         {
             Game.Create(tournament.Id, phase2.Id, phase2.Groups[0].Id, 1,
-                homeTeamPlaceholder: "Group Stage - Seed 1",
-                awayTeamPlaceholder: "Group Stage - Seed 4"),
+                homeTeamId: placeholders[0].Id, awayTeamId: placeholders[3].Id),
             Game.Create(tournament.Id, phase2.Id, phase2.Groups[0].Id, 1,
-                homeTeamPlaceholder: "Group Stage - Seed 2",
-                awayTeamPlaceholder: "Group Stage - Seed 3")
+                homeTeamId: placeholders[1].Id, awayTeamId: placeholders[2].Id)
         };
 
         SetupFakes(tournament, structure);
         A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase1.Id))
             .Returns(games);
         A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase2.Id))
-            .Returns(placeholderGames);
+            .Returns(phase2Games);
+        A.CallTo(() => _factory.FakeTeamRepository.GetBySourcePhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(placeholders);
 
         var client = _factory.CreateAuthenticatedClient("alice");
         await client.PostAsync(
             $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}/complete", null);
 
-        // Placeholder games should now have real team IDs
-        placeholderGames.Should().OnlyContain(g =>
-            g.HomeTeamId != null && g.AwayTeamId != null);
-        // Placeholder strings should be preserved
-        placeholderGames[0].HomeTeamPlaceholder.Should().Be("Group Stage - Seed 1");
+        // Games should now have real team IDs (not placeholder IDs)
+        phase2Games.Should().OnlyContain(g =>
+            g.HomeTeamId != null && g.AwayTeamId != null
+            && !placeholders.Any(p => p.Id == g.HomeTeamId)
+            && !placeholders.Any(p => p.Id == g.AwayTeamId));
+
+        // Placeholder teams should have ResolvedTeamId set
+        placeholders.Should().OnlyContain(p => p.ResolvedTeamId != null);
     }
 
     [Fact]
@@ -276,7 +298,7 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
     }
 
     [Fact]
-    public async Task ReopenPhase_UnresolvesPlaceholdersInNextPhaseGames()
+    public async Task ReopenPhase_UnresolvesPlaceholderTeamsInNextPhaseGames()
     {
         var tournament = CreateTestTournament();
         var structure = CreateTwoPhaseStructure(tournament.Id);
@@ -284,25 +306,37 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         var phase2 = structure.Phases[1];
         phase1.Complete();
 
+        // Create placeholder teams that were previously resolved
+        var placeholders = CreatePlaceholderTeams(phase1.Id, 2);
+        placeholders[0].ResolvedTeamId = "real-a";
+        placeholders[1].ResolvedTeamId = "real-b";
+
+        // Phase 2 has resolved games with real team IDs
+        phase2.Groups[0].AddTeam("real-a");
+        phase2.Groups[0].AddTeam("real-b");
+
         var resolvedGames = new List<Game>
         {
             Game.Create(tournament.Id, phase2.Id, phase2.Groups[0].Id, 1,
-                homeTeamId: "team1", awayTeamId: "team4",
-                homeTeamPlaceholder: "Group Stage - Seed 1",
-                awayTeamPlaceholder: "Group Stage - Seed 4")
+                homeTeamId: "real-a", awayTeamId: "real-b")
         };
 
         SetupFakes(tournament, structure);
         A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(
             tournament.Id, phase2.Id)).Returns(resolvedGames);
+        A.CallTo(() => _factory.FakeTeamRepository.GetBySourcePhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(placeholders);
 
         var client = _factory.CreateAuthenticatedClient("alice");
         await client.PostAsync(
             $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}/reopen", null);
 
-        resolvedGames[0].HomeTeamId.Should().BeNull();
-        resolvedGames[0].AwayTeamId.Should().BeNull();
-        resolvedGames[0].HomeTeamPlaceholder.Should().Be("Group Stage - Seed 1");
+        // Games should now have placeholder team IDs back
+        resolvedGames[0].HomeTeamId.Should().Be(placeholders[0].Id);
+        resolvedGames[0].AwayTeamId.Should().Be(placeholders[1].Id);
+        // Placeholder teams should have ResolvedTeamId cleared
+        placeholders[0].ResolvedTeamId.Should().BeNull();
+        placeholders[1].ResolvedTeamId.Should().BeNull();
     }
 
     [Fact]
@@ -336,15 +370,21 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
-    // --- Game Generation with Placeholders ---
+    // --- Game Generation with Placeholder Teams ---
 
     [Fact]
-    public async Task GenerateGames_Phase2WithPlaceholders_ReturnsCreated()
+    public async Task GenerateGames_Phase2WithPlaceholderTeams_ReturnsCreated()
     {
         var tournament = CreateTestTournament();
         var structure = CreateTwoPhaseStructure(tournament.Id);
+        var phase1 = structure.Phases[0];
         var phase2 = structure.Phases[1];
         var courts = new List<Court> { Court.Create("Court 1", tournament.Id) };
+
+        // Create and assign placeholder teams to phase 2
+        var placeholders = CreatePlaceholderTeams(phase1.Id, 4);
+        foreach (var p in placeholders)
+            phase2.Groups[0].AddTeam(p.Id);
 
         SetupFakes(tournament, structure);
         A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id))
@@ -354,7 +394,7 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         A.CallTo(() => _factory.FakeGameRepository.CreateBatchAsync(A<IEnumerable<Game>>.Ignored))
             .ReturnsLazily((IEnumerable<Game> games) => Task.FromResult(games));
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
-            .Returns(new List<Team>());
+            .Returns(placeholders);
 
         var client = _factory.CreateAuthenticatedClient("alice");
         var response = await client.PostAsync(
@@ -364,6 +404,10 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         var games = await response.Content.ReadFromJsonAsync<List<GameDto>>();
         games.Should().NotBeNull();
         games!.Should().NotBeEmpty();
+
+        // Games should have placeholder team names
+        games.Should().OnlyContain(g =>
+            g.HomeTeamName != null || g.HomeTeamPlaceholder != null);
     }
 
     [Fact]

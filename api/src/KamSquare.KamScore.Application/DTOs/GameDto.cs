@@ -20,4 +20,6 @@ public record GameDto(
     string? HomeTeamName = null,
     string? AwayTeamName = null,
     string? RefereeTeamName = null,
-    string? CourtName = null);
+    string? CourtName = null,
+    bool? HomeTeamIsPlaceholder = null,
+    bool? AwayTeamIsPlaceholder = null);

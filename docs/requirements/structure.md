@@ -130,10 +130,10 @@
 ## Phase status
 
 - Each phase has a status: `New` (default), `InProgress`, `Completed`
-- **New → InProgress**: for the first phase, this happens when games are generated; for subsequent phases, when the previous phase completes (placeholders are resolved, teams are assigned)
+- **New → InProgress**: for the first phase, this happens when games are generated; for subsequent phases, when the previous phase completes (placeholder IDs are resolved to real team IDs)
 - **InProgress → Completed**: owner explicitly marks the phase as complete via the Schedule tab
 - Completing a phase requires all games in the phase to have results recorded
-- Reopening a completed phase reverts it to `InProgress` and clears progression in the next phase (next phase reverts to `New`)
+- Reopening a completed phase reverts it to `InProgress` and reverses placeholder resolution in the next phase (real IDs swapped back to placeholder IDs, next phase reverts to `New`)
 
 ## Progression
 
@@ -149,13 +149,25 @@
 - All qualifying teams are then ranked together in a single seeding order using standings criteria — this produces Seed 1, Seed 2, ..., Seed N
 - Seeded teams are assigned to the next phase's groups via snake draft (same as existing auto-assign)
 
-## Cross-phase placeholders
+## Placeholder teams
 
-- In the first phase, games are generated using real team names/IDs
-- In subsequent phases, games can be generated before the previous phase completes — they use placeholders (e.g., "Group Stage - Seed 1")
-- Placeholder format: `"{SourcePhaseName} - Seed {N}"` where N is the overall seed position
-- When the previous phase is marked as completed, placeholders in the next phase are resolved — replaced with real team IDs based on the seeding order
-- Placeholders are kept intact after resolution (not cleared), allowing re-resolution when a phase is reopened and re-completed
+- When a phase with order > 1 is created and the previous phase has progression config (`GroupWinners` and/or `TotalTeamsProceeding`), placeholder Team entities are automatically generated
+- Placeholder count = `TotalTeamsProceeding` ?? `GroupWinners` × number of groups in the source phase
+- Each placeholder is a real Team entity with `IsPlaceholder = true`, a `SourcePhaseId` (the phase whose progression config created them), and a `Seed` (1-based)
+- Placeholder naming format: `"{SourcePhaseName} - Seed {N}"`
+- Placeholders are fully functional: they can be assigned to groups (manually or via auto-assign), and games can be generated and scheduled using their IDs
+- Auto-assign for phase 2+: placeholder teams ordered by seed, distributed via snake draft (same as real teams in phase 1)
+- When the previous phase's progression config changes (UpdatePhase), old placeholders are deleted and regenerated; any existing games in the next phase are also deleted
+- When a phase is deleted, its associated placeholder teams (where `SourcePhaseId` matches any deleted phase) are also deleted
+
+## Placeholder resolution
+
+- When a phase is marked as completed, placeholder team IDs in the **next** phase are swapped to real team IDs based on the seeding order:
+  - Seed 1 placeholder → best qualifying team, Seed 2 → second best, etc.
+  - Swaps occur in: game `HomeTeamId`, `AwayTeamId`, `RefereeTeamId`, and group `TeamIds`
+  - Each placeholder team's `ResolvedTeamId` is set to the real team it resolved to
+- Reopening a completed phase reverses the swap: real team IDs are replaced back with placeholder team IDs, `ResolvedTeamId` is cleared, and the next phase reverts to `New`
+- Within-phase playoff placeholders (`HomeTeamPlaceholder` / `AwayTeamPlaceholder` strings like "Winner SF1") remain unchanged — these are separate from cross-phase placeholder teams
 
 # TBC
 

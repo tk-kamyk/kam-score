@@ -26,6 +26,7 @@ public static class TeamEndpoints
 
     private static async Task<IResult> GetTeams(
         string tournamentId,
+        bool? includePlaceholders,
         ITeamRepository teamRepository,
         ITournamentRepository tournamentRepository,
         ICurrentUserService currentUser,
@@ -36,6 +37,9 @@ public static class TeamEndpoints
             throw new NotFoundException(nameof(Tournament), tournamentId);
 
         var teams = await teamRepository.GetByTournamentIdAsync(tournamentId);
+        if (includePlaceholders is not true)
+            teams = teams.Where(t => !t.IsPlaceholder);
+
         var dtos = mapper.Map<IEnumerable<TeamDto>>(teams);
 
         if (!currentUser.IsAuthenticated || !tournament.IsOwnedBy(currentUser.UserId!))

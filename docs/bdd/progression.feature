@@ -89,42 +89,92 @@ Feature: Phase Advancement
     Then Group A should contain seeds 1, 4, 5, 8
     And Group B should contain seeds 2, 3, 6, 7
 
-  # --- Cross-Phase Placeholders ---
+  # --- Placeholder Team Entities ---
 
-  Scenario: Games in subsequent phase are generated with cross-phase placeholders
-    Given a phase "Group Stage" with GroupWinners 2 and TotalTeamsProceeding 4
-    And a next phase "Playoffs" with format PlayoffElimination and 1 group
-    And "Group Stage" is not yet complete
-    When I generate games for "Playoffs"
-    Then games should be created with placeholders like "Group Stage - Seed 1"
-    And team IDs should be null for cross-phase placeholder games
+  Scenario: Placeholder teams are created when a phase 2+ is added
+    Given a phase "Group Stage" with GroupWinners 2 and 2 groups
+    When I add a phase "Playoffs" with format PlayoffElimination
+    Then 4 placeholder teams should be created
+    And each placeholder should have sourcePhaseId matching "Group Stage"
+    And placeholder names should follow the pattern "Group Stage - Seed {N}"
 
-  Scenario: Round robin games generated with cross-phase placeholders
+  Scenario: Placeholder teams are created based on TotalTeamsProceeding
     Given a phase "Group Stage" with TotalTeamsProceeding 6
-    And a next phase "Round 2" with format RoundRobin and 2 groups
+    When I add a phase "Round 2" with format RoundRobin
+    Then 6 placeholder teams should be created with seeds 1 through 6
+
+  Scenario: No placeholders created when previous phase has no progression config
+    Given a phase "Group Stage" with neither GroupWinners nor TotalTeamsProceeding set
+    When I add a phase "Playoffs" with format PlayoffElimination
+    Then no placeholder teams should be created
+
+  Scenario: Placeholder teams are regenerated when progression config changes
+    Given a phase "Group Stage" with GroupWinners 2 and 2 groups
+    And a phase "Playoffs" with 4 placeholder teams from "Group Stage"
+    When I update "Group Stage" to have GroupWinners 1
+    Then old placeholder teams should be deleted
+    And 2 new placeholder teams should be created
+    And any games in "Playoffs" should be deleted
+
+  Scenario: Placeholder teams are deleted when their source phase is deleted
+    Given a phase "Group Stage" with GroupWinners 2 and 2 groups
+    And a phase "Playoffs" with placeholder teams from "Group Stage"
+    When I delete "Group Stage"
+    Then all placeholder teams with sourcePhaseId matching "Group Stage" should be deleted
+
+  # --- Placeholder Assignment ---
+
+  Scenario: Placeholder teams can be assigned to groups manually
+    Given a phase "Playoffs" with placeholder teams from the previous phase
+    When I assign "Group Stage - Seed 1" to Group A in "Playoffs"
+    Then the placeholder team should appear in Group A
+
+  Scenario: Auto-assign distributes placeholder teams by seed via snake draft
+    Given a phase "Playoffs" with 4 placeholder teams (seeds 1-4) and 2 groups
+    When I auto-assign teams in "Playoffs"
+    Then Group A should contain seeds 1 and 4
+    And Group B should contain seeds 2 and 3
+
+  Scenario: A placeholder team cannot be assigned to two groups in the same phase
+    Given a placeholder team already assigned to Group A in "Playoffs"
+    When I try to assign the same placeholder to Group B
+    Then the team should not appear in the available teams list
+
+  # --- Game Generation with Placeholders ---
+
+  Scenario: Games are generated with placeholder team IDs
+    Given a phase "Playoffs" with placeholder teams assigned to groups
+    When I generate games for "Playoffs"
+    Then games should have real team IDs (placeholder team IDs, not null)
+    And team names in the game response should show placeholder names
+
+  Scenario: Round robin games generated with placeholder teams
+    Given a phase "Round 2" with placeholder teams assigned to 2 groups
     When I generate games for "Round 2"
-    Then round-robin games should use placeholders like "Group Stage - Seed 1" vs "Group Stage - Seed 4"
-    And no referee should be assigned for placeholder games
+    Then round-robin games should use placeholder team IDs
+    And referee assignments should work normally with placeholder teams
 
   # --- Placeholder Resolution ---
 
-  Scenario: Completing a phase resolves placeholders in the next phase
+  Scenario: Completing a phase resolves placeholder IDs to real team IDs
     Given a completed phase "Group Stage" with progression configured
-    And a next phase "Playoffs" with games using cross-phase placeholders
+    And a next phase "Playoffs" with games using placeholder team IDs
     When I complete "Group Stage"
-    Then the cross-phase placeholders in "Playoffs" games should be replaced with real team IDs
-    And the placeholder strings should still be stored on the games
+    Then placeholder team IDs in "Playoffs" games should be swapped to real team IDs
+    And placeholder team IDs in "Playoffs" group assignments should be swapped to real team IDs
+    And each placeholder team's ResolvedTeamId should point to the real team
 
   # --- Phase Reopen ---
 
-  Scenario: Reopening a completed phase reverts progression
+  Scenario: Reopening a completed phase reverses placeholder resolution
     Given a completed phase "Group Stage" with resolved progression
-    And a next phase "Playoffs" in status InProgress with resolved placeholders
+    And a next phase "Playoffs" in status InProgress with resolved placeholder teams
     When I reopen "Group Stage"
     Then "Group Stage" status should be "InProgress"
     And "Playoffs" status should be "New"
-    And "Playoffs" groups should have no teams assigned
-    And cross-phase placeholders in "Playoffs" games should have null team IDs
+    And real team IDs in "Playoffs" games should be swapped back to placeholder team IDs
+    And real team IDs in "Playoffs" group assignments should be swapped back to placeholder team IDs
+    And placeholder teams' ResolvedTeamId should be cleared
 
   # --- Access Control ---
 

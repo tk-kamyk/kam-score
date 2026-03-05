@@ -32,6 +32,17 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
             new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
     }
 
+    public async Task<IEnumerable<Team>> GetBySourcePhaseIdAsync(string tournamentId, string sourcePhaseId)
+    {
+        var query = new QueryDefinition(
+                "SELECT * FROM c WHERE c.tournamentId = @tournamentId AND c.sourcePhaseId = @sourcePhaseId")
+            .WithParameter("@tournamentId", tournamentId)
+            .WithParameter("@sourcePhaseId", sourcePhaseId);
+
+        return await ExecuteQueryAsync<Team>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
+    }
+
     public async Task<Team> CreateAsync(Team team)
     {
         var response = await Container.CreateItemAsync(
@@ -39,6 +50,20 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
             new PartitionKey(team.TournamentId));
 
         return response.Resource;
+    }
+
+    public async Task<IEnumerable<Team>> CreateBatchAsync(IEnumerable<Team> teams)
+    {
+        var created = new List<Team>();
+        foreach (var team in teams)
+        {
+            var response = await Container.CreateItemAsync(
+                team,
+                new PartitionKey(team.TournamentId));
+            created.Add(response.Resource);
+        }
+
+        return created;
     }
 
     public async Task<Team> UpdateAsync(Team team)
@@ -54,6 +79,15 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
     public async Task DeleteAsync(string id, string tournamentId)
     {
         await Container.DeleteItemAsync<Team>(id, new PartitionKey(tournamentId));
+    }
+
+    public async Task DeleteBySourcePhaseIdAsync(string tournamentId, string sourcePhaseId)
+    {
+        var teams = await GetBySourcePhaseIdAsync(tournamentId, sourcePhaseId);
+        foreach (var team in teams)
+        {
+            await Container.DeleteItemAsync<Team>(team.Id, new PartitionKey(tournamentId));
+        }
     }
 
     public async Task<bool> ExistsByNameAsync(string tournamentId, string name, string? excludeTeamId = null)

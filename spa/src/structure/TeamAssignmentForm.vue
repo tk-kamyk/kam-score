@@ -12,6 +12,8 @@ const props = defineProps<{
   teams: TeamDto[]
   editing: boolean
   allGroups: GroupDto[]
+  phaseOrder: number
+  previousPhaseId?: string
 }>()
 
 const structureStore = useStructureStore()
@@ -36,7 +38,21 @@ const assignedTeamIdsInPhase = computed(() => {
 })
 
 const availableTeams = computed(() => {
-  return props.teams.filter(t => t.id && !assignedTeamIdsInPhase.value.has(t.id))
+  return props.teams
+    .filter(t => {
+      if (!t.id || assignedTeamIdsInPhase.value.has(t.id)) return false
+      if (props.phaseOrder > 1) {
+        // Phase 2+: only show placeholder teams from the previous phase
+        return t.isPlaceholder && t.sourcePhaseId === props.previousPhaseId
+      }
+      // Phase 1: only show real teams
+      return !t.isPlaceholder
+    })
+    .sort((a, b) => {
+      // Sort placeholders by seed number
+      if (a.isPlaceholder && b.isPlaceholder) return (a.seed ?? 0) - (b.seed ?? 0)
+      return 0
+    })
 })
 
 async function handleAssign() {
@@ -77,7 +93,9 @@ async function handleRemove(teamId: string) {
     <v-list v-if="assignedTeams.length > 0" density="compact" class="pa-0 team-list">
       <v-list-item v-for="team in assignedTeams" :key="team.id" class="px-0">
         <template #default>
-          <span class="text-body-medium">{{ team.name }}</span>
+          <span class="text-body-medium" :class="{ 'text-italic text-medium-emphasis': team.isPlaceholder }">
+            {{ team.name }}
+          </span>
         </template>
         <template v-if="editing" #append>
           <v-btn
