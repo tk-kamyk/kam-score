@@ -152,7 +152,7 @@ public class PhaseCompletionService
 
         var nextPhase = structure.GetNextPhase(phaseId);
 
-        // Unresolve placeholder teams before reopening
+        // Unresolve placeholder teams before reopening, or clear groups if no placeholders
         if (nextPhase is not null)
         {
             var placeholderTeams = (await _teamRepository.GetBySourcePhaseIdAsync(tournamentId, phaseId)).ToList();
@@ -163,6 +163,11 @@ public class PhaseCompletionService
 
                 await Task.WhenAll(modifiedGames.Select(game => _gameRepository.UpdateAsync(game)));
                 await Task.WhenAll(placeholderTeams.Select(placeholder => _teamRepository.UpdateAsync(placeholder)));
+            }
+            else
+            {
+                foreach (var group in nextPhase.Groups)
+                    group.ClearTeams();
             }
         }
 
