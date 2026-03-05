@@ -122,4 +122,16 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
         return results.FirstOrDefault() > 0;
     }
+
+    public async Task<bool> TeamIsReferencedInGamesAsync(string tournamentId, string teamId)
+    {
+        var query = new QueryDefinition(
+                "SELECT VALUE COUNT(1) FROM c WHERE c.tournamentId = @tournamentId AND (c.homeTeamId = @teamId OR c.awayTeamId = @teamId OR c.refereeTeamId = @teamId)")
+            .WithParameter("@tournamentId", tournamentId)
+            .WithParameter("@teamId", teamId);
+
+        var results = await ExecuteQueryAsync<int>(query,
+            new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
+        return results.FirstOrDefault() > 0;
+    }
 }

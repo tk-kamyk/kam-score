@@ -41,6 +41,13 @@ const previousPhaseId = computed(() => {
   return phases.find(p => p.order === currentOrder - 1)?.id
 })
 
+const isLocked = computed(() => props.phase.status !== 'New')
+const lockReason = computed(() => {
+  if (props.phase.status === 'Completed') return 'Reopen the phase first'
+  if (props.phase.status === 'InProgress') return 'Delete games first to edit structure'
+  return ''
+})
+
 const groupNameRules = [
   (v: string) => !!v || 'Group name is required.',
   (v: string) => v.length <= 100 || 'Group name must not exceed 100 characters.',
@@ -101,8 +108,19 @@ async function handleAutoAssign() {
 
     <template #header-actions>
       <div v-if="editing">
-        <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click.stop="emit('edit', phase)" />
+        <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+          <template #activator="{ props: tp }">
+            <v-btn v-bind="tp" icon="mdi-pencil" variant="text" size="small" disabled :aria-label="'Edit phase ' + phase.name" />
+          </template>
+        </v-tooltip>
+        <v-btn v-else icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click.stop="emit('edit', phase)" />
+        <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+          <template #activator="{ props: tp }">
+            <v-btn v-bind="tp" icon="mdi-delete" variant="text" size="small" color="error" disabled :aria-label="'Delete phase ' + phase.name" />
+          </template>
+        </v-tooltip>
         <v-btn
+          v-else
           icon="mdi-delete"
           variant="text"
           size="small"
@@ -131,6 +149,16 @@ async function handleAutoAssign() {
     </template>
 
     <v-card-text>
+      <v-alert
+        v-if="editing && isLocked"
+        type="warning"
+        variant="tonal"
+        density="compact"
+        class="mb-3"
+        prepend-icon="mdi-lock"
+      >
+        {{ lockReason }}
+      </v-alert>
       <div v-if="phase.groups && phase.groups.length > 0" class="groups-grid">
         <v-card
           v-for="group in phase.groups"
@@ -141,7 +169,7 @@ async function handleAutoAssign() {
           <v-card-title class="d-flex align-center justify-space-between py-2">
             <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
             <StructureGroupCard
-              v-if="editing"
+              v-if="editing && !isLocked"
               :tournament-id="tournamentId"
               :phase-id="phase.id!"
               :group="group"
@@ -153,7 +181,7 @@ async function handleAutoAssign() {
               :phase-id="phase.id!"
               :group="group"
               :teams="teams"
-              :editing="editing"
+              :editing="editing && !isLocked"
               :all-groups="phase.groups ?? []"
               :phase-order="phase.order ?? 1"
               :previous-phase-id="previousPhaseId"
@@ -168,7 +196,21 @@ async function handleAutoAssign() {
     </v-card-text>
 
     <template v-if="editing" #actions>
+      <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+        <template #activator="{ props: tp }">
+          <v-btn
+            v-bind="tp"
+            color="primary"
+            variant="elevated"
+            prepend-icon="mdi-plus"
+            disabled
+          >
+            Add Group
+          </v-btn>
+        </template>
+      </v-tooltip>
       <v-btn
+        v-else
         color="primary"
         variant="elevated"
         prepend-icon="mdi-plus"
@@ -176,7 +218,21 @@ async function handleAutoAssign() {
       >
         Add Group
       </v-btn>
+      <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+        <template #activator="{ props: tp }">
+          <v-btn
+            v-bind="tp"
+            color="primary"
+            variant="elevated"
+            prepend-icon="mdi-shuffle-variant"
+            disabled
+          >
+            Auto-assign Teams
+          </v-btn>
+        </template>
+      </v-tooltip>
       <v-btn
+        v-else
         color="primary"
         variant="elevated"
         prepend-icon="mdi-shuffle-variant"

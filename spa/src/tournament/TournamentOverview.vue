@@ -40,8 +40,8 @@ const tabLabels: Record<string, string> = {
   teams: 'Teams',
   courts: 'Courts',
   structure: 'Structure',
-  groups: 'Groups',
   schedule: 'Schedule',
+  standings: 'Standings',
 }
 
 const breadcrumbItems = computed(() => [
@@ -111,8 +111,8 @@ async function handleDelete() {
           <StructureDetail :tournament-id="id" :is-owner="isOwner" />
         </v-tabs-window-item>
 
-        <v-tabs-window-item value="groups">
-          <StandingsOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'groups'" />
+        <v-tabs-window-item value="standings">
+          <StandingsOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'standings'" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="schedule">

@@ -350,6 +350,14 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var tournament = CreateTestTournament();
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
 
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 1);
+        phase.Id = "phase1";
+        phase.Activate();
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id)).Returns(structure);
+        A.CallTo(() => _factory.FakeStructureRepository.UpdateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+
         var client = _factory.CreateAuthenticatedClient("alice");
         var response = await client.DeleteAsync(
             $"/api/tournaments/{tournament.Id}/structure/phases/phase1/games");

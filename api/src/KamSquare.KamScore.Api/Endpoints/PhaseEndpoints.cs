@@ -63,6 +63,7 @@ public static class PhaseEndpoints
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
         PhaseCompletionService phaseCompletionService,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -72,10 +73,21 @@ public static class PhaseEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var phase = structure.GetPhase(phaseId);
+
+        if (phase.Status == PhaseStatus.Completed)
+            throw new PhaseStateException(phase.Name, "edit", "phase is completed");
+
+        var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
+        var structuralFieldsChanged = phase.Format != format
+            || phase.GroupWinners != request.GroupWinners
+            || phase.TotalTeamsProceeding != request.TotalTeamsProceeding;
+
+        if (structuralFieldsChanged)
+            await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
+
         var oldGroupWinners = phase.GroupWinners;
         var oldTotalTeamsProceeding = phase.TotalTeamsProceeding;
 
-        var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
         var startTime = mapper.Map<TimeOnly?>(request.StartTime);
         structure.UpdatePhase(phaseId, request.Name, format,
             request.GroupWinners, request.TotalTeamsProceeding, startTime);
@@ -97,12 +109,16 @@ public static class PhaseEndpoints
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
         ITeamRepository teamRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureDeletableAsync(phase, tournamentId);
 
         // Delete placeholder teams that were created from this phase's progression
         await teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, phaseId);
@@ -159,6 +175,7 @@ public static class PhaseEndpoints
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
         ITeamRepository teamRepository,
+        PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -168,6 +185,7 @@ public static class PhaseEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var phase = structure.GetPhase(phaseId);
+        await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
 
         if (phase.Groups.Count == 0)
             throw new ValidationException(

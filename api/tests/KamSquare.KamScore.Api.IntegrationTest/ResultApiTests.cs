@@ -18,6 +18,7 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
         _factory = factory;
         Fake.Reset(factory.FakeRepository);
         Fake.Reset(factory.FakeGameRepository);
+        Fake.Reset(factory.FakeStructureRepository);
     }
 
     private Tournament CreateTestTournament(string ownerId = "alice")
@@ -35,12 +36,26 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
         return game;
     }
 
+    private TournamentStructure CreateInProgressStructure(string tournamentId, string phaseId = "p1")
+    {
+        var structure = TournamentStructure.Create(tournamentId);
+        var phase = structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 1);
+        // Override the auto-generated id to match the game's phaseId
+        phase.Id = phaseId;
+        phase.Activate();
+        return structure;
+    }
+
     private void SetupTournamentAndGame(Tournament tournament, Game game)
     {
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
         A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, game.Id)).Returns(game);
         A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
             .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var structure = CreateInProgressStructure(tournament.Id, game.PhaseId);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(structure);
     }
 
     private static GameResultDto DetailedResult() => new(
@@ -369,6 +384,8 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .Returns(new List<Game> { sf1, final_ });
         A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
             .ReturnsLazily((Game g) => Task.FromResult(g));
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(CreateInProgressStructure(tournament.Id));
 
         var client = _factory.CreateAuthenticatedClient("alice");
 
@@ -407,6 +424,8 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .Returns(new List<Game> { sf1, thirdPlace, final_ });
         A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
             .ReturnsLazily((Game g) => Task.FromResult(g));
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(CreateInProgressStructure(tournament.Id));
 
         var client = _factory.CreateAuthenticatedClient("alice");
 
@@ -460,6 +479,8 @@ public class ResultApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .Returns(new List<Game> { sf1, final_ });
         A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
             .ReturnsLazily((Game g) => Task.FromResult(g));
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(CreateInProgressStructure(tournament.Id));
 
         var client = _factory.CreateAuthenticatedClient("alice");
 

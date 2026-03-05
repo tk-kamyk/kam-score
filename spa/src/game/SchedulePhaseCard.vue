@@ -107,6 +107,7 @@ function groupName(groupId: string): string {
           Reopen Phase
         </v-btn>
         <v-btn
+          v-if="phase.status !== 'Completed'"
           color="error"
           variant="elevated"
           prepend-icon="mdi-delete"
