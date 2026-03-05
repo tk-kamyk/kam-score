@@ -576,4 +576,26 @@ public class StandingsCalculatorTests
         var elimStandings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination, games, teamIds);
         elimStandings.First(s => s.TeamId == "a").Points.Should().BeNull("elimination should not have points");
     }
+
+    [Fact]
+    public void Calculate_PlayoffWithPlacement_DispatchesCorrectly()
+    {
+        var teamIds = new List<string> { "a", "b", "c", "d" };
+        var games = new List<Game>
+        {
+            CreateCompletedGame("a", "d", 2, 0, round: 1),
+            CreateCompletedGame("b", "c", 2, 0, round: 1),
+            CreateCompletedGame("d", "c", 2, 1, round: 2),
+            CreateCompletedGame("a", "b", 2, 1, round: 3),
+        };
+
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffWithPlacement, games, teamIds);
+
+        standings.Should().HaveCount(4);
+        standings.First(s => s.TeamId == "a").Position.Should().Be(1);
+        standings.First(s => s.TeamId == "b").Position.Should().Be(2);
+        standings.First(s => s.TeamId == "d").Position.Should().Be(3);
+        standings.First(s => s.TeamId == "c").Position.Should().Be(4);
+        standings.Should().AllSatisfy(s => s.Points.Should().BeNull("placement should not have points"));
+    }
 }

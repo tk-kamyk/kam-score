@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { onMounted, ref, computed } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import SectionHeader from '@/components/SectionHeader.vue'
 import StructurePhaseCard from '@/structure/StructurePhaseCard.vue'
 import PhaseForm from '@/structure/PhaseForm.vue'
@@ -14,11 +14,10 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
-const route = useRoute()
-const router = useRouter()
 const structureStore = useStructureStore()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
+const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
 
 const editing = ref(false)
 const showPhaseForm = ref(false)
@@ -26,33 +25,6 @@ const editingPhase = ref<PhaseDto | null>(null)
 
 const hasStructure = computed(() => structureStore.structure?.id != null)
 const phases = computed(() => structureStore.structure?.phases ?? [])
-
-function parseQuerySet(param: unknown): Set<string> {
-  if (!param || typeof param !== 'string') return new Set()
-  return new Set(param.split(',').filter(Boolean))
-}
-
-const expandedPhases = ref(parseQuerySet(route.query.phase))
-
-watch(expandedPhases, (phases) => {
-  const query = { ...route.query }
-  if (phases.size > 0) {
-    query.phase = [...phases].join(',')
-  } else {
-    delete query.phase
-  }
-  router.replace({ query })
-}, { deep: true })
-
-function togglePhase(phaseId: string) {
-  const newSet = new Set(expandedPhases.value)
-  if (newSet.has(phaseId)) {
-    newSet.delete(phaseId)
-  } else {
-    newSet.add(phaseId)
-  }
-  expandedPhases.value = newSet
-}
 
 onMounted(() => {
   structureStore.fetchStructure(props.tournamentId)

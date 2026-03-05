@@ -1,6 +1,6 @@
-namespace KamSquare.KamScore.Domain.Exceptions;
+namespace KamSquare.KamScore.Application.Exceptions;
 
-public class ForbiddenException : DomainException
+public class ForbiddenException : Exception
 {
     public ForbiddenException(string message) : base(message) { }
 

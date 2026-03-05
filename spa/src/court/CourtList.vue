@@ -134,8 +134,8 @@ async function handleDelete() {
                 {{ court.name }}
               </td>
               <td v-if="isOwner" class="text-right">
-                <v-btn icon="mdi-pencil" variant="text" size="small" @click.stop="openEdit(court)" />
-                <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click.stop="openDelete(court)" />
+                <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit court ' + court.name" @click.stop="openEdit(court)" />
+                <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete court ' + court.name" @click.stop="openDelete(court)" />
               </td>
             </tr>
             <tr v-if="expandedCourt === court.id">

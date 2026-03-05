@@ -62,8 +62,8 @@ function handleDelete() {
   <div>
     <SectionHeader title="Details">
       <div v-if="isOwner">
-        <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit" />
-        <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="showDeleteDialog = true" />
+        <v-btn icon="mdi-pencil" variant="text" size="small" aria-label="Edit tournament" @click="openEdit" />
+        <v-btn icon="mdi-delete" variant="text" size="small" color="error" aria-label="Delete tournament" @click="showDeleteDialog = true" />
       </div>
     </SectionHeader>
 

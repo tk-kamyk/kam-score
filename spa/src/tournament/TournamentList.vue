@@ -92,7 +92,7 @@ function navigateToTournament(id: string) {
     </v-row>
 
     <v-card v-if="!tournamentStore.loading && tournamentStore.tournaments.length === 0" class="pa-12 text-center">
-      <v-icon size="72" color="secondary" class="mb-4 empty-icon">mdi-trophy-outline</v-icon>
+      <v-icon size="72" color="secondary" class="mb-4 empty-icon" aria-hidden="true">mdi-trophy-outline</v-icon>
       <p class="text-title-medium text-sm-headline-small text-uppercase mb-2 dialog-title empty-heading">No tournaments yet</p>
       <p v-if="auth.isAuthenticated" class="text-body-medium empty-hint">Click the button above to create your first tournament.</p>
     </v-card>

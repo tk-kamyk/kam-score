@@ -33,4 +33,9 @@ public abstract class CosmosRepository<T> where T : Entity
 
         return results;
     }
+
+    protected static void SetETag(Entity entity, string? etag)
+    {
+        entity.ETag = etag;
+    }
 }

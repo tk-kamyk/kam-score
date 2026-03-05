@@ -46,15 +46,16 @@ public static class TournamentEndpoints
                 .Select(HideTournamentCode);
         }
 
-        var result = new List<TournamentDto>();
-        foreach (var dto in dtos)
+        var enrichmentTasks = dtos.Select(async dto =>
         {
-            var teamCount = await teamRepository.CountByTournamentIdAsync(dto.Id!);
-            var courtCount = await courtRepository.CountByTournamentIdAsync(dto.Id!);
-            result.Add(dto with { TeamCount = teamCount, CourtCount = courtCount });
-        }
+            var teamCountTask = teamRepository.CountByTournamentIdAsync(dto.Id!);
+            var courtCountTask = courtRepository.CountByTournamentIdAsync(dto.Id!);
+            await Task.WhenAll(teamCountTask, courtCountTask);
+            return dto with { TeamCount = teamCountTask.Result, CourtCount = courtCountTask.Result };
+        });
+        var enrichedDtos = await Task.WhenAll(enrichmentTasks);
 
-        return Results.Ok(result);
+        return Results.Ok(enrichedDtos.ToList());
     }
 
     private static async Task<IResult> GetTournament(

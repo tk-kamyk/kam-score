@@ -17,6 +17,10 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     {
         _factory = factory;
         Fake.Reset(factory.FakeRepository);
+        Fake.Reset(factory.FakeTeamRepository);
+        Fake.Reset(factory.FakeCourtRepository);
+        Fake.Reset(factory.FakeStructureRepository);
+        Fake.Reset(factory.FakeGameRepository);
     }
 
     [Fact]

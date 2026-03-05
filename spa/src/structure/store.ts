@@ -37,7 +37,9 @@ export const useStructureStore = defineStore('structure', () => {
       `/tournaments/${tournamentId}/structure/phases`,
       dto,
     )
-    structure.value?.phases?.push(data)
+    if (structure.value?.phases) {
+      structure.value.phases = [...structure.value.phases, data]
+    }
     return data
   }
 
@@ -62,10 +64,9 @@ export const useStructureStore = defineStore('structure', () => {
   async function deletePhase(tournamentId: string, phaseId: string) {
     await apiClient.delete(`/tournaments/${tournamentId}/structure/phases/${phaseId}`)
     if (structure.value?.phases) {
-      structure.value.phases = structure.value.phases.filter(p => p.id !== phaseId)
-      structure.value.phases.forEach((p, i) => {
-        p.order = i + 1
-      })
+      structure.value.phases = structure.value.phases
+        .filter(p => p.id !== phaseId)
+        .map((p, i) => ({ ...p, order: i + 1 }))
     }
   }
 
@@ -79,7 +80,9 @@ export const useStructureStore = defineStore('structure', () => {
       dto,
     )
     const phase = structure.value?.phases?.find(p => p.id === phaseId)
-    phase?.groups?.push(data)
+    if (phase?.groups) {
+      phase.groups = [...phase.groups, data]
+    }
     return data
   }
 
@@ -126,7 +129,9 @@ export const useStructureStore = defineStore('structure', () => {
     )
     const phase = structure.value?.phases?.find(p => p.id === phaseId)
     const group = phase?.groups?.find(g => g.id === groupId)
-    group?.teamIds?.push(teamId)
+    if (group?.teamIds) {
+      group.teamIds = [...group.teamIds, teamId]
+    }
   }
 
   async function removeTeam(

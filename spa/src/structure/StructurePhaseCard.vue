@@ -101,12 +101,13 @@ async function handleAutoAssign() {
 
     <template #header-actions>
       <div v-if="editing">
-        <v-btn icon="mdi-pencil" variant="text" size="small" @click="emit('edit', phase)" />
+        <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click="emit('edit', phase)" />
         <v-btn
           icon="mdi-delete"
           variant="text"
           size="small"
           color="error"
+          :aria-label="'Delete phase ' + phase.name"
           @click="confirmDelete"
         />
       </div>

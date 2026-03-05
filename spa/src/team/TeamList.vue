@@ -119,8 +119,8 @@ async function handleDelete() {
             <td v-if="isOwner">{{ team.email ?? '—' }}</td>
             <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
             <td v-if="isOwner" class="text-right">
-              <v-btn icon="mdi-pencil" variant="text" size="small" @click="openEdit(team)" />
-              <v-btn icon="mdi-delete" variant="text" size="small" color="error" @click="openDelete(team)" />
+              <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit team ' + team.name" @click="openEdit(team)" />
+              <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete team ' + team.name" @click="openDelete(team)" />
             </td>
           </tr>
         </tbody>

@@ -47,6 +47,7 @@ const selectedGroupGames = computed(() => {
           @update:model-value="(val: unknown) => { if (typeof val === 'string') emit('select-group', val) }"
           selected-class="text-primary"
           mandatory
+          aria-label="Select group"
         >
           <v-chip
             v-for="group in phase.groups"

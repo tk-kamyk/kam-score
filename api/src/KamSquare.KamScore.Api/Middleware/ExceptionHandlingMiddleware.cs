@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using System.Text.Json;
 using FluentValidation;
+using KamSquare.KamScore.Application.Exceptions;
 using KamSquare.KamScore.Domain.Exceptions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Cosmos;
 
 namespace KamSquare.KamScore.Api.Middleware;
 
@@ -52,11 +54,12 @@ public class ExceptionHandlingMiddleware
                 Detail = ex.Message
             },
             ValidationException ex => CreateValidationProblemDetails(ex),
-            ArgumentException ex => new ProblemDetails
+            ArgumentException ex => CreateArgumentProblemDetails(ex),
+            CosmosException { StatusCode: System.Net.HttpStatusCode.PreconditionFailed } => new ProblemDetails
             {
-                Status = StatusCodes.Status400BadRequest,
-                Title = "Bad Request",
-                Detail = ex.Message
+                Status = StatusCodes.Status409Conflict,
+                Title = "Conflict",
+                Detail = "The resource was modified by another request. Please reload and try again."
             },
             _ => new ProblemDetails
             {
@@ -95,6 +98,17 @@ public class ExceptionHandlingMiddleware
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         });
         await context.Response.WriteAsync(json);
+    }
+
+    private ProblemDetails CreateArgumentProblemDetails(ArgumentException ex)
+    {
+        _logger.LogWarning(ex, "Argument exception: {Message}", ex.Message);
+        return new ProblemDetails
+        {
+            Status = StatusCodes.Status400BadRequest,
+            Title = "Bad Request",
+            Detail = "The request contains invalid arguments."
+        };
     }
 
     private static ProblemDetails CreateValidationProblemDetails(ValidationException ex)

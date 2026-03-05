@@ -34,11 +34,16 @@ public class CosmosTournamentStructureRepository : CosmosRepository<TournamentSt
 
     public async Task<TournamentStructure> UpdateAsync(TournamentStructure structure)
     {
+        var requestOptions = structure.ETag is not null
+            ? new ItemRequestOptions { IfMatchEtag = structure.ETag }
+            : null;
         var response = await Container.ReplaceItemAsync(
             structure,
             structure.Id,
-            new PartitionKey(structure.TournamentId));
-
-        return response.Resource;
+            new PartitionKey(structure.TournamentId),
+            requestOptions);
+        var updated = response.Resource;
+        SetETag(updated, response.ETag);
+        return updated;
     }
 }
