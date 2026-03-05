@@ -24,6 +24,8 @@ export interface GameDto {
   awayTeamName?: string
   refereeTeamName?: string
   courtName?: string
+  homeTeamIsPlaceholder?: boolean
+  awayTeamIsPlaceholder?: boolean
 }
 
 export interface GameResultInput {

@@ -7,10 +7,11 @@ export const useTeamStore = defineStore('team', () => {
   const teams = ref<TeamDto[]>([])
   const loading = ref(false)
 
-  async function fetchTeams(tournamentId: string) {
+  async function fetchTeams(tournamentId: string, includePlaceholders = false) {
     loading.value = true
     try {
-      const { data } = await apiClient.get<TeamDto[]>(`/tournaments/${tournamentId}/teams`)
+      const params = includePlaceholders ? { includePlaceholders: true } : {}
+      const { data } = await apiClient.get<TeamDto[]>(`/tournaments/${tournamentId}/teams`, { params })
       teams.value = data
     } finally {
       loading.value = false

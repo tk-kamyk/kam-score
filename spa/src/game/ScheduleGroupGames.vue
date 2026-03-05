@@ -29,10 +29,12 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
 }
 
 function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
-  const name = side === 'home' ? game.homeTeamName : game.awayTeamName
-  if (name) return false
-  const placeholder = side === 'home' ? game.homeTeamPlaceholder : game.awayTeamPlaceholder
-  return !!placeholder
+  if (side === 'home') {
+    if (game.homeTeamIsPlaceholder) return true
+    return !game.homeTeamName && !!game.homeTeamPlaceholder
+  }
+  if (game.awayTeamIsPlaceholder) return true
+  return !game.awayTeamName && !!game.awayTeamPlaceholder
 }
 </script>
 

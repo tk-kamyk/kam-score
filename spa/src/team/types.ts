@@ -4,4 +4,7 @@ export interface TeamDto {
   level: number
   email?: string | null
   phone?: string | null
+  isPlaceholder?: boolean
+  sourcePhaseId?: string
+  seed?: number
 }

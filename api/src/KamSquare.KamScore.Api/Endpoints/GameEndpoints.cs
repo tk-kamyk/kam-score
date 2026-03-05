@@ -50,28 +50,9 @@ public static partial class GameEndpoints
         var phase = structure.GetPhase(phaseId);
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
 
-        // Determine if this is a placeholder generation (phase 2+ with no teams assigned)
-        var hasTeamsAssigned = phase.Groups.Any(g => g.TeamIds.Count > 0);
-        var isPlaceholderGeneration = phase.Order > 1 && !hasTeamsAssigned;
+        await ValidateGenerationPrerequisitesAsync(tournament, phase, courts, tournamentId, phaseId, gameRepository);
 
-        await ValidateGenerationPrerequisitesAsync(
-            tournament, phase, courts, tournamentId, phaseId, gameRepository, isPlaceholderGeneration, structure);
-
-        List<Game> allGames;
-        if (isPlaceholderGeneration)
-        {
-            var previousPhase = structure.GetPreviousPhase(phaseId)!;
-            var totalTeams = PhaseAdvancementCalculator.GetExpectedTeamCount(previousPhase)
-                ?? throw new ValidationException(
-                    [new ValidationFailure("Progression", "Previous phase must have GroupWinners or TotalTeamsProceeding configured.")]);
-
-            allGames = CrossPhaseGameGenerator.GenerateWithPlaceholders(
-                tournamentId, phaseId, phase, previousPhase.Name, totalTeams);
-        }
-        else
-        {
-            allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
-        }
+        var allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
 
         var courtIds = courts.Select(c => c.Id).ToList();
         var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime!.Value.ToTimeSpan())
@@ -206,8 +187,7 @@ public static partial class GameEndpoints
     private static async Task ValidateGenerationPrerequisitesAsync(
         Tournament tournament, Phase phase, List<Court> courts,
         string tournamentId, string phaseId,
-        IGameRepository gameRepository, bool isPlaceholderGeneration = false,
-        TournamentStructure? structure = null)
+        IGameRepository gameRepository)
     {
         if (tournament.GameLength is null or <= 0)
             throw new ValidationException(
@@ -221,24 +201,9 @@ public static partial class GameEndpoints
             throw new ValidationException(
                 [new ValidationFailure("Courts", "At least one court is required.")]);
 
-        if (isPlaceholderGeneration)
-        {
-            if (phase.Groups.Count == 0)
-                throw new ValidationException(
-                    [new ValidationFailure("Groups", "Phase must have at least one group.")]);
-
-            var previousPhase = structure?.GetPreviousPhase(phaseId);
-            if (previousPhase is null ||
-                (previousPhase.GroupWinners is null && previousPhase.TotalTeamsProceeding is null))
-                throw new ValidationException(
-                    [new ValidationFailure("Progression", "Previous phase must have GroupWinners or TotalTeamsProceeding configured.")]);
-        }
-        else
-        {
-            if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
-                throw new ValidationException(
-                    [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
-        }
+        if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
+            throw new ValidationException(
+                [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
 
         if (await gameRepository.GamesExistForPhaseAsync(tournamentId, phaseId))
             throw new ValidationException(
@@ -278,6 +243,7 @@ public static partial class GameEndpoints
         IEnumerable<Game> games, List<Team> teams, List<Court> courts, IMapper mapper)
     {
         var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
+        var placeholderLookup = teams.Where(t => t.IsPlaceholder).Select(t => t.Id).ToHashSet();
         var courtLookup = courts.ToDictionary(c => c.Id, c => c.Name);
 
         return games.Select(g =>
@@ -288,7 +254,9 @@ public static partial class GameEndpoints
                 HomeTeamName = g.HomeTeamId is not null && teamLookup.TryGetValue(g.HomeTeamId, out var hn) ? hn : null,
                 AwayTeamName = g.AwayTeamId is not null && teamLookup.TryGetValue(g.AwayTeamId, out var an) ? an : null,
                 RefereeTeamName = g.RefereeTeamId is not null && teamLookup.TryGetValue(g.RefereeTeamId, out var rn) ? rn : null,
-                CourtName = g.CourtId is not null && courtLookup.TryGetValue(g.CourtId, out var cn) ? cn : null
+                CourtName = g.CourtId is not null && courtLookup.TryGetValue(g.CourtId, out var cn) ? cn : null,
+                HomeTeamIsPlaceholder = g.HomeTeamId is not null && placeholderLookup.Contains(g.HomeTeamId) ? true : null,
+                AwayTeamIsPlaceholder = g.AwayTeamId is not null && placeholderLookup.Contains(g.AwayTeamId) ? true : null
             };
         }).ToList();
     }

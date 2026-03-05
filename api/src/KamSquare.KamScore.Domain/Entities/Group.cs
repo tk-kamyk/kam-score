@@ -30,4 +30,15 @@ public class Group
     public bool HasTeam(string teamId) => TeamIds.Contains(teamId);
 
     public void ClearTeams() => TeamIds.Clear();
+
+    public void ReplaceTeamIds(Dictionary<string, string> mapping)
+    {
+        for (var i = 0; i < TeamIds.Count; i++)
+        {
+            if (mapping.TryGetValue(TeamIds[i], out var newId))
+            {
+                TeamIds[i] = newId;
+            }
+        }
+    }
 }
