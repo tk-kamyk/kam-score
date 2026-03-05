@@ -7,11 +7,13 @@ public static class GameScheduler
     /// <summary>
     /// Schedules games across courts and time slots.
     /// Constraints: no team plays/referees two games in the same slot, no consecutive refereeing,
-    /// uniform court distribution, group interleaving, round ordering for playoffs.
+    /// sequential court assignment (first available), group interleaving by provided order,
+    /// round ordering for playoffs.
     /// </summary>
     public static List<Game> Schedule(
         List<Game> games,
         List<string> courtIds,
+        List<string> groupOrder,
         DateTime startTime,
         int gameLengthMinutes)
     {
@@ -19,16 +21,12 @@ public static class GameScheduler
             return games;
 
         // Sort games: by round, then interleave groups within each round
-        var sorted = SortGamesForScheduling(games);
+        var sorted = SortGamesForScheduling(games, groupOrder);
 
         // Track team activity per time slot for conflict checking
         var busyInSlot = new Dictionary<int, HashSet<string>>();
         var refereedInSlot = new Dictionary<int, HashSet<string>>();
         var courtSlotUsed = new Dictionary<(int slot, string courtId), bool>();
-
-        // Track court assignment counts for uniform distribution
-        var courtGameCount = courtIds.ToDictionary(c => c, _ => 0);
-        var courtIndex = 0;
 
         var maxSlotLimit = games.Count * 10;
 
@@ -40,7 +38,7 @@ public static class GameScheduler
             for (var slot = 0; slot < maxSlotLimit; slot++)
             {
                 if (TryScheduleGameInSlot(game, slot, involvedTeamIds, courtIds, startTime, gameLengthMinutes,
-                        busyInSlot, refereedInSlot, courtSlotUsed, courtGameCount, ref courtIndex))
+                        busyInSlot, refereedInSlot, courtSlotUsed))
                 {
                     scheduled = true;
                     break;
@@ -57,19 +55,20 @@ public static class GameScheduler
 
     /// <summary>
     /// Sorts games by round (ascending), interleaving groups within each round.
+    /// Groups are ordered by the provided groupOrder list.
     /// This ensures groups are distributed evenly and playoff rounds are in order.
     /// </summary>
-    internal static List<Game> SortGamesForScheduling(List<Game> games)
+    internal static List<Game> SortGamesForScheduling(List<Game> games, List<string> groupOrder)
     {
         return games
             .GroupBy(g => g.Round)
             .OrderBy(r => r.Key)
             .SelectMany(roundGroup =>
             {
-                // Within each round, interleave groups
+                // Within each round, interleave groups in the provided order
                 var byGroup = roundGroup
                     .GroupBy(g => g.GroupId)
-                    .OrderBy(g => g.Key)
+                    .OrderBy(g => groupOrder.IndexOf(g.Key) is var idx and >= 0 ? idx : int.MaxValue)
                     .Select(g => g.ToList())
                     .ToList();
 
@@ -99,9 +98,7 @@ public static class GameScheduler
         int gameLengthMinutes,
         Dictionary<int, HashSet<string>> busyInSlot,
         Dictionary<int, HashSet<string>> refereedInSlot,
-        Dictionary<(int slot, string courtId), bool> courtSlotUsed,
-        Dictionary<string, int> courtGameCount,
-        ref int courtIndex)
+        Dictionary<(int slot, string courtId), bool> courtSlotUsed)
     {
         if (involvedTeamIds.Any(t => IsInSet(busyInSlot, slot, t)))
             return false;
@@ -110,7 +107,7 @@ public static class GameScheduler
             && IsInSet(refereedInSlot, slot - 1, game.RefereeTeamId))
             return false;
 
-        var court = FindAvailableCourt(courtIds, slot, courtSlotUsed, courtGameCount, ref courtIndex);
+        var court = FindAvailableCourt(courtIds, slot, courtSlotUsed);
         if (court is null)
             return false;
 
@@ -131,7 +128,6 @@ public static class GameScheduler
             refereedInSlot[slot].Add(game.RefereeTeamId);
         }
 
-        courtGameCount[court]++;
         return true;
     }
 
@@ -152,21 +148,13 @@ public static class GameScheduler
     private static string? FindAvailableCourt(
         List<string> courtIds,
         int slot,
-        Dictionary<(int slot, string courtId), bool> courtSlotUsed,
-        Dictionary<string, int> courtGameCount,
-        ref int courtIndex)
+        Dictionary<(int slot, string courtId), bool> courtSlotUsed)
     {
-        // Try courts in round-robin order for uniform distribution
+        // Always prefer the first available court in the provided order
         for (var i = 0; i < courtIds.Count; i++)
         {
-            var idx = (courtIndex + i) % courtIds.Count;
-            var courtId = courtIds[idx];
-
-            if (!courtSlotUsed.ContainsKey((slot, courtId)))
-            {
-                courtIndex = (idx + 1) % courtIds.Count;
-                return courtId;
-            }
+            if (!courtSlotUsed.ContainsKey((slot, courtIds[i])))
+                return courtIds[i];
         }
 
         return null;
