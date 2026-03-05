@@ -200,6 +200,34 @@ docker compose up              # Full stack (API + SPA)
 - **Minimal API endpoint groups** — static classes with `Map*Endpoints()` extension methods
 - **Public setters on domain entities** are accepted for Cosmos DB serialization compatibility; domain logic is enforced through factory methods (`Create`) and mutation methods (`Update`)
 
+#### Domain logic placement
+- Validation, format-checking, and business rules that operate on a single entity belong **in the entity class**, not in API helpers or endpoints. Example: tournament code validation (`IsCodeValid()`) lives on `Tournament`, not in an endpoint helper
+- Use `[GeneratedRegex]` with `partial class` when entities need regex validation
+- Domain services (static classes in `Domain/Services/`) handle cross-entity logic that doesn't belong to a single entity (e.g., `StandingsCalculator`, `GameScheduler`)
+
+#### Async patterns
+- **Never use `.Result`** on tasks, even after `Task.WhenAll`. Always `await` — `.Result` can deadlock and hides exceptions inside `AggregateException`
+- Prefer `await Task.WhenAll(...)` for concurrent independent operations, then `await` each task individually to unwrap results
+
+#### Service extraction criteria
+- Extract an Application service when an endpoint handler exceeds simple CRUD: multi-repository coordination, conditional logic across entities, or reuse across multiple endpoints
+- `PhaseCompletionService` owns all phase lifecycle operations (complete, reopen, placeholder creation/regeneration)
+- `ScheduleGenerationService` owns game generation + scheduling orchestration
+- Keep services focused — one cohesive responsibility per service, not a catch-all
+
+#### FluentValidation rules
+- When a DTO has **mutually exclusive fields** (e.g., `Sets` vs `HomeScore`/`AwayScore`), add an explicit rejection rule before the "at least one required" rule
+- Order validation rules: mutual exclusivity → presence → format → business rules
+
+#### Repository query design
+- **Push filtering to the database.** Do not fetch all records and filter in-memory when Cosmos DB supports WHERE clauses. Use parameterized `QueryDefinition` with dynamic condition building
+- Repository methods that accept optional filter parameters (e.g., `GetGamesAsync(tournamentId, phaseId?, groupId?, courtId?)`) should build WHERE clauses conditionally
+- Always use `@parameterName` placeholders — never interpolate values into query strings
+
+#### Loop safety
+- **Unbounded loops are prohibited.** Any `for(;;)` or `while(true)` must have a safety limit (e.g., `maxSlotLimit = items.Count * 10`). Throw `InvalidOperationException` if the limit is reached
+- Extract complex loop bodies into `Try*` methods returning `bool` for clarity
+
 ### Corrections and details - Frontend
 - Prefer Vue3 patterns with single file components
 - Group SPA code by domain (e.g., `auth/`, `tournament/`), not by layer. Each domain folder contains its store, types, and components. The `views/` folder contains thin route wrappers that import and render domain components
