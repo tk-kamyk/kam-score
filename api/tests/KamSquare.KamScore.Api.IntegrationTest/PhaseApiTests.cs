@@ -20,6 +20,7 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
         Fake.Reset(factory.FakeRepository);
         Fake.Reset(factory.FakeStructureRepository);
         Fake.Reset(factory.FakeTeamRepository);
+        Fake.Reset(factory.FakeGameRepository);
     }
 
     private Tournament CreateTestTournament(string ownerId = "alice")
@@ -255,6 +256,52 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task DeletePhase_Phase2_ShouldDeleteUpstreamPlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, groupWinners: 2);
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.DeleteAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Should delete placeholders sourced from phase1 (created FOR phase2)
+        A.CallTo(() => _factory.FakeTeamRepository.DeleteBySourcePhaseIdAsync(
+            tournament.Id, phase1.Id))
+            .MustHaveHappenedOnceExactly();
+        // Should also delete placeholders sourced from phase2 (created FOR any next phase)
+        A.CallTo(() => _factory.FakeTeamRepository.DeleteBySourcePhaseIdAsync(
+            tournament.Id, phase2.Id))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task DeletePhase_Phase1_ShouldNotDeleteUpstreamPlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 1);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.DeleteAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Only one call for phase1's own downstream placeholders, no upstream
+        A.CallTo(() => _factory.FakeTeamRepository.DeleteBySourcePhaseIdAsync(
+            tournament.Id, phase1.Id))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _factory.FakeTeamRepository.DeleteBySourcePhaseIdAsync(
+            A<string>.Ignored, A<string>.Ignored))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
     public async Task DeletePhase_NonOwner_ShouldReturn403()
     {
         var tournament = CreateTestTournament("alice");
@@ -457,5 +504,176 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
         result!.StartTime.Should().Be("14:00");
+    }
+
+    [Fact]
+    public async Task AutoAssign_Phase2_WithResolvedPlaceholders_ShouldUseRealTeamIds()
+    {
+        var (tournament, phase1, phase2) = SetupTwoPhaseAutoAssignScenario();
+
+        var realTeam1 = Team.Create("Eagles", 90, tournament.Id);
+        var realTeam2 = Team.Create("Hawks", 80, tournament.Id);
+
+        var placeholder1 = Team.CreatePlaceholder("Groups - Seed 1", tournament.Id, phase1.Id, 1);
+        placeholder1.ResolvedTeamId = realTeam1.Id;
+        var placeholder2 = Team.CreatePlaceholder("Groups - Seed 2", tournament.Id, phase1.Id, 2);
+        placeholder2.ResolvedTeamId = realTeam2.Id;
+
+        A.CallTo(() => _factory.FakeTeamRepository.GetBySourcePhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(new List<Team> { placeholder1, placeholder2 });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        var allTeamIds = result!.Groups!.SelectMany(g => g.TeamIds ?? []).ToList();
+        allTeamIds.Should().HaveCount(2);
+        allTeamIds.Should().Contain(realTeam1.Id);
+        allTeamIds.Should().Contain(realTeam2.Id);
+        allTeamIds.Should().NotContain(placeholder1.Id);
+        allTeamIds.Should().NotContain(placeholder2.Id);
+    }
+
+    [Fact]
+    public async Task AutoAssign_Phase2_WithUnresolvedPlaceholders_ShouldUsePlaceholderIds()
+    {
+        var (tournament, phase1, phase2) = SetupTwoPhaseAutoAssignScenario();
+
+        var placeholder1 = Team.CreatePlaceholder("Groups - Seed 1", tournament.Id, phase1.Id, 1);
+        var placeholder2 = Team.CreatePlaceholder("Groups - Seed 2", tournament.Id, phase1.Id, 2);
+
+        A.CallTo(() => _factory.FakeTeamRepository.GetBySourcePhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(new List<Team> { placeholder1, placeholder2 });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        var allTeamIds = result!.Groups!.SelectMany(g => g.TeamIds ?? []).ToList();
+        allTeamIds.Should().HaveCount(2);
+        allTeamIds.Should().Contain(placeholder1.Id);
+        allTeamIds.Should().Contain(placeholder2.Id);
+    }
+
+    [Fact]
+    public async Task AutoAssign_Phase2_WithMixedPlaceholders_ShouldUseBestAvailableId()
+    {
+        var (tournament, phase1, phase2) = SetupTwoPhaseAutoAssignScenario();
+
+        var realTeam1 = Team.Create("Eagles", 90, tournament.Id);
+
+        var placeholder1 = Team.CreatePlaceholder("Groups - Seed 1", tournament.Id, phase1.Id, 1);
+        placeholder1.ResolvedTeamId = realTeam1.Id;
+        var placeholder2 = Team.CreatePlaceholder("Groups - Seed 2", tournament.Id, phase1.Id, 2);
+        // placeholder2 remains unresolved
+
+        A.CallTo(() => _factory.FakeTeamRepository.GetBySourcePhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(new List<Team> { placeholder1, placeholder2 });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        var allTeamIds = result!.Groups!.SelectMany(g => g.TeamIds ?? []).ToList();
+        allTeamIds.Should().HaveCount(2);
+        allTeamIds.Should().Contain(realTeam1.Id);
+        allTeamIds.Should().Contain(placeholder2.Id);
+    }
+
+    [Fact]
+    public async Task DeletePhase_MiddlePhase_ShouldRegeneratePlaceholdersForSuccessor()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, groupWinners: 2);
+        var phase2 = structure.AddPhase("Semis", PhaseFormat.PlayoffElimination, 1, groupWinners: 1);
+        var phase3 = structure.AddPhase("Finals", PhaseFormat.PlayoffElimination, 1);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.DeleteAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Should create new placeholders sourced from phase1 for the successor phase (Finals)
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(
+            A<List<Team>>.That.Matches(teams =>
+                teams.All(t => t.IsPlaceholder && t.SourcePhaseId == phase1.Id))))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task DeletePhase_MiddlePhase_ShouldDeleteGamesAndClearGroupsForSuccessor()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, groupWinners: 2);
+        var phase2 = structure.AddPhase("Semis", PhaseFormat.PlayoffElimination, 1, groupWinners: 1);
+        var phase3 = structure.AddPhase("Finals", PhaseFormat.PlayoffElimination, 1);
+        // Assign a placeholder to phase3's group to verify it gets cleared
+        var placeholder = Team.CreatePlaceholder("Semis - Seed 1", tournament.Id, phase2.Id, 1);
+        structure.AssignTeam(phase3.Id, phase3.Groups[0].Id, placeholder.Id);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.DeleteAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Should delete games for the successor phase
+        A.CallTo(() => _factory.FakeGameRepository.DeleteByPhaseIdAsync(
+            tournament.Id, phase3.Id))
+            .MustHaveHappenedOnceExactly();
+        // Verify groups were cleared via structure update
+        A.CallTo(() => _factory.FakeStructureRepository.UpdateAsync(
+            A<TournamentStructure>.That.Matches(s =>
+                s.Phases.First(p => p.Name == "Finals").Groups
+                    .All(g => g.TeamIds.Count == 0))))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task DeletePhase_FirstOfThree_ShouldNotRegeneratePlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, groupWinners: 2);
+        var phase2 = structure.AddPhase("Semis", PhaseFormat.PlayoffElimination, 1, groupWinners: 1);
+        var phase3 = structure.AddPhase("Finals", PhaseFormat.PlayoffElimination, 1);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.DeleteAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Should NOT create new placeholders (Semis is now first phase)
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(
+            A<List<Team>>.Ignored))
+            .MustNotHaveHappened();
+        // Should still delete games for successor phase and clear groups
+        A.CallTo(() => _factory.FakeGameRepository.DeleteByPhaseIdAsync(
+            tournament.Id, phase2.Id))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    // phase1 is phase2's previous phase because it was added first (Order 1 vs Order 2)
+    private (Tournament tournament, Phase phase1, Phase phase2) SetupTwoPhaseAutoAssignScenario()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, groupWinners: 1);
+        var phase2 = structure.AddPhase("Finals", PhaseFormat.PlayoffElimination, 1);
+        SetupTournamentAndStructure(tournament, structure);
+        return (tournament, phase1, phase2);
     }
 }

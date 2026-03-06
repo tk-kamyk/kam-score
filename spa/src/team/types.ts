@@ -7,4 +7,5 @@ export interface TeamDto {
   isPlaceholder?: boolean
   sourcePhaseId?: string
   seed?: number
+  resolvedTeamId?: string
 }

@@ -12,6 +12,11 @@ public class Team : Entity
     public int? Seed { get; set; }
     public string? ResolvedTeamId { get; set; }
 
+    /// <summary>
+    /// Returns ResolvedTeamId if the placeholder has been resolved, otherwise the placeholder's own Id.
+    /// </summary>
+    public string EffectiveId => ResolvedTeamId ?? Id;
+
     public static Team Create(string name, int level, string tournamentId, string? email = null, string? phone = null)
     {
         return new Team
