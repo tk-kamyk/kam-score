@@ -23,7 +23,7 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
 
-const validTabs = ['details', 'teams', 'courts', 'structure', 'groups', 'schedule']
+const validTabs = ['details', 'teams', 'courts', 'structure', 'schedule', 'standings']
 const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'details')
 
 watch(activeTab, (tab) => {
