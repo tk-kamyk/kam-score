@@ -122,6 +122,23 @@ Feature: Phase Advancement
     When I delete "Group Stage"
     Then all placeholder teams with sourcePhaseId matching "Group Stage" should be deleted
 
+  Scenario: Deleting a phase also deletes placeholder teams created for it
+    Given a phase "Group Stage" with GroupWinners 2 and 2 groups
+    And a phase "Playoffs" with placeholder teams from "Group Stage"
+    When I delete "Playoffs"
+    Then all placeholder teams with sourcePhaseId matching "Group Stage" should be deleted
+    And re-creating "Playoffs" should produce a fresh set of placeholders
+
+  Scenario: Deleting a middle phase regenerates placeholders for the successor phase
+    Given a phase "Phase 1" with GroupWinners 2 and 2 groups
+    And a phase "Phase 2" with GroupWinners 1 and 2 groups
+    And a phase "Phase 3" with placeholder teams from "Phase 2"
+    When I delete "Phase 2"
+    Then placeholder teams sourced from "Phase 2" should be deleted
+    And new placeholder teams should be created sourced from "Phase 1"
+    And any games in "Phase 3" should be deleted
+    And "Phase 3" group assignments should be cleared
+
   # --- Placeholder Assignment ---
 
   Scenario: Placeholder teams can be assigned to groups manually
@@ -155,6 +172,14 @@ Feature: Phase Advancement
     And referee assignments should work normally with placeholder teams
 
   # --- Placeholder Resolution ---
+
+  Scenario: Phase created after previous phase completion has resolved placeholders
+    Given a phase "Group Stage" with GroupWinners 2 and 2 groups
+    And all games in "Group Stage" are completed
+    And "Group Stage" is marked as complete
+    When I add a phase "Playoffs" with format PlayoffElimination
+    Then 4 placeholder teams should be created
+    And each placeholder's ResolvedTeamId should point to a qualifying team from "Group Stage"
 
   Scenario: Completing a phase resolves placeholder IDs to real team IDs
     Given a completed phase "Group Stage" with progression configured

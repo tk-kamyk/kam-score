@@ -156,7 +156,7 @@
 - Each placeholder is a real Team entity with `IsPlaceholder = true`, a `SourcePhaseId` (the phase whose progression config created them), and a `Seed` (1-based)
 - Placeholder naming format: `"{SourcePhaseName} - Seed {N}"`
 - Placeholders are fully functional: they can be assigned to groups (manually or via auto-assign), and games can be generated and scheduled using their IDs
-- Auto-assign for phase 2+: placeholder teams ordered by seed, distributed via snake draft (same as real teams in phase 1)
+- Auto-assign for phase 2+: placeholder teams ordered by seed, distributed via snake draft (same as real teams in phase 1). When placeholders are resolved (previous phase completed), auto-assign uses the resolved real team IDs instead of placeholder IDs
 - When the previous phase's progression config changes (UpdatePhase), old placeholders are deleted and regenerated; any existing games in the next phase are also deleted
 - When a phase is deleted, its associated placeholder teams (where `SourcePhaseId` matches any deleted phase) are also deleted
 
@@ -167,6 +167,7 @@
   - Swaps occur in: game `HomeTeamId`, `AwayTeamId`, `RefereeTeamId`, and group `TeamIds`
   - Each placeholder team's `ResolvedTeamId` is set to the real team it resolved to
 - Reopening a completed phase reverses the swap: real team IDs are replaced back with placeholder team IDs, `ResolvedTeamId` is cleared, and the next phase reverts to `New`
+- When placeholders are resolved (previous phase completed), structure editing for the next phase shows resolved real team names instead of placeholder names. Manual team assignment and auto-assign both operate on real team IDs
 - Within-phase playoff placeholders (`HomeTeamPlaceholder` / `AwayTeamPlaceholder` strings like "Winner SF1") remain unchanged — these are separate from cross-phase placeholder teams
 
 # Phase State Restrictions

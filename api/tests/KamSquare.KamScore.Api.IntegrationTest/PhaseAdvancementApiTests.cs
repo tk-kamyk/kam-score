@@ -413,6 +413,85 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
             g.HomeTeamName != null || g.HomeTeamPlaceholder != null);
     }
 
+    // --- Placeholder Resolution on Late Phase Creation ---
+
+    [Fact]
+    public async Task AddPhase_WhenPreviousPhaseCompleted_ShouldResolvePlaceholdersImmediately()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase1 = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2,
+            groupWinners: 2, totalTeamsProceeding: 4);
+
+        // Assign teams and complete phase 1
+        for (var i = 0; i < 4; i++)
+            phase1.Groups[0].AddTeam($"team{i + 1}");
+        for (var i = 4; i < 8; i++)
+            phase1.Groups[1].AddTeam($"team{i + 1}");
+        phase1.Activate();
+        phase1.Complete();
+
+        var phase1Games = CreateCompletedGamesForPhase(tournament.Id, phase1);
+
+        SetupFakes(tournament, structure);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(phase1Games);
+
+        var createdPlaceholders = new List<Team>();
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> teams) =>
+            {
+                var list = teams.ToList();
+                createdPlaceholders.AddRange(list);
+                return Task.FromResult<IEnumerable<Team>>(list);
+            });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination");
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        createdPlaceholders.Should().HaveCount(4);
+        createdPlaceholders.Should().OnlyContain(p => p.ResolvedTeamId != null);
+
+        A.CallTo(() => _factory.FakeTeamRepository.UpdateAsync(A<Team>.Ignored))
+            .MustHaveHappened(4, Times.Exactly);
+    }
+
+    [Fact]
+    public async Task AddPhase_WhenPreviousPhaseInProgress_ShouldNotResolvePlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase1 = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2,
+            groupWinners: 2);
+        phase1.Activate();
+
+        SetupFakes(tournament, structure);
+
+        var createdPlaceholders = new List<Team>();
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> teams) =>
+            {
+                var list = teams.ToList();
+                createdPlaceholders.AddRange(list);
+                return Task.FromResult<IEnumerable<Team>>(list);
+            });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination");
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        createdPlaceholders.Should().HaveCount(4);
+        createdPlaceholders.Should().OnlyContain(p => p.ResolvedTeamId == null);
+
+        A.CallTo(() => _factory.FakeTeamRepository.UpdateAsync(A<Team>.Ignored))
+            .MustNotHaveHappened();
+    }
+
     [Fact]
     public async Task GenerateGames_Phase1_ActivatesPhase()
     {

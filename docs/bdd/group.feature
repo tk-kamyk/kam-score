@@ -52,3 +52,18 @@ Feature: Group Management
     Given groups with teams are configured
     When an anonymous visitor views the structure
     Then they should see all groups and their team assignments
+
+  Scenario: Structure editing shows real teams after previous phase completion
+    Given a tournament with phase 1 "Groups" (RoundRobin, groupWinners 2) and phase 2 "Finals" (PlayoffElimination)
+    And placeholder teams exist for phase 2 from phase 1 progression
+    And phase 1 is completed and placeholders are resolved to real teams
+    When editing the structure of phase 2
+    Then the available teams for group assignment should be the real qualified teams
+    And placeholder team names should not appear in the available teams
+
+  Scenario: Auto-assign uses real teams after previous phase completion
+    Given a tournament with phase 1 "Groups" (RoundRobin, groupWinners 2) and phase 2 "Finals" (PlayoffElimination)
+    And placeholder teams exist for phase 2 from phase 1 progression
+    And phase 1 is completed and placeholders are resolved to real teams
+    When I auto-assign teams in phase 2
+    Then the groups should contain real team IDs not placeholder IDs

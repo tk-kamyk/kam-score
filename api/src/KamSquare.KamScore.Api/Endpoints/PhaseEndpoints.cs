@@ -109,6 +109,7 @@ public static class PhaseEndpoints
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
         ITeamRepository teamRepository,
+        PhaseCompletionService phaseCompletionService,
         PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
@@ -120,10 +121,25 @@ public static class PhaseEndpoints
         var phase = structure.GetPhase(phaseId);
         await phaseGuardService.EnsureDeletableAsync(phase, tournamentId);
 
-        // Delete placeholder teams that were created from this phase's progression
+        // Capture neighbors before deletion
+        var previousPhase = structure.GetPreviousPhase(phaseId);
+        var nextPhase = structure.GetNextPhase(phaseId);
+
+        // Delete placeholder teams created FOR this phase (from previous phase's progression)
+        if (previousPhase is not null)
+        {
+            await teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, previousPhase.Id);
+        }
+
+        // Delete placeholder teams created FROM this phase's progression (for next phase)
         await teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, phaseId);
 
         structure.RemovePhase(phaseId);
+
+        // Regenerate placeholders for successor phase based on new adjacency
+        await phaseCompletionService.RegeneratePlaceholdersAfterDeletionAsync(
+            structure, previousPhase, nextPhase, tournamentId);
+
         await structureRepository.UpdateAsync(structure);
 
         return Results.NoContent();
@@ -207,7 +223,7 @@ public static class PhaseEndpoints
                 throw new ValidationException(
                     [new ValidationFailure("Teams", "No placeholder teams found. Configure progression on the previous phase first.")]);
 
-            var orderedIds = placeholderTeams.Select(t => t.Id).ToList();
+            var orderedIds = placeholderTeams.Select(t => t.EffectiveId).ToList();
             structure.AutoAssignTeams(phaseId, orderedIds);
         }
         else

@@ -8,4 +8,5 @@ public record TeamDto(
     string? Phone,
     bool IsPlaceholder = false,
     string? SourcePhaseId = null,
-    int? Seed = null);
+    int? Seed = null,
+    string? ResolvedTeamId = null);

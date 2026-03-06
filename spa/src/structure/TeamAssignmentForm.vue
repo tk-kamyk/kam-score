@@ -37,12 +37,33 @@ const assignedTeamIdsInPhase = computed(() => {
   return ids
 })
 
+const previousPhasePlaceholders = computed(() => {
+  if (props.phaseOrder <= 1 || !props.previousPhaseId) return []
+  return props.teams.filter(
+    t => t.isPlaceholder && t.sourcePhaseId === props.previousPhaseId,
+  )
+})
+
+const placeholdersResolved = computed(() => {
+  const ph = previousPhasePlaceholders.value
+  return ph.length > 0 && ph.every(t => t.resolvedTeamId)
+})
+
+const resolvedTeamIds = computed(() => {
+  if (!placeholdersResolved.value) return new Set<string>()
+  return new Set(previousPhasePlaceholders.value.map(pt => pt.resolvedTeamId!))
+})
+
 const availableTeams = computed(() => {
   return props.teams
     .filter(t => {
       if (!t.id || assignedTeamIdsInPhase.value.has(t.id)) return false
       if (props.phaseOrder > 1) {
-        // Phase 2+: only show placeholder teams from the previous phase
+        if (placeholdersResolved.value) {
+          // Previous phase completed: show real teams that placeholders resolved to
+          return !t.isPlaceholder && resolvedTeamIds.value.has(t.id)
+        }
+        // Previous phase not completed: show placeholders
         return t.isPlaceholder && t.sourcePhaseId === props.previousPhaseId
       }
       // Phase 1: only show real teams

@@ -98,10 +98,47 @@ public class PhaseCompletionService
             return;
 
         var placeholders = PlaceholderTeamGenerator.Generate(previousPhase, tournamentId);
-        if (placeholders is not null)
+        if (placeholders is null)
+            return;
+
+        await _teamRepository.CreateBatchAsync(placeholders);
+
+        // If previous phase is already completed, resolve placeholders immediately
+        if (previousPhase.Status == PhaseStatus.Completed)
         {
-            await _teamRepository.CreateBatchAsync(placeholders);
+            await ResolveNewPlaceholdersAsync(tournamentId, previousPhase, placeholders);
         }
+    }
+
+    private async Task ResolveNewPlaceholdersAsync(
+        string tournamentId,
+        Phase completedPhase,
+        List<Team> placeholders)
+    {
+        var phaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, completedPhase.Id)).ToList();
+        if (phaseGames.Count == 0)
+            return;
+
+        var groupStandings = completedPhase.Groups
+            .Select(g =>
+            {
+                var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
+                var standings = StandingsCalculator.Calculate(completedPhase.Format, groupGames, g.TeamIds);
+                return (g.Id, standings);
+            })
+            .ToList();
+
+        var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(completedPhase, groupStandings);
+        var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings);
+
+        var ordered = placeholders.OrderBy(t => t.Seed).ToList();
+        for (var i = 0; i < ordered.Count && i < seededIds.Count; i++)
+        {
+            ordered[i].ResolvedTeamId = seededIds[i];
+            ordered[i].LastModified = DateTime.UtcNow;
+        }
+
+        await Task.WhenAll(placeholders.Select(p => _teamRepository.UpdateAsync(p)));
     }
 
     public async Task RegeneratePlaceholdersOnUpdateAsync(
@@ -137,6 +174,32 @@ public class PhaseCompletionService
         if (placeholders is not null)
         {
             await _teamRepository.CreateBatchAsync(placeholders);
+        }
+    }
+
+    public async Task RegeneratePlaceholdersAfterDeletionAsync(
+        TournamentStructure structure,
+        Phase? newPreviousPhase,
+        Phase? nextPhase,
+        string tournamentId)
+    {
+        if (nextPhase is null)
+            return;
+
+        foreach (var group in nextPhase.Groups)
+        {
+            group.ClearTeams();
+        }
+
+        await _gameRepository.DeleteByPhaseIdAsync(tournamentId, nextPhase.Id);
+
+        if (newPreviousPhase is not null)
+        {
+            var placeholders = PlaceholderTeamGenerator.Generate(newPreviousPhase, tournamentId);
+            if (placeholders is not null)
+            {
+                await _teamRepository.CreateBatchAsync(placeholders);
+            }
         }
     }
 
