@@ -670,4 +670,104 @@ public class TournamentStructureTests
         level1Groups.Should().HaveCount(3);
         level2Groups.Should().HaveCount(3);
     }
+
+    // --- Level-Aware Auto-Assign ---
+
+    [Fact]
+    public void AutoAssignTeams_WithLevels_SplitsTeamsByLevel()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        // 8 teams ordered by seed (best first)
+        var teamIds = Enumerable.Range(1, 8).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        // Level 1 (groups A, B) should get top 4 teams
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        var level1Teams = level1Groups.SelectMany(g => g.TeamIds).ToList();
+        level1Teams.Should().BeEquivalentTo(["team-1", "team-2", "team-3", "team-4"]);
+
+        // Level 2 (groups C, D) should get bottom 4 teams
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+        var level2Teams = level2Groups.SelectMany(g => g.TeamIds).ToList();
+        level2Teams.Should().BeEquivalentTo(["team-5", "team-6", "team-7", "team-8"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_WithLevels_SnakeDraftsWithinLevel()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        var teamIds = Enumerable.Range(1, 8).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        // Level 1: snake draft of [1,2,3,4] into 2 groups
+        // Round 1 (L→R): team-1→A, team-2→B
+        // Round 2 (R→L): team-3→B, team-4→A
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        level1Groups[0].TeamIds.Should().Equal("team-1", "team-4");
+        level1Groups[1].TeamIds.Should().Equal("team-2", "team-3");
+
+        // Level 2: snake draft of [5,6,7,8] into 2 groups
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+        level2Groups[0].TeamIds.Should().Equal("team-5", "team-8");
+        level2Groups[1].TeamIds.Should().Equal("team-6", "team-7");
+    }
+
+    [Fact]
+    public void AutoAssignTeams_WithLevels_OddTeamCount_ExtraGoesToLevel1()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        // 7 teams: 7/2 = 3 remainder 1 → Level 1 gets 4, Level 2 gets 3
+        var teamIds = Enumerable.Range(1, 7).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        var level1Teams = level1Groups.SelectMany(g => g.TeamIds).ToList();
+        level1Teams.Should().HaveCount(4);
+        level1Teams.Should().BeEquivalentTo(["team-1", "team-2", "team-3", "team-4"]);
+
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+        var level2Teams = level2Groups.SelectMany(g => g.TeamIds).ToList();
+        level2Teams.Should().HaveCount(3);
+        level2Teams.Should().BeEquivalentTo(["team-5", "team-6", "team-7"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_OrderedIds_WithLevels_SplitsAcrossLevels()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Playoffs", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        phase.Order = 2; // simulate phase 2
+        var orderedIds = Enumerable.Range(1, 8).Select(i => $"seed-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, orderedIds);
+
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        var level1Teams = level1Groups.SelectMany(g => g.TeamIds).ToList();
+        level1Teams.Should().BeEquivalentTo(["seed-1", "seed-2", "seed-3", "seed-4"]);
+
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+        var level2Teams = level2Groups.SelectMany(g => g.TeamIds).ToList();
+        level2Teams.Should().BeEquivalentTo(["seed-5", "seed-6", "seed-7", "seed-8"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_WithoutLevels_Unchanged()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 3);
+        var teamIds = Enumerable.Range(1, 9).Select(i => $"team-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, teamIds);
+
+        // Same snake-draft as before: Round 1 L→R, Round 2 R→L, Round 3 L→R
+        phase.Groups[0].TeamIds.Should().Equal("team-1", "team-6", "team-7");
+        phase.Groups[1].TeamIds.Should().Equal("team-2", "team-5", "team-8");
+        phase.Groups[2].TeamIds.Should().Equal("team-3", "team-4", "team-9");
+    }
 }

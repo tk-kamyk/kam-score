@@ -59,7 +59,7 @@ public class PhaseCompletionService
 
             // Calculate qualifying teams and seeding
             var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
-            var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings);
+            var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, phase);
 
             // Resolve placeholder teams to real teams
             var placeholderTeams = (await _teamRepository.GetBySourcePhaseIdAsync(tournamentId, phaseId)).ToList();
@@ -128,7 +128,7 @@ public class PhaseCompletionService
             .ToList();
 
         var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(completedPhase, groupStandings);
-        var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings);
+        var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, completedPhase);
 
         var ordered = placeholders.OrderBy(t => t.Seed).ToList();
         for (var i = 0; i < ordered.Count && i < seededIds.Count; i++)

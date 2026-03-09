@@ -529,6 +529,59 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
     }
 
     [Fact]
+    public async Task CompletePhase_WithLevels_ShouldSeedLevel1AboveLevel2()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase1 = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 1,
+            groupWinners: 1, startTime: new TimeOnly(9, 0), numberOfLevels: 2);
+        // Phase 1: 2 levels × 1 group = 2 groups total
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1,
+            startTime: new TimeOnly(14, 0));
+
+        var level1Group = phase1.Groups.First(g => g.LevelId == phase1.Levels[0].Id);
+        var level2Group = phase1.Groups.First(g => g.LevelId == phase1.Levels[1].Id);
+
+        // Level 1: L1-t1 and L1-t2, Level 2: L2-t1 (worse stats) and L2-t2
+        level1Group.AddTeam("L1-t1");
+        level1Group.AddTeam("L1-t2");
+        level2Group.AddTeam("L2-t1");
+        level2Group.AddTeam("L2-t2");
+
+        phase1.Activate();
+
+        // Create games: in each group, first team wins both
+        var games = new List<Game>();
+        // Level 1 group game: L1-t1 beats L1-t2
+        var g1 = Game.Create(tournament.Id, phase1.Id, level1Group.Id, 1,
+            homeTeamId: "L1-t1", awayTeamId: "L1-t2");
+        g1.RecordSimpleResult(2, 0);
+        games.Add(g1);
+        // Level 2 group game: L2-t1 beats L2-t2
+        var g2 = Game.Create(tournament.Id, phase1.Id, level2Group.Id, 1,
+            homeTeamId: "L2-t1", awayTeamId: "L2-t2");
+        g2.RecordSimpleResult(2, 0);
+        games.Add(g2);
+
+        SetupFakes(tournament, structure);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase1.Id))
+            .Returns(games);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase2.Id))
+            .Returns(new List<Game>());
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}/complete", null);
+
+        // Phase 2 should have 2 teams assigned (1 from each level)
+        var phase2TeamIds = phase2.Groups.SelectMany(g => g.TeamIds).ToList();
+        phase2TeamIds.Should().HaveCount(2);
+        // Level 1 winner (L1-t1) should come first (seed 1), Level 2 winner (L2-t1) second
+        phase2TeamIds[0].Should().Be("L1-t1");
+        phase2TeamIds[1].Should().Be("L2-t1");
+    }
+
+    [Fact]
     public async Task GenerateGames_Phase2_ActivatesPhase()
     {
         var tournament = CreateTestTournament();

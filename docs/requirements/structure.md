@@ -221,6 +221,7 @@ All state violations return HTTP 409 Conflict. Validation errors (e.g., unassign
 - Levels have an order (1-based) determining their ranking priority
 - Auto-assign respects levels: teams are split by seed into levels (top half → Level 1, bottom half → Level 2), then snake-drafted within each level's groups
 - At phase completion, rankings incorporate levels (all Level 1 teams ranked above Level 2)
+- When levels are defined, `GroupWinners` and `TotalTeamsProceeding` apply per level. The total number of teams advancing is multiplied by the number of levels
 - Manual team assignment has no level restrictions — teams can be freely assigned to any group regardless of level
 - When levels are not defined, everything behaves exactly as before (backward compatible)
 - Levels are structural — the number of levels cannot be changed while games exist

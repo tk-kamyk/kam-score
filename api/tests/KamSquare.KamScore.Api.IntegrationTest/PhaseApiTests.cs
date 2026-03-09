@@ -686,6 +686,54 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .MustHaveHappenedOnceExactly();
     }
 
+    [Fact]
+    public async Task AutoAssign_WithLevels_ShouldSplitTeamsByLevel()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var teams = new[]
+        {
+            Team.Create("Team1", 90, tournament.Id),
+            Team.Create("Team2", 80, tournament.Id),
+            Team.Create("Team3", 70, tournament.Id),
+            Team.Create("Team4", 60, tournament.Id),
+            Team.Create("Team5", 50, tournament.Id),
+            Team.Create("Team6", 40, tournament.Id),
+            Team.Create("Team7", 30, tournament.Id),
+            Team.Create("Team8", 20, tournament.Id),
+        };
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(teams);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}/auto-assign", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+
+        // Level 1 groups (first 2) should have the top-seeded teams (highest level values)
+        var level1GroupIds = phase.Groups
+            .Where(g => g.LevelId == phase.Levels[0].Id)
+            .Select(g => g.Id).ToHashSet();
+        var level1TeamIds = result!.Groups!
+            .Where(g => level1GroupIds.Contains(g.Id!))
+            .SelectMany(g => g.TeamIds ?? []).ToList();
+        // Top 4 teams by level desc: Team1(90), Team2(80), Team3(70), Team4(60)
+        level1TeamIds.Should().HaveCount(4);
+
+        var level2GroupIds = phase.Groups
+            .Where(g => g.LevelId == phase.Levels[1].Id)
+            .Select(g => g.Id).ToHashSet();
+        var level2TeamIds = result.Groups!
+            .Where(g => level2GroupIds.Contains(g.Id!))
+            .SelectMany(g => g.TeamIds ?? []).ToList();
+        // Bottom 4 teams: Team5(50), Team6(40), Team7(30), Team8(20)
+        level2TeamIds.Should().HaveCount(4);
+    }
+
     // phase1 is phase2's previous phase because it was added first (Order 1 vs Order 2)
     private (Tournament tournament, Phase phase1, Phase phase2) SetupTwoPhaseAutoAssignScenario()
     {
