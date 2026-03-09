@@ -13,13 +13,17 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+let onUnauthorized: (() => void) | null = null
+
+export function registerUnauthorizedHandler(handler: () => void) {
+  onUnauthorized = handler
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('displayName')
-      localStorage.removeItem('username')
+      onUnauthorized?.()
     }
     return Promise.reject(error)
   }

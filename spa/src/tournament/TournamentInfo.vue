@@ -92,7 +92,7 @@ function handleDelete() {
             <td class="font-weight-bold">Best of Sets</td>
             <td>{{ tournament.gameConditions.bestOfSets }}</td>
           </tr>
-          <tr v-if="tournament.gameConditions?.pointsPerSet">
+          <tr v-if="tournament.gameConditions?.pointsPerSet?.length">
             <td class="font-weight-bold">Points per Set</td>
             <td>{{ tournament.gameConditions.pointsPerSet.join(', ') }}</td>
           </tr>
