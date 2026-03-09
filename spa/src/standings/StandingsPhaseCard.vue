@@ -21,6 +21,16 @@ const emit = defineEmits<{
   'open-result': [game: GameDto]
 }>()
 
+const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
+
+const groupsByLevel = computed(() => {
+  if (!hasLevels.value) return []
+  return (props.phase.levels ?? []).map(level => ({
+    level,
+    groups: (props.phase.groups ?? []).filter(g => g.levelId === level.id),
+  }))
+})
+
 const selectedGroupGames = computed(() => {
   if (!props.selectedGroupId) return []
   return props.games
@@ -49,15 +59,35 @@ const selectedGroupGames = computed(() => {
           mandatory
           aria-label="Select group"
         >
-          <v-chip
-            v-for="group in phase.groups"
-            :key="group.id"
-            :value="group.id"
-            variant="outlined"
-            filter
-          >
-            Group {{ group.name }}
-          </v-chip>
+          <template v-if="hasLevels">
+            <template v-for="{ level, groups } in groupsByLevel" :key="level.id">
+              <div class="level-chip-section">
+                <div class="text-subtitle-2 font-weight-bold mb-1">{{ level.name }}</div>
+                <div class="d-flex flex-wrap ga-1">
+                  <v-chip
+                    v-for="group in groups"
+                    :key="group.id"
+                    :value="group.id"
+                    variant="outlined"
+                    filter
+                  >
+                    Group {{ group.name }}
+                  </v-chip>
+                </div>
+              </div>
+            </template>
+          </template>
+          <template v-else>
+            <v-chip
+              v-for="group in phase.groups"
+              :key="group.id"
+              :value="group.id"
+              variant="outlined"
+              filter
+            >
+              Group {{ group.name }}
+            </v-chip>
+          </template>
         </v-chip-group>
       </div>
 
@@ -91,3 +121,9 @@ const selectedGroupGames = computed(() => {
     </v-card-text>
   </CollapsiblePhaseCard>
 </template>
+
+<style scoped>
+.level-chip-section:not(:last-child) {
+  margin-bottom: 8px;
+}
+</style>
