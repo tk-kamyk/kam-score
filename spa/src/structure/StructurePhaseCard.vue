@@ -4,10 +4,9 @@ import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
 import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
-import StructureGroupCard from '@/structure/StructureGroupCard.vue'
+import StructureGroupItem from '@/structure/StructureGroupItem.vue'
 import StructureLevelHeader from '@/structure/StructureLevelHeader.vue'
-import TeamAssignmentForm from '@/structure/TeamAssignmentForm.vue'
-import type { PhaseDto, LevelDto, GroupDto } from '@/structure/types'
+import type { PhaseDto } from '@/structure/types'
 import type { TeamDto } from '@/team/types'
 import type { VForm } from 'vuetify/components'
 
@@ -48,6 +47,10 @@ const lockReason = computed(() => {
   if (props.phase.status === 'InProgress') return 'Delete games first to edit structure'
   return ''
 })
+
+const deleteDialogTitleId = computed(() => `delete-phase-title-${props.phase.id}`)
+const addGroupDialogTitleId = computed(() => `add-group-title-${props.phase.id}`)
+const autoAssignDialogTitleId = computed(() => `auto-assign-title-${props.phase.id}`)
 
 const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
 
@@ -123,13 +126,13 @@ async function handleAutoAssign() {
       <div v-if="editing">
         <v-tooltip v-if="isLocked" :text="lockReason" location="top">
           <template #activator="{ props: tp }">
-            <v-btn v-bind="tp" icon="mdi-pencil" variant="text" size="small" disabled :aria-label="'Edit phase ' + phase.name" />
+            <v-btn v-bind="tp" icon="mdi-pencil" variant="text" size="small" aria-disabled="true" :aria-label="'Edit phase ' + phase.name" />
           </template>
         </v-tooltip>
         <v-btn v-else icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click.stop="emit('edit', phase)" />
         <v-tooltip v-if="isLocked" :text="lockReason" location="top">
           <template #activator="{ props: tp }">
-            <v-btn v-bind="tp" icon="mdi-delete" variant="text" size="small" color="error" disabled :aria-label="'Delete phase ' + phase.name" />
+            <v-btn v-bind="tp" icon="mdi-delete" variant="text" size="small" color="error" aria-disabled="true" :aria-label="'Delete phase ' + phase.name" />
           </template>
         </v-tooltip>
         <v-btn
@@ -142,9 +145,9 @@ async function handleAutoAssign() {
           @click.stop="confirmDelete"
         />
 
-        <v-dialog v-model="showDeleteDialog" max-width="400">
+        <v-dialog v-model="showDeleteDialog" max-width="400" :aria-labelledby="deleteDialogTitleId">
           <v-card class="pa-2">
-            <v-card-title class="text-uppercase dialog-title"
+            <v-card-title :id="deleteDialogTitleId" class="text-uppercase dialog-title"
               >Delete Phase</v-card-title
             >
             <v-card-text>
@@ -182,57 +185,9 @@ async function handleAutoAssign() {
             :editing="editing && !isLocked"
           />
           <div v-if="groups.length > 0" class="groups-grid">
-            <v-card
+            <StructureGroupItem
               v-for="group in groups"
               :key="group.id"
-              variant="outlined"
-              class="group-card"
-            >
-              <v-card-title class="d-flex align-center justify-space-between py-2">
-                <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
-                <StructureGroupCard
-                  v-if="editing && !isLocked"
-                  :tournament-id="tournamentId"
-                  :phase-id="phase.id!"
-                  :group="group"
-                />
-              </v-card-title>
-              <v-card-text class="pt-0">
-                <TeamAssignmentForm
-                  :tournament-id="tournamentId"
-                  :phase-id="phase.id!"
-                  :group="group"
-                  :teams="teams"
-                  :editing="editing && !isLocked"
-                  :all-groups="phase.groups ?? []"
-                  :phase-order="phase.order ?? 1"
-                  :previous-phase-id="previousPhaseId"
-                />
-              </v-card-text>
-            </v-card>
-          </div>
-        </div>
-      </template>
-
-      <!-- Flat groups grid (no levels) -->
-      <div v-else-if="phase.groups && phase.groups.length > 0" class="groups-grid">
-        <v-card
-          v-for="group in phase.groups"
-          :key="group.id"
-          variant="outlined"
-          class="group-card"
-        >
-          <v-card-title class="d-flex align-center justify-space-between py-2">
-            <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
-            <StructureGroupCard
-              v-if="editing && !isLocked"
-              :tournament-id="tournamentId"
-              :phase-id="phase.id!"
-              :group="group"
-            />
-          </v-card-title>
-          <v-card-text class="pt-0">
-            <TeamAssignmentForm
               :tournament-id="tournamentId"
               :phase-id="phase.id!"
               :group="group"
@@ -242,8 +197,24 @@ async function handleAutoAssign() {
               :phase-order="phase.order ?? 1"
               :previous-phase-id="previousPhaseId"
             />
-          </v-card-text>
-        </v-card>
+          </div>
+        </div>
+      </template>
+
+      <!-- Flat groups grid (no levels) -->
+      <div v-else-if="phase.groups && phase.groups.length > 0" class="groups-grid">
+        <StructureGroupItem
+          v-for="group in phase.groups"
+          :key="group.id"
+          :tournament-id="tournamentId"
+          :phase-id="phase.id!"
+          :group="group"
+          :teams="teams"
+          :editing="editing && !isLocked"
+          :all-groups="phase.groups ?? []"
+          :phase-order="phase.order ?? 1"
+          :previous-phase-id="previousPhaseId"
+        />
       </div>
 
       <v-alert v-else class="mt-4 mb-4" type="info" variant="tonal" density="compact">
@@ -259,7 +230,7 @@ async function handleAutoAssign() {
             color="primary"
             variant="elevated"
             prepend-icon="mdi-plus"
-            disabled
+            aria-disabled="true"
           >
             Add Group
           </v-btn>
@@ -281,7 +252,7 @@ async function handleAutoAssign() {
             color="primary"
             variant="elevated"
             prepend-icon="mdi-shuffle-variant"
-            disabled
+            aria-disabled="true"
           >
             Auto-assign Teams
           </v-btn>
@@ -298,9 +269,9 @@ async function handleAutoAssign() {
       </v-btn>
     </template>
 
-    <v-dialog v-model="showAutoAssignDialog" max-width="400">
+    <v-dialog v-model="showAutoAssignDialog" max-width="400" :aria-labelledby="autoAssignDialogTitleId">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title"
+        <v-card-title :id="autoAssignDialogTitleId" class="text-uppercase dialog-title"
           >Auto-assign Teams</v-card-title
         >
         <v-card-text>
@@ -318,9 +289,9 @@ async function handleAutoAssign() {
       </v-card>
     </v-dialog>
 
-    <v-dialog v-model="showAddGroupDialog" max-width="400">
+    <v-dialog v-model="showAddGroupDialog" max-width="400" :aria-labelledby="addGroupDialogTitleId">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title"
+        <v-card-title :id="addGroupDialogTitleId" class="text-uppercase dialog-title"
           >Add Group</v-card-title
         >
         <v-card-text>
@@ -352,11 +323,6 @@ async function handleAutoAssign() {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 12px;
-}
-
-.group-card {
-  border-color: var(--ks-border-subtle);
-  background-color: rgb(var(--v-theme-surface-bright));
 }
 
 .level-section:not(:last-child) {

@@ -343,6 +343,34 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
     }
 
     [Fact]
+    public async Task ReopenPhase_BlockedByCompletedNextPhaseGames_Returns409()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTwoPhaseStructure(tournament.Id);
+        var phase1 = structure.Phases[0];
+        var phase2 = structure.Phases[1];
+        phase1.Complete();
+
+        // Phase 2 has a completed game
+        phase2.Groups[0].AddTeam("team1");
+        phase2.Groups[0].AddTeam("team2");
+        phase2.Activate();
+        var completedGame = Game.Create(tournament.Id, phase2.Id, phase2.Groups[0].Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        completedGame.RecordSimpleResult(2, 1);
+
+        SetupFakes(tournament, structure);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(
+            tournament.Id, phase2.Id)).Returns(new List<Game> { completedGame });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}/reopen", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
+    [Fact]
     public async Task ReopenPhase_FailsIfNotCompleted()
     {
         var tournament = CreateTestTournament();

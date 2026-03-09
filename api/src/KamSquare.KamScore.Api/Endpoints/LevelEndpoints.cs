@@ -43,7 +43,7 @@ public static class LevelEndpoints
 
         if (structure.LevelNameExistsInPhase(phaseId, request.Name, levelId))
             throw new ValidationException(
-                [new ValidationFailure("Name", $"A level with name '{request.Name}' already exists in this phase.")]);
+                [new ValidationFailure("Name", "A level with that name already exists in this phase.")]);
 
         structure.UpdateLevel(phaseId, levelId, request.Name);
         await structureRepository.UpdateAsync(structure);

@@ -47,9 +47,9 @@ public class TournamentStructure : Entity
 
     public Group AddGroup(string phaseId, string name)
     {
-        GetPhase(phaseId);
+        var phase = GetPhase(phaseId);
         var group = Group.Create(name);
-        GetPhase(phaseId).Groups.Add(group);
+        phase.Groups.Add(group);
         LastModified = DateTime.UtcNow;
         return group;
     }

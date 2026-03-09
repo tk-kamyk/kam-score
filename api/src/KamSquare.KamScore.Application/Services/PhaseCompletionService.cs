@@ -5,6 +5,7 @@ using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Application.Services;
 
@@ -47,15 +48,7 @@ public class PhaseCompletionService
 
         if (nextPhase is not null && hasProgressionConfig)
         {
-            // Calculate standings for each group
-            var groupStandings = phase.Groups
-                .Select(g =>
-                {
-                    var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                    var standings = StandingsCalculator.Calculate(phase.Format, groupGames, g.TeamIds);
-                    return (g.Id, standings);
-                })
-                .ToList();
+            var groupStandings = CalculateGroupStandings(phase, phaseGames);
 
             // Calculate qualifying teams and seeding
             var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
@@ -118,14 +111,7 @@ public class PhaseCompletionService
         if (phaseGames.Count == 0)
             return;
 
-        var groupStandings = completedPhase.Groups
-            .Select(g =>
-            {
-                var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                var standings = StandingsCalculator.Calculate(completedPhase.Format, groupGames, g.TeamIds);
-                return (g.Id, standings);
-            })
-            .ToList();
+        var groupStandings = CalculateGroupStandings(completedPhase, phaseGames);
 
         var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(completedPhase, groupStandings);
         var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, completedPhase);
@@ -174,6 +160,43 @@ public class PhaseCompletionService
         {
             await _teamRepository.CreateBatchAsync(placeholders);
         }
+    }
+
+    private static List<(string GroupId, List<Standing> Standings)> CalculateGroupStandings(
+        Phase phase, List<Game> phaseGames) =>
+        phase.Groups
+            .Select(g =>
+            {
+                var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
+                var standings = StandingsCalculator.Calculate(phase.Format, groupGames, g.TeamIds);
+                return (g.Id, standings);
+            })
+            .ToList();
+
+    public async Task HandlePhaseDeletionAsync(
+        TournamentStructure structure,
+        string phaseId,
+        string tournamentId)
+    {
+        var previousPhase = structure.GetPreviousPhase(phaseId);
+        var nextPhase = structure.GetNextPhase(phaseId);
+
+        // Delete placeholder teams created FOR this phase (from previous phase's progression)
+        if (previousPhase is not null)
+        {
+            await _teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, previousPhase.Id);
+        }
+
+        // Delete placeholder teams created FROM this phase's progression (for next phase)
+        await _teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, phaseId);
+
+        structure.RemovePhase(phaseId);
+
+        // Regenerate placeholders for successor phase based on new adjacency
+        await RegeneratePlaceholdersAfterDeletionAsync(
+            structure, previousPhase, nextPhase, tournamentId);
+
+        await _structureRepository.UpdateAsync(structure);
     }
 
     public async Task RegeneratePlaceholdersAfterDeletionAsync(
