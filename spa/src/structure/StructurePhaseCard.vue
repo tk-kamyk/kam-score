@@ -5,8 +5,9 @@ import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
 import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
 import StructureGroupCard from '@/structure/StructureGroupCard.vue'
+import StructureLevelHeader from '@/structure/StructureLevelHeader.vue'
 import TeamAssignmentForm from '@/structure/TeamAssignmentForm.vue'
-import type { PhaseDto } from '@/structure/types'
+import type { PhaseDto, LevelDto, GroupDto } from '@/structure/types'
 import type { TeamDto } from '@/team/types'
 import type { VForm } from 'vuetify/components'
 
@@ -46,6 +47,16 @@ const lockReason = computed(() => {
   if (props.phase.status === 'Completed') return 'Reopen the phase first'
   if (props.phase.status === 'InProgress') return 'Delete games first to edit structure'
   return ''
+})
+
+const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
+
+const groupsByLevel = computed(() => {
+  if (!hasLevels.value) return []
+  return (props.phase.levels ?? []).map(level => ({
+    level,
+    groups: (props.phase.groups ?? []).filter(g => g.levelId === level.id),
+  }))
 })
 
 const groupNameRules = [
@@ -161,7 +172,50 @@ async function handleAutoAssign() {
       >
         {{ lockReason }}
       </v-alert>
-      <div v-if="phase.groups && phase.groups.length > 0" class="groups-grid">
+      <!-- Groups organized by level -->
+      <template v-if="hasLevels">
+        <div v-for="{ level, groups } in groupsByLevel" :key="level.id" class="level-section mb-4">
+          <StructureLevelHeader
+            :tournament-id="tournamentId"
+            :phase-id="phase.id!"
+            :level="level"
+            :editing="editing && !isLocked"
+          />
+          <div v-if="groups.length > 0" class="groups-grid">
+            <v-card
+              v-for="group in groups"
+              :key="group.id"
+              variant="outlined"
+              class="group-card"
+            >
+              <v-card-title class="d-flex align-center justify-space-between py-2">
+                <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
+                <StructureGroupCard
+                  v-if="editing && !isLocked"
+                  :tournament-id="tournamentId"
+                  :phase-id="phase.id!"
+                  :group="group"
+                />
+              </v-card-title>
+              <v-card-text class="pt-0">
+                <TeamAssignmentForm
+                  :tournament-id="tournamentId"
+                  :phase-id="phase.id!"
+                  :group="group"
+                  :teams="teams"
+                  :editing="editing && !isLocked"
+                  :all-groups="phase.groups ?? []"
+                  :phase-order="phase.order ?? 1"
+                  :previous-phase-id="previousPhaseId"
+                />
+              </v-card-text>
+            </v-card>
+          </div>
+        </div>
+      </template>
+
+      <!-- Flat groups grid (no levels) -->
+      <div v-else-if="phase.groups && phase.groups.length > 0" class="groups-grid">
         <v-card
           v-for="group in phase.groups"
           :key="group.id"
@@ -192,7 +246,7 @@ async function handleAutoAssign() {
         </v-card>
       </div>
 
-      <v-alert class="mt-4 mb-4" v-else type="info" variant="tonal" density="compact">
+      <v-alert v-else class="mt-4 mb-4" type="info" variant="tonal" density="compact">
         No groups in this phase.
       </v-alert>
     </v-card-text>
@@ -303,5 +357,10 @@ async function handleAutoAssign() {
 .group-card {
   border-color: var(--ks-border-subtle);
   background-color: rgb(var(--v-theme-surface-bright));
+}
+
+.level-section:not(:last-child) {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ks-border-subtle);
 }
 </style>

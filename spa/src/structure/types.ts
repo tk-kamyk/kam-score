@@ -1,6 +1,13 @@
+export interface LevelDto {
+  id?: string
+  name: string
+  order?: number
+}
+
 export interface GroupDto {
   id?: string
   name: string
+  levelId?: string
   teamIds?: string[]
 }
 
@@ -10,10 +17,12 @@ export interface PhaseDto {
   format: string
   order?: number
   numberOfGroups?: number
+  numberOfLevels?: number
   groupWinners?: number
   totalTeamsProceeding?: number
   startTime?: string
   status?: string
+  levels?: LevelDto[]
   groups?: GroupDto[]
 }
 

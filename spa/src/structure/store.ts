@@ -5,6 +5,7 @@ import type {
   TournamentStructureDto,
   PhaseDto,
   GroupDto,
+  LevelDto,
   TeamAssignmentRequest,
 } from '@/structure/types'
 
@@ -168,6 +169,26 @@ export const useStructureStore = defineStore('structure', () => {
     return data
   }
 
+  async function updateLevel(
+    tournamentId: string,
+    phaseId: string,
+    levelId: string,
+    dto: LevelDto,
+  ): Promise<LevelDto> {
+    const { data } = await apiClient.put<LevelDto>(
+      `/tournaments/${tournamentId}/structure/phases/${phaseId}/levels/${levelId}`,
+      dto,
+    )
+    const phase = structure.value?.phases?.find(p => p.id === phaseId)
+    if (phase?.levels) {
+      const index = phase.levels.findIndex(l => l.id === levelId)
+      if (index >= 0) {
+        phase.levels[index] = data
+      }
+    }
+    return data
+  }
+
   async function reopenPhase(tournamentId: string, phaseId: string) {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/reopen`,
@@ -193,6 +214,7 @@ export const useStructureStore = defineStore('structure', () => {
     deleteGroup,
     assignTeam,
     removeTeam,
+    updateLevel,
     autoAssignTeams,
     completePhase,
     reopenPhase,
