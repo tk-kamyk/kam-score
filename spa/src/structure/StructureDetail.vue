@@ -20,27 +20,15 @@ const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
 
-const editing = ref(false)
 const showPhaseForm = ref(false)
 const editingPhase = ref<PhaseDto | null>(null)
 
-const hasStructure = computed(() => structureStore.structure?.id != null)
 const phases = computed(() => structureStore.structure?.phases ?? [])
 
 onMounted(() => {
   structureStore.fetchStructure(props.tournamentId)
   teamStore.fetchTeams(props.tournamentId, true)
 })
-
-async function handleInitialize() {
-  try {
-    await structureStore.initializeStructure(props.tournamentId)
-    editing.value = true
-    showSuccess('Structure initialized')
-  } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to initialize structure')
-  }
-}
 
 function openAddPhase() {
   editingPhase.value = null
@@ -72,70 +60,35 @@ async function handleDeletePhase(phaseId: string) {
 <template>
   <div>
     <SectionHeader title="Structure">
-      <div v-if="isOwner" class="d-flex ga-2">
-        <v-btn
-          v-if="!hasStructure"
-          color="primary"
-          prepend-icon="mdi-cog"
-          @click="handleInitialize"
-        >
-          Initialize Structure
-        </v-btn>
-        <template v-else>
-          <v-btn
-            v-if="!editing"
-            color="primary"
-            prepend-icon="mdi-pencil"
-            @click="editing = true"
-          >
-            Edit
-          </v-btn>
-          <template v-else>
-            <v-btn
-              color="primary"
-              prepend-icon="mdi-plus"
-              @click="openAddPhase"
-            >
-              Add Phase
-            </v-btn>
-            <v-btn
-              color="primary"
-              prepend-icon="mdi-check"
-              @click="editing = false"
-            >
-              Done
-            </v-btn>
-          </template>
-        </template>
-      </div>
+      <v-btn
+        v-if="isOwner"
+        color="primary"
+        prepend-icon="mdi-plus"
+        @click="openAddPhase"
+      >
+        Add Phase
+      </v-btn>
     </SectionHeader>
 
-    <v-progress-linear v-if="structureStore.loading" indeterminate color="primary" class="mb-4" />
+    <v-progress-linear v-if="structureStore.loading" indeterminate color="primary" class="mb-4" role="status" aria-label="Loading structure" />
 
-    <template v-if="hasStructure">
-      <div v-if="phases.length > 0" class="phases-list">
-        <StructurePhaseCard
-          v-for="phase in phases"
-          :key="phase.id"
-          :phase="phase"
-          :tournament-id="tournamentId"
-          :editing="editing"
-          :expanded="expandedPhases.has(phase.id!)"
-          :teams="teamStore.teams"
-          @toggle-phase="togglePhase(phase.id!)"
-          @edit="openEditPhase"
-          @delete="handleDeletePhase"
-        />
-      </div>
+    <div v-if="phases.length > 0" class="phases-list">
+      <StructurePhaseCard
+        v-for="phase in phases"
+        :key="phase.id"
+        :phase="phase"
+        :tournament-id="tournamentId"
+        :editing="isOwner"
+        :expanded="expandedPhases.has(phase.id!)"
+        :teams="teamStore.teams"
+        @toggle-phase="togglePhase(phase.id!)"
+        @edit="openEditPhase"
+        @delete="handleDeletePhase"
+      />
+    </div>
 
-      <v-alert class="mt-4 mb-4" v-else-if="!structureStore.loading" type="info" variant="tonal">
-        No phases yet. {{ isOwner ? 'Click Edit to start adding phases.' : '' }}
-      </v-alert>
-    </template>
-
-    <v-alert class="mt-4 mb-4" v-else-if="!structureStore.loading" type="info" variant="tonal">
-      No structure configured.
-      {{ isOwner ? 'Click "Initialize Structure" to get started.' : '' }}
+    <v-alert class="mt-4 mb-4" v-else-if="!structureStore.loading" type="info" variant="tonal" role="status">
+      No phases yet. {{ isOwner ? 'Add a phase to get started.' : '' }}
     </v-alert>
 
     <PhaseForm

@@ -90,6 +90,7 @@ public static class TournamentEndpoints
     private static async Task<IResult> CreateTournament(
         TournamentDto request,
         ITournamentRepository repository,
+        ITournamentStructureRepository structureRepository,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
@@ -105,6 +106,18 @@ public static class TournamentEndpoints
         }
 
         var created = await repository.CreateAsync(tournament);
+
+        try
+        {
+            var structure = TournamentStructure.Create(created.Id);
+            await structureRepository.CreateAsync(structure);
+        }
+        catch
+        {
+            await repository.DeleteAsync(created.Id, created.OwnerId);
+            throw;
+        }
+
         var dto = mapper.Map<TournamentDto>(created);
 
         return Results.Created($"/api/tournaments/{dto.Id}", dto);
@@ -135,10 +148,12 @@ public static class TournamentEndpoints
     private static async Task<IResult> DeleteTournament(
         string id,
         ITournamentRepository repository,
+        ITournamentStructureRepository structureRepository,
         ICurrentUserService currentUser)
     {
         var tournament = await repository.GetOwnedTournamentAsync(currentUser, id);
 
+        await structureRepository.DeleteByTournamentIdAsync(id);
         await repository.DeleteAsync(id, tournament.OwnerId);
 
         return Results.NoContent();

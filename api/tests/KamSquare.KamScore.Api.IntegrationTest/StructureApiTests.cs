@@ -33,63 +33,6 @@ public class StructureApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
-    public async Task InitializeStructure_Authenticated_ShouldReturnCreated()
-    {
-        var tournament = CreateTestTournament();
-        SetupTournament(tournament);
-        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
-            .Returns((TournamentStructure?)null);
-        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
-            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
-        var client = _factory.CreateAuthenticatedClient("alice");
-
-        var response = await client.PostAsync($"/api/tournaments/{tournament.Id}/structure", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var result = await response.Content.ReadFromJsonAsync<TournamentStructureDto>();
-        result.Should().NotBeNull();
-        result!.TournamentId.Should().Be(tournament.Id);
-        result.Phases.Should().BeEmpty();
-    }
-
-    [Fact]
-    public async Task InitializeStructure_AlreadyExists_ShouldReturn400()
-    {
-        var tournament = CreateTestTournament();
-        SetupTournament(tournament);
-        var existing = TournamentStructure.Create(tournament.Id);
-        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
-            .Returns(existing);
-        var client = _factory.CreateAuthenticatedClient("alice");
-
-        var response = await client.PostAsync($"/api/tournaments/{tournament.Id}/structure", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
-    public async Task InitializeStructure_NonOwner_ShouldReturn403()
-    {
-        var tournament = CreateTestTournament("alice");
-        SetupTournament(tournament);
-        var client = _factory.CreateAuthenticatedClient("bob");
-
-        var response = await client.PostAsync($"/api/tournaments/{tournament.Id}/structure", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
-    }
-
-    [Fact]
-    public async Task InitializeStructure_Anonymous_ShouldReturn401()
-    {
-        var client = _factory.CreateClient();
-
-        var response = await client.PostAsync("/api/tournaments/some-id/structure", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    [Fact]
     public async Task GetStructure_Anonymous_ShouldReturnStructure()
     {
         var tournament = CreateTestTournament();
