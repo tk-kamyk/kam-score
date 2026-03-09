@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { parseErrorDetail } from '@/api/errors'
 import TournamentCreateDialog from '@/tournament/TournamentCreateDialog.vue'
 import type { TournamentDto } from '@/tournament/types'
 
@@ -23,8 +24,8 @@ async function handleCreated(dto: TournamentDto) {
     const created = await tournamentStore.createTournament(dto)
     showSuccess('Tournament created')
     router.push({ name: 'tournament', params: { id: created.id } })
-  } catch {
-    showError('Failed to create tournament')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to create tournament')
   }
 }
 

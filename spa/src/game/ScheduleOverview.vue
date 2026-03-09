@@ -3,6 +3,8 @@ import { onMounted, ref, computed } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { useFormErrors } from '@/composables/useFormErrors'
+import { parseErrorDetail } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import type { GameDto } from '@/game/types'
@@ -19,6 +21,7 @@ const props = defineProps<{
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const { showSuccess, showError } = useSnackbar()
+const { handleError, generalError, clearErrors } = useFormErrors()
 const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
 const { expanded: expandedGroups, toggle: toggleGroupKey } = useExpandedQueryParam('group')
 const { phaseGames } = useGamesByPhase()
@@ -54,8 +57,8 @@ async function handleGenerate(phaseId: string) {
       gameStore.fetchGames(props.tournamentId),
     ])
     showSuccess('Schedule generated')
-  } catch {
-    showError('Failed to generate schedule')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to generate schedule')
   } finally {
     generating.value = null
   }
@@ -64,6 +67,7 @@ async function handleGenerate(phaseId: string) {
 function confirmDelete(phase: PhaseDto) {
   actionPhaseId.value = phase.id!
   actionPhaseName.value = phase.name
+  clearErrors()
   showDeleteDialog.value = true
 }
 
@@ -77,14 +81,17 @@ async function handleDelete() {
     ])
     showDeleteDialog.value = false
     showSuccess('Games deleted')
-  } catch {
-    showError('Failed to delete games')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to delete games')
+    }
   }
 }
 
 function confirmComplete(phase: PhaseDto) {
   actionPhaseId.value = phase.id!
   actionPhaseName.value = phase.name
+  clearErrors()
   showCompleteDialog.value = true
 }
 
@@ -99,8 +106,10 @@ async function handleComplete() {
     ])
     showCompleteDialog.value = false
     showSuccess('Phase completed')
-  } catch {
-    showError('Failed to complete phase')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to complete phase')
+    }
   } finally {
     completing.value = null
   }
@@ -109,6 +118,7 @@ async function handleComplete() {
 function confirmReopen(phase: PhaseDto) {
   actionPhaseId.value = phase.id!
   actionPhaseName.value = phase.name
+  clearErrors()
   showReopenDialog.value = true
 }
 
@@ -123,8 +133,10 @@ async function handleReopen() {
     ])
     showReopenDialog.value = false
     showSuccess('Phase reopened')
-  } catch {
-    showError('Failed to reopen phase')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to reopen phase')
+    }
   } finally {
     reopening.value = null
   }
@@ -174,6 +186,9 @@ onMounted(async () => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Games</v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           Are you sure you want to delete all games for "{{ actionPhaseName }}"?
           You can regenerate them afterwards.
         </v-card-text>
@@ -189,6 +204,9 @@ onMounted(async () => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Complete Phase</v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           Complete "{{ actionPhaseName }}"? Teams will advance to the next phase based on standings.
         </v-card-text>
         <v-card-actions>
@@ -203,6 +221,9 @@ onMounted(async () => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Reopen Phase</v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           Reopen "{{ actionPhaseName }}"? This will clear team assignments and revert the next phase.
         </v-card-text>
         <v-card-actions>

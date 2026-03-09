@@ -20,7 +20,7 @@ const emit = defineEmits<{
 
 const structureStore = useStructureStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors()
+const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 
 const form = ref({
@@ -97,6 +97,9 @@ async function handleSave() {
         {{ phase ? 'Edit Phase' : 'Add Phase' }}
       </v-card-title>
       <v-card-text>
+        <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          {{ generalError }}
+        </v-alert>
         <v-form ref="formRef" @submit.prevent="handleSave">
           <v-text-field
             v-model="form.name"

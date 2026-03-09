@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { parseErrorDetail } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import SectionHeader from '@/components/SectionHeader.vue'
 import StructurePhaseCard from '@/structure/StructurePhaseCard.vue'
@@ -36,8 +37,8 @@ async function handleInitialize() {
     await structureStore.initializeStructure(props.tournamentId)
     editing.value = true
     showSuccess('Structure initialized')
-  } catch {
-    showError('Failed to initialize structure')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to initialize structure')
   }
 }
 
@@ -62,8 +63,8 @@ async function handleDeletePhase(phaseId: string) {
     await structureStore.deletePhase(props.tournamentId, phaseId)
     showSuccess('Phase deleted')
     await teamStore.fetchTeams(props.tournamentId, true)
-  } catch {
-    showError('Failed to delete phase')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to delete phase')
   }
 }
 </script>

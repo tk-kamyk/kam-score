@@ -18,7 +18,7 @@ const route = useRoute()
 const router = useRouter()
 const courtStore = useCourtStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors()
+const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 
 const showFormDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -69,6 +69,7 @@ function openEdit(court: CourtDto) {
 
 function openDelete(court: CourtDto) {
   deletingCourt.value = court
+  clearErrors()
   showDeleteDialog.value = true
 }
 
@@ -98,8 +99,10 @@ async function handleDelete() {
     await courtStore.deleteCourt(props.tournamentId, deletingCourt.value.id)
     showDeleteDialog.value = false
     showSuccess('Court deleted')
-  } catch {
-    showError('Failed to delete court')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to delete court')
+    }
   }
 }
 </script>
@@ -164,6 +167,9 @@ async function handleDelete() {
           {{ editingCourt ? 'Edit Court' : 'Add Court' }}
         </v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           <v-form ref="formRef" @submit.prevent="handleSave">
             <v-text-field
               v-model="form.name"
@@ -189,6 +195,9 @@ async function handleDelete() {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Court</v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           Are you sure you want to delete "{{ deletingCourt?.name }}"?
         </v-card-text>
         <v-card-actions>

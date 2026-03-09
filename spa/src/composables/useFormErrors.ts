@@ -1,24 +1,35 @@
 import { ref } from 'vue'
-import { parseValidationErrors } from '@/api/errors'
+import { parseValidationErrors, parseErrorDetail } from '@/api/errors'
 
 export function useFormErrors() {
   const serverErrors = ref<Record<string, string[]>>({})
+  const generalError = ref<string | null>(null)
 
   function fieldErrors(field: string): string[] {
     return serverErrors.value[field] ?? []
   }
 
   function handleError(error: unknown): boolean {
+    clearErrors()
+
     const parsed = parseValidationErrors(error)
     if (parsed) {
       serverErrors.value = parsed.fieldErrors
       return true
     }
+
+    const detail = parseErrorDetail(error)
+    if (detail) {
+      generalError.value = detail
+      return true
+    }
+
     return false
   }
 
   function clearErrors() {
     serverErrors.value = {}
+    generalError.value = null
   }
 
   function clearFieldError(field: string) {
@@ -26,5 +37,5 @@ export function useFormErrors() {
     serverErrors.value = rest
   }
 
-  return { fieldErrors, handleError, clearErrors, clearFieldError }
+  return { fieldErrors, handleError, clearErrors, clearFieldError, generalError }
 }

@@ -26,7 +26,7 @@ const emit = defineEmits<{
 
 const structureStore = useStructureStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors()
+const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 
 const showDeleteDialog = ref(false)
 const showAddGroupDialog = ref(false)
@@ -85,12 +85,14 @@ async function handleAddGroup() {
 }
 
 async function handleAutoAssign() {
-  showAutoAssignDialog.value = false
   try {
     await structureStore.autoAssignTeams(props.tournamentId, props.phase.id!)
+    showAutoAssignDialog.value = false
     showSuccess('Teams auto-assigned')
-  } catch {
-    showError('Failed to auto-assign teams')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to auto-assign teams')
+    }
   }
 }
 </script>
@@ -236,7 +238,7 @@ async function handleAutoAssign() {
         color="primary"
         variant="elevated"
         prepend-icon="mdi-shuffle-variant"
-        @click="showAutoAssignDialog = true"
+        @click="clearErrors(); showAutoAssignDialog = true"
       >
         Auto-assign Teams
       </v-btn>
@@ -248,6 +250,9 @@ async function handleAutoAssign() {
           >Auto-assign Teams</v-card-title
         >
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           This will clear existing team assignments and redistribute all tournament teams into the
           groups of "{{ phase.name }}". Continue?
         </v-card-text>
@@ -265,6 +270,9 @@ async function handleAutoAssign() {
           >Add Group</v-card-title
         >
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           <v-form ref="groupFormRef" @submit.prevent="handleAddGroup">
             <v-text-field
               v-model="newGroupName"
