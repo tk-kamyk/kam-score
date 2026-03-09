@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
@@ -23,10 +23,13 @@ const { showSuccess, showError } = useSnackbar()
 const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 
+const useLevels = ref(false)
+
 const form = ref({
   name: '',
   format: 'RoundRobin',
   numberOfGroups: 2,
+  numberOfLevels: 2,
   groupWinners: null as number | null,
   totalTeamsProceeding: null as number | null,
   startTime: '',
@@ -41,20 +44,41 @@ const groupsRules = [
   (v: number) => v >= 1 || 'At least 1 group is required.',
 ]
 
+const levelsRules = [
+  (v: number) => v >= 1 || 'At least 1 level is required.',
+]
+
+const groupsLabel = computed(() =>
+  useLevels.value ? 'Groups per Level' : 'Number of Groups',
+)
+
+const totalGroupsHint = computed(() => {
+  if (!useLevels.value) return ''
+  const levels = form.value.numberOfLevels
+  const groups = form.value.numberOfGroups
+  if (levels >= 1 && groups >= 1) {
+    return `${levels * groups} total groups (${groups} groups × ${levels} levels)`
+  }
+  return ''
+})
+
 watch(model, (open) => {
   if (open) {
     clearErrors()
     if (props.phase) {
+      useLevels.value = (props.phase.levels?.length ?? 0) > 0
       form.value = {
         name: props.phase.name,
         format: props.phase.format,
         numberOfGroups: props.phase.groups?.length ?? 1,
+        numberOfLevels: props.phase.levels?.length ?? 2,
         groupWinners: props.phase.groupWinners ?? null,
         totalTeamsProceeding: props.phase.totalTeamsProceeding ?? null,
         startTime: props.phase.startTime ?? '',
       }
     } else {
-      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
+      useLevels.value = false
+      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, numberOfLevels: 2, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
     }
   }
 })
@@ -68,6 +92,7 @@ async function handleSave() {
       name: form.value.name,
       format: form.value.format,
       numberOfGroups: props.phase ? undefined : form.value.numberOfGroups,
+      numberOfLevels: props.phase ? undefined : (useLevels.value ? form.value.numberOfLevels : undefined),
       groupWinners: form.value.groupWinners ?? undefined,
       totalTeamsProceeding: form.value.totalTeamsProceeding ?? undefined,
       startTime: form.value.startTime || undefined,
@@ -117,12 +142,32 @@ async function handleSave() {
             :error-messages="fieldErrors('format')"
             @update:model-value="clearFieldError('format')"
           />
+          <v-switch
+            v-if="!phase"
+            v-model="useLevels"
+            label="Use Levels"
+            hint="Split groups into levels (e.g. Gold, Silver)"
+            persistent-hint
+            color="primary"
+            density="compact"
+            class="mb-2"
+          />
+          <v-text-field
+            v-if="!phase && useLevels"
+            v-model.number="form.numberOfLevels"
+            label="Number of Levels"
+            type="number"
+            :rules="levelsRules"
+            min="1"
+          />
           <v-text-field
             v-if="!phase"
             v-model.number="form.numberOfGroups"
-            label="Number of Groups"
+            :label="groupsLabel"
             type="number"
             :rules="groupsRules"
+            :hint="totalGroupsHint"
+            :persistent-hint="!!totalGroupsHint"
             min="1"
           />
           <v-text-field
