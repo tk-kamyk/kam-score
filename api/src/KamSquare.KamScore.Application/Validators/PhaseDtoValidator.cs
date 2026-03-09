@@ -21,6 +21,10 @@ public class PhaseDtoValidator : AbstractValidator<PhaseDto>
             .GreaterThanOrEqualTo(1)
             .When(x => x.NumberOfGroups.HasValue);
 
+        RuleFor(x => x.NumberOfLevels)
+            .GreaterThanOrEqualTo(1)
+            .When(x => x.NumberOfLevels.HasValue);
+
         RuleFor(x => x.GroupWinners)
             .GreaterThanOrEqualTo(1)
             .When(x => x.GroupWinners.HasValue);

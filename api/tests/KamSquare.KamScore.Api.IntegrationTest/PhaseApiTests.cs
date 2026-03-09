@@ -471,6 +471,26 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task AddPhase_WithLevels_ShouldReturnCreatedWithLevels()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Group Stage", "RoundRobin",
+            NumberOfGroups: 3, NumberOfLevels: 2);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.Levels.Should().HaveCount(2);
+        result.Groups.Should().HaveCount(6); // 2 levels * 3 groups
+        result.Groups!.All(g => g.LevelId != null).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task AddPhase_WithStartTime_ShouldReturnIt()
     {
         var tournament = CreateTestTournament();
