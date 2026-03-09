@@ -75,6 +75,7 @@ app.MapCourtEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapStructureEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapPhaseEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapGroupEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapLevelEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapTeamAssignmentEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapGameEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapStandingsEndpoints().AddEndpointFilter<ValidationFilter>();

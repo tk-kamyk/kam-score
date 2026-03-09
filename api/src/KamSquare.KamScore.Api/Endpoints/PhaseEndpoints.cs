@@ -47,7 +47,8 @@ public static class PhaseEndpoints
         var startTime = mapper.Map<TimeOnly?>(request.StartTime);
 
         var phase = structure.AddPhase(request.Name, format, numberOfGroups,
-            request.GroupWinners, request.TotalTeamsProceeding, startTime);
+            request.GroupWinners, request.TotalTeamsProceeding, startTime,
+            request.NumberOfLevels);
         await structureRepository.UpdateAsync(structure);
 
         await phaseCompletionService.CreatePlaceholdersForNewPhaseAsync(structure, phase, tournamentId);

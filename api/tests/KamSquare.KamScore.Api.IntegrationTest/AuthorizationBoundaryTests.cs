@@ -67,7 +67,7 @@ public class AuthorizationBoundaryTests : IClassFixture<KamScoreWebApplicationFa
         SetupTournament(tournament);
         var client = _factory.CreateAuthenticatedClient("bob");
 
-        var dto = new PhaseDto(null, "Group Stage", "RoundRobin", 1, null, null, null, null, null, []);
+        var dto = new PhaseDto(null, "Group Stage", "RoundRobin", NumberOfGroups: 1);
         var response = await client.PostAsJsonAsync($"/api/tournaments/{tournament.Id}/structure/phases", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
