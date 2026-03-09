@@ -62,3 +62,35 @@ Feature: Phase Levels
     And the user owns a tournament with a phase that has 2 groups and 3 levels
     When the user retrieves groups for the first level
     Then only the 2 groups belonging to that level are returned
+
+  Scenario: Auto-assign with levels splits teams by seed into levels
+    Given 8 teams ranked 1-8 by level
+    And a phase with 2 levels and 2 groups per level (4 groups total)
+    When I auto-assign teams to the phase
+    Then Level 1 groups contain teams ranked 1-4
+    And Level 2 groups contain teams ranked 5-8
+    And teams within each level are snake-drafted across that level's groups
+
+  Scenario: Auto-assign phase 2+ with levels distributes placeholders by level
+    Given 8 placeholder teams ordered by seed 1-8
+    And the target phase has 2 levels and 2 groups per level
+    When I auto-assign placeholders to the phase
+    Then Level 1 groups contain seeds 1-4
+    And Level 2 groups contain seeds 5-8
+
+  Scenario: Auto-assign without levels is unchanged
+    Given 4 teams ranked 1-4 by level
+    And a phase with 2 groups and no levels
+    When I auto-assign teams to the phase
+    Then teams are snake-drafted across all groups as before
+
+  Scenario: Phase advancement with levels qualifies per-level
+    Given a phase with 2 levels, 2 groups per level, TotalTeamsProceeding=3
+    When the phase is completed
+    Then 3 teams qualify from Level 1 and 3 from Level 2 (6 total)
+    And Level 1 qualifiers are seeded before Level 2 qualifiers
+
+  Scenario: Placeholder count with levels scales by level count
+    Given a phase with TotalTeamsProceeding=4 and 2 levels
+    When I create the next phase
+    Then 8 placeholder teams are generated (4 per level x 2 levels)

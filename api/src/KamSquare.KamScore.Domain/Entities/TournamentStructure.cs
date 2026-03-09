@@ -209,18 +209,51 @@ public class TournamentStructure : Entity
             group.ClearTeams();
         }
 
-        var groupCount = phase.Groups.Count;
+        if (phase.Groups.Count == 0) return;
+
+        if (phase.Levels.Count > 0)
+        {
+            AssignTeamsWithLevels(phase, orderedTeamIds);
+        }
+        else
+        {
+            SnakeDraftIntoGroups(phase.Groups, orderedTeamIds);
+        }
+
+        LastModified = DateTime.UtcNow;
+    }
+
+    private static void AssignTeamsWithLevels(Phase phase, List<string> orderedTeamIds)
+    {
+        var orderedLevels = phase.Levels.OrderBy(l => l.Order).ToList();
+        var levelCount = orderedLevels.Count;
+        var teamsPerLevel = orderedTeamIds.Count / levelCount;
+        var remainder = orderedTeamIds.Count % levelCount;
+
+        var offset = 0;
+        foreach (var level in orderedLevels)
+        {
+            var count = teamsPerLevel + (offset < remainder ? 1 : 0);
+            var chunk = orderedTeamIds.Skip(offset).Take(count).ToList();
+            offset += count;
+
+            var levelGroups = phase.Groups.Where(g => g.LevelId == level.Id).ToList();
+            SnakeDraftIntoGroups(levelGroups, chunk);
+        }
+    }
+
+    private static void SnakeDraftIntoGroups(List<Group> groups, List<string> teamIds)
+    {
+        var groupCount = groups.Count;
         if (groupCount == 0) return;
 
-        for (var i = 0; i < orderedTeamIds.Count; i++)
+        for (var i = 0; i < teamIds.Count; i++)
         {
             var round = i / groupCount;
             var positionInRound = i % groupCount;
             var groupIndex = round % 2 == 0 ? positionInRound : groupCount - 1 - positionInRound;
-            phase.Groups[groupIndex].AddTeam(orderedTeamIds[i]);
+            groups[groupIndex].AddTeam(teamIds[i]);
         }
-
-        LastModified = DateTime.UtcNow;
     }
 
     private void ReorderPhases()
