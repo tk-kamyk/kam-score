@@ -15,10 +15,12 @@ public class Phase
     public int? TotalTeamsProceeding { get; set; }
     public TimeOnly? StartTime { get; set; }
     public PhaseStatus Status { get; set; } = PhaseStatus.New;
+    public List<Level> Levels { get; set; } = [];
     public List<Group> Groups { get; set; } = [];
 
     public static Phase Create(string name, PhaseFormat format, int order, int numberOfGroups,
-        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null)
+        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null,
+        int? numberOfLevels = null)
     {
         var phase = new Phase
         {
@@ -31,9 +33,29 @@ public class Phase
             StartTime = startTime
         };
 
-        for (var i = 0; i < numberOfGroups; i++)
+        if (numberOfLevels is not > 0)
         {
-            phase.Groups.Add(Group.Create(GetGroupName(i)));
+            for (var i = 0; i < numberOfGroups; i++)
+            {
+                phase.Groups.Add(Group.Create(GetGroupName(i)));
+            }
+
+            return phase;
+        }
+
+        for (var l = 0; l < numberOfLevels; l++)
+        {
+            phase.Levels.Add(Level.Create($"Level {l + 1}", l + 1));
+        }
+
+        var groupIndex = 0;
+        foreach (var level in phase.Levels)
+        {
+            for (var g = 0; g < numberOfGroups; g++)
+            {
+                phase.Groups.Add(Group.Create(GetGroupName(groupIndex), level.Id));
+                groupIndex++;
+            }
         }
 
         return phase;

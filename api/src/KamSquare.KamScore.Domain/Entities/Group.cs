@@ -7,14 +7,16 @@ public class Group
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public string? LevelId { get; set; }
     public List<string> TeamIds { get; set; } = [];
 
-    public static Group Create(string name)
+    public static Group Create(string name, string? levelId = null)
     {
         return new Group
         {
             Id = Guid.NewGuid().ToString(),
-            Name = name
+            Name = name,
+            LevelId = levelId
         };
     }
 

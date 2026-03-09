@@ -19,10 +19,11 @@ public class TournamentStructure : Entity
     }
 
     public Phase AddPhase(string name, PhaseFormat format, int numberOfGroups,
-        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null)
+        int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null,
+        int? numberOfLevels = null)
     {
         var order = Phases.Count + 1;
-        var phase = Phase.Create(name, format, order, numberOfGroups, groupWinners, totalTeamsProceeding, startTime);
+        var phase = Phase.Create(name, format, order, numberOfGroups, groupWinners, totalTeamsProceeding, startTime, numberOfLevels);
         Phases.Add(phase);
         LastModified = DateTime.UtcNow;
         return phase;
@@ -96,6 +97,35 @@ public class TournamentStructure : Entity
         var phase = GetPhase(phaseId);
         return phase.Groups.FirstOrDefault(g => g.Id == groupId)
             ?? throw new NotFoundException(nameof(Group), groupId);
+    }
+
+    public Level GetLevel(string phaseId, string levelId)
+    {
+        var phase = GetPhase(phaseId);
+        return phase.Levels.FirstOrDefault(l => l.Id == levelId)
+            ?? throw new NotFoundException(nameof(Level), levelId);
+    }
+
+    public void UpdateLevel(string phaseId, string levelId, string name)
+    {
+        var level = GetLevel(phaseId, levelId);
+        level.Update(name);
+        LastModified = DateTime.UtcNow;
+    }
+
+    public bool LevelNameExistsInPhase(string phaseId, string name, string? excludeLevelId = null)
+    {
+        var phase = GetPhase(phaseId);
+        return phase.Levels.Any(l =>
+            l.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+            (excludeLevelId is null || l.Id != excludeLevelId));
+    }
+
+    public List<Group> GetGroupsForLevel(string phaseId, string levelId)
+    {
+        var phase = GetPhase(phaseId);
+        GetLevel(phaseId, levelId); // validate level exists
+        return phase.Groups.Where(g => g.LevelId == levelId).ToList();
     }
 
     public bool GroupNameExistsInPhase(string phaseId, string name, string? excludeGroupId = null)

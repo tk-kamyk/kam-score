@@ -205,6 +205,9 @@ docker compose up              # Full stack (API + SPA)
 - Use `[GeneratedRegex]` with `partial class` when entities need regex validation
 - Domain services (static classes in `Domain/Services/`) handle cross-entity logic that doesn't belong to a single entity (e.g., `StandingsCalculator`, `GameScheduler`)
 
+#### Control flow
+- **Prefer early returns (guard clauses)** over nested if/else blocks. Handle the simple/default case first and return, then continue with the main logic at the top indentation level
+
 #### Async patterns
 - **Never use `.Result`** on tasks, even after `Task.WhenAll`. Always `await` — `.Result` can deadlock and hides exceptions inside `AggregateException`
 - Prefer `await Task.WhenAll(...)` for concurrent independent operations, then `await` each task individually to unwrap results
