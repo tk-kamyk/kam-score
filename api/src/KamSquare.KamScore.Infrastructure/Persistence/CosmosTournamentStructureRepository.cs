@@ -46,4 +46,15 @@ public class CosmosTournamentStructureRepository : CosmosRepository<TournamentSt
         SetETag(updated, response.ETag);
         return updated;
     }
+
+    public async Task DeleteByTournamentIdAsync(string tournamentId)
+    {
+        var structure = await GetByTournamentIdAsync(tournamentId);
+        if (structure is not null)
+        {
+            await Container.DeleteItemAsync<TournamentStructure>(
+                structure.Id,
+                new PartitionKey(tournamentId));
+        }
+    }
 }

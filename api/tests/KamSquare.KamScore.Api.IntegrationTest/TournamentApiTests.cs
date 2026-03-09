@@ -29,6 +29,8 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var client = _factory.CreateAuthenticatedClient("alice");
         A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
             .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
 
         var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
 
@@ -40,6 +42,9 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         result!.Name.Should().Be("Summer Cup");
         result.TournamentCode.Should().NotBeNullOrEmpty();
         result.OwnerId.Should().Be("alice");
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(
+                A<TournamentStructure>.That.Matches(s => s.TournamentId == result!.Id)))
+            .MustHaveHappenedOnceExactly();
     }
 
     [Fact]
@@ -194,6 +199,8 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var client = _factory.CreateAuthenticatedClient("alice");
         A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
             .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
 
         var conditions = new GameConditionsDto(3, [21, 21, 15]);
         var dto = new TournamentDto(null, "Beach Cup", "BeachVolleyball", null, 45, conditions, null, null);
@@ -204,5 +211,43 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
         result!.GameConditions.Should().NotBeNull();
         result.GameConditions!.BestOfSets.Should().Be(3);
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(
+                A<TournamentStructure>.That.Matches(s => s.TournamentId == result.Id)))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task CreateTournament_StructureCreationFails_ShouldRollbackTournament()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .Throws(new InvalidOperationException("Cosmos DB error"));
+
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        A.CallTo(() => _factory.FakeRepository.DeleteAsync(A<string>.Ignored, "alice"))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task DeleteTournament_Owner_ShouldAlsoDeleteStructure()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+
+        var response = await client.DeleteAsync($"/api/tournaments/{tournament.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        A.CallTo(() => _factory.FakeStructureRepository.DeleteByTournamentIdAsync(tournament.Id))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _factory.FakeRepository.DeleteAsync(tournament.Id, "alice"))
+            .MustHaveHappenedOnceExactly();
     }
 }

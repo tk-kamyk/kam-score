@@ -7,4 +7,5 @@ public interface ITournamentStructureRepository
     Task<TournamentStructure?> GetByTournamentIdAsync(string tournamentId);
     Task<TournamentStructure> CreateAsync(TournamentStructure structure);
     Task<TournamentStructure> UpdateAsync(TournamentStructure structure);
+    Task DeleteByTournamentIdAsync(string tournamentId);
 }

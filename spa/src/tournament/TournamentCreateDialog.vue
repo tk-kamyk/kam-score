@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import type { TournamentDto } from '@/tournament/types'
+import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
+import { buildGameConditions } from '@/tournament/gameConditionsUtils'
 
 const model = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ created: [tournament: TournamentDto] }>()
 
 const useCustomConditions = ref(false)
+const bestOfSets = ref<number | undefined>()
 const pointsPerSetText = ref('')
 const newTournament = ref<TournamentDto>({
   name: '',
@@ -14,30 +17,16 @@ const newTournament = ref<TournamentDto>({
 
 const disciplines = ['Volleyball', 'BeachVolleyball']
 
-watch(useCustomConditions, (on) => {
-  if (on) {
-    newTournament.value.gameConditions = { bestOfSets: undefined, pointsPerSet: undefined }
-  }
-})
-
 function handleCreate() {
-  const dto = { ...newTournament.value }
-  if (useCustomConditions.value) {
-    const points = pointsPerSetText.value
-      .split(',')
-      .map(s => parseInt(s.trim()))
-      .filter(n => !isNaN(n))
-    dto.gameConditions = {
-      bestOfSets: dto.gameConditions?.bestOfSets,
-      pointsPerSet: points.length > 0 ? points : undefined,
-    }
-  } else {
-    dto.gameConditions = undefined
+  const dto: TournamentDto = {
+    ...newTournament.value,
+    gameConditions: buildGameConditions(useCustomConditions.value, bestOfSets.value, pointsPerSetText.value),
   }
   emit('created', dto)
   model.value = false
   newTournament.value = { name: '', discipline: 'Volleyball' }
   useCustomConditions.value = false
+  bestOfSets.value = undefined
   pointsPerSetText.value = ''
 }
 </script>
@@ -59,34 +48,19 @@ function handleCreate() {
         />
         <v-text-field
           v-model="newTournament.startTime"
-          label="Start Time"
-          type="datetime-local"
+          label="Date"
+          type="date"
         />
         <v-text-field
           v-model.number="newTournament.gameLength"
           label="Game Length (minutes)"
           type="number"
         />
-        <v-switch
-          v-model="useCustomConditions"
-          label="Custom game conditions"
-          color="primary"
-          density="comfortable"
-          hide-details
-          class="mb-4"
+        <GameConditionsForm
+          v-model:enabled="useCustomConditions"
+          v-model:best-of-sets="bestOfSets"
+          v-model:points-per-set-text="pointsPerSetText"
         />
-        <template v-if="useCustomConditions">
-          <v-select
-            v-model="newTournament.gameConditions!.bestOfSets"
-            :items="[1, 3, 5]"
-            label="Best of Sets"
-          />
-          <v-text-field
-            v-model="pointsPerSetText"
-            label="Points per Set (comma-separated)"
-            placeholder="25, 25, 15"
-          />
-        </template>
       </v-card-text>
       <v-card-actions>
         <v-spacer />

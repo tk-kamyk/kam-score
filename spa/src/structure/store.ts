@@ -24,14 +24,6 @@ export const useStructureStore = defineStore('structure', () => {
     }
   }
 
-  async function initializeStructure(tournamentId: string) {
-    const { data } = await apiClient.post<TournamentStructureDto>(
-      `/tournaments/${tournamentId}/structure`,
-    )
-    structure.value = data
-    return data
-  }
-
   async function addPhase(tournamentId: string, dto: PhaseDto): Promise<PhaseDto> {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases`,
@@ -193,7 +185,6 @@ export const useStructureStore = defineStore('structure', () => {
     structure,
     loading,
     fetchStructure,
-    initializeStructure,
     addPhase,
     updatePhase,
     deletePhase,
