@@ -17,6 +17,13 @@ function toCamelCase(str: string): string {
   return str.charAt(0).toLowerCase() + str.slice(1)
 }
 
+export function parseErrorDetail(error: unknown): string | null {
+  const axiosError = error as AxiosError<ProblemDetails>
+  const data = axiosError?.response?.data
+  if (!data?.detail || axiosError?.response?.status === 400) return null
+  return data.detail
+}
+
 export function parseValidationErrors(error: unknown): ValidationErrors | null {
   const axiosError = error as AxiosError<ProblemDetails>
   const data = axiosError?.response?.data

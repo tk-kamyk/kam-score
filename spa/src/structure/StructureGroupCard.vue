@@ -14,7 +14,7 @@ const props = defineProps<{
 
 const structureStore = useStructureStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors()
+const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 
 const showRenameDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -55,8 +55,10 @@ async function handleDelete() {
     await structureStore.deleteGroup(props.tournamentId, props.phaseId, props.group.id!)
     showDeleteDialog.value = false
     showSuccess('Group deleted')
-  } catch {
-    showError('Failed to delete group')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to delete group')
+    }
   }
 }
 </script>
@@ -70,7 +72,7 @@ async function handleDelete() {
       size="x-small"
       color="error"
       :aria-label="'Delete group ' + group.name"
-      @click="showDeleteDialog = true"
+      @click="clearErrors(); showDeleteDialog = true"
     />
 
     <v-dialog v-model="showRenameDialog" max-width="400">
@@ -79,6 +81,9 @@ async function handleDelete() {
           >Rename Group</v-card-title
         >
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           <v-form ref="formRef" @submit.prevent="handleRename">
             <v-text-field
               v-model="newName"
@@ -103,6 +108,9 @@ async function handleDelete() {
           >Delete Group</v-card-title
         >
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           Are you sure you want to delete group "{{ group.name }}"?
         </v-card-text>
         <v-card-actions>

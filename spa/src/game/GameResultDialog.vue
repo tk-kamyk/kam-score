@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { useFormErrors } from '@/composables/useFormErrors'
 import type { GameDto, SetResultDto } from '@/game/types'
 
 const props = defineProps<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 const gameStore = useGameStore()
 const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
+const { handleError, generalError, clearErrors } = useFormErrors()
 
 const defaultSetCount = computed(() =>
   tournamentStore.currentTournament?.gameConditions?.bestOfSets ?? 1
@@ -38,6 +40,7 @@ watch(
   () => props.modelValue,
   (open) => {
     if (open) {
+      clearErrors()
       tournamentCode.value = ''
       if (props.game.sets?.length) {
         mode.value = 'detailed'
@@ -96,8 +99,10 @@ async function submit() {
     }
     showSuccess('Result recorded')
     close()
-  } catch {
-    showError('Failed to record result. Check the tournament code and try again.')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to record result. Check the tournament code and try again.')
+    }
   } finally {
     submitting.value = false
   }
@@ -120,6 +125,9 @@ function awayName(): string {
       </v-card-title>
 
       <v-card-text>
+        <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          {{ generalError }}
+        </v-alert>
         <div class="text-center mb-4">
           <div class="text-body-medium text-medium-emphasis mb-4">
             {{ homeName() }} vs {{ awayName() }}

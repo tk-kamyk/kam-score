@@ -14,7 +14,7 @@ const props = defineProps<{
 
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError } = useFormErrors()
+const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 
 const showFormDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -56,6 +56,7 @@ function openEdit(team: TeamDto) {
 
 function openDelete(team: TeamDto) {
   deletingTeam.value = team
+  clearErrors()
   showDeleteDialog.value = true
 }
 
@@ -85,8 +86,10 @@ async function handleDelete() {
     await teamStore.deleteTeam(props.tournamentId, deletingTeam.value.id)
     showDeleteDialog.value = false
     showSuccess('Team deleted')
-  } catch {
-    showError('Failed to delete team')
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to delete team')
+    }
   }
 }
 </script>
@@ -138,6 +141,9 @@ async function handleDelete() {
           {{ editingTeam ? 'Edit Team' : 'Add Team' }}
         </v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           <v-form ref="formRef" @submit.prevent="handleSave">
             <v-text-field
               v-model="form.name"
@@ -188,6 +194,9 @@ async function handleDelete() {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Team</v-card-title>
         <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
           Are you sure you want to delete "{{ deletingTeam?.name }}"?
         </v-card-text>
         <v-card-actions>

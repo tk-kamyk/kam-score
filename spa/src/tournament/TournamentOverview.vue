@@ -5,6 +5,7 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { parseErrorDetail } from '@/api/errors'
 import TournamentBreadcrumb from '@/tournament/TournamentBreadcrumb.vue'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import TeamList from '@/team/TeamList.vue'
@@ -58,8 +59,8 @@ async function handleUpdate(dto: TournamentDto) {
   try {
     await tournamentStore.updateTournament(props.id, dto)
     showSuccess('Tournament updated')
-  } catch {
-    showError('Failed to update tournament')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to update tournament')
   }
 }
 
@@ -68,8 +69,8 @@ async function handleDelete() {
     await tournamentStore.deleteTournament(props.id)
     showSuccess('Tournament deleted')
     router.push({ name: 'home' })
-  } catch {
-    showError('Failed to delete tournament')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to delete tournament')
   }
 }
 </script>

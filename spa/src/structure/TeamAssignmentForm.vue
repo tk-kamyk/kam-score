@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { parseErrorDetail } from '@/api/errors'
 import type { GroupDto } from '@/structure/types'
 import type { TeamDto } from '@/team/types'
 
@@ -88,8 +89,8 @@ async function handleAssign() {
     selectedTeamId.value = null
     showSuccess('Team assigned')
     await structureStore.fetchStructure(props.tournamentId)
-  } catch {
-    showError('Failed to assign team')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to assign team')
   }
 }
 
@@ -103,8 +104,8 @@ async function handleRemove(teamId: string) {
     )
     showSuccess('Team removed')
     await structureStore.fetchStructure(props.tournamentId)
-  } catch {
-    showError('Failed to remove team')
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to remove team')
   }
 }
 </script>
