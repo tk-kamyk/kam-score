@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import apiClient from '@/api/client'
+import apiClient, { registerUnauthorizedHandler } from '@/api/client'
+import { isTokenValid } from '@/auth/token'
 import type { LoginRequest, LoginResponse } from '@/auth/types'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -10,6 +11,23 @@ export const useAuthStore = defineStore('auth', () => {
   const showLoginDialog = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
+
+  // Clear expired token on startup (page load/refresh)
+  if (token.value && !isTokenValid(token.value)) {
+    token.value = null
+    username.value = null
+    displayName.value = null
+    localStorage.removeItem('token')
+    localStorage.removeItem('username')
+    localStorage.removeItem('displayName')
+  }
+
+  // Bridge Axios 401 interceptor to the store
+  registerUnauthorizedHandler(() => {
+    if (!token.value) return
+    logout()
+    showLoginDialog.value = true
+  })
 
   async function login(credentials: LoginRequest) {
     const { data } = await apiClient.post<LoginResponse>('/auth/login', credentials)

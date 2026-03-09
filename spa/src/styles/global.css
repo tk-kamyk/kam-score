@@ -143,3 +143,10 @@ body::before {
         }
     }
 }
+
+@layer overrides {
+    .v-input--indent-details .v-input__details .v-messages__message {
+        padding-bottom: 24px;
+        text-align: right;
+    }
+}
