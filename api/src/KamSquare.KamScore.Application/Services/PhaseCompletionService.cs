@@ -77,7 +77,6 @@ public class PhaseCompletionService
                 structure.AutoAssignTeams(nextPhase.Id, seededIds);
             }
 
-            structure.ActivatePhase(nextPhase.Id);
         }
 
         await _structureRepository.UpdateAsync(structure);
