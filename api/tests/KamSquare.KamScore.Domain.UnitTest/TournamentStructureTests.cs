@@ -491,4 +491,183 @@ public class TournamentStructureTests
 
         prev.Should().BeNull();
     }
+
+    // --- Levels ---
+
+    [Fact]
+    public void AddPhase_WithLevels_CreatesCorrectGroupCount()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        phase.Groups.Should().HaveCount(4); // 2 groups x 2 levels
+    }
+
+    [Fact]
+    public void AddPhase_WithLevels_CreatesLevelObjects()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        phase.Levels.Should().HaveCount(2);
+        phase.Levels[0].Name.Should().Be("Level 1");
+        phase.Levels[0].Order.Should().Be(1);
+        phase.Levels[1].Name.Should().Be("Level 2");
+        phase.Levels[1].Order.Should().Be(2);
+        phase.Levels.Should().AllSatisfy(l =>
+        {
+            l.Id.Should().NotBeNullOrEmpty();
+            Guid.TryParse(l.Id, out _).Should().BeTrue();
+        });
+    }
+
+    [Fact]
+    public void AddPhase_WithLevels_AssignsGroupsToLevels()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+        level1Groups.Should().HaveCount(2);
+        level2Groups.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void AddPhase_WithLevels_GroupNamingIsSequential()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        phase.Groups.Select(g => g.Name).Should().Equal("A", "B", "C", "D");
+    }
+
+    [Fact]
+    public void AddPhase_WithoutLevels_NoLevelsCreated()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        phase.Levels.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddPhase_WithoutLevels_GroupsHaveNullLevelId()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        phase.Groups.Should().AllSatisfy(g => g.LevelId.Should().BeNull());
+    }
+
+    [Fact]
+    public void AddPhase_WithZeroLevels_BehavesAsNoLevels()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 0);
+
+        phase.Levels.Should().BeEmpty();
+        phase.Groups.Should().HaveCount(2);
+        phase.Groups.Should().AllSatisfy(g => g.LevelId.Should().BeNull());
+    }
+
+    [Fact]
+    public void UpdateLevel_ChangesName()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        var levelId = phase.Levels[0].Id;
+
+        structure.UpdateLevel(phase.Id, levelId, "Gold");
+
+        structure.GetLevel(phase.Id, levelId).Name.Should().Be("Gold");
+    }
+
+    [Fact]
+    public void UpdateLevel_NonExistentLevel_ThrowsNotFoundException()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var act = () => structure.UpdateLevel(phase.Id, "nonexistent", "Gold");
+
+        act.Should().Throw<NotFoundException>();
+    }
+
+    [Fact]
+    public void LevelNameExistsInPhase_DuplicateName_ReturnsTrue()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        structure.LevelNameExistsInPhase(phase.Id, "Level 1").Should().BeTrue();
+        structure.LevelNameExistsInPhase(phase.Id, "level 1").Should().BeTrue(); // case insensitive
+    }
+
+    [Fact]
+    public void LevelNameExistsInPhase_ExcludingSelf_ReturnsFalse()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        var levelId = phase.Levels[0].Id;
+
+        structure.LevelNameExistsInPhase(phase.Id, "Level 1", levelId).Should().BeFalse();
+    }
+
+    [Fact]
+    public void LevelNameExistsInPhase_NonExistentName_ReturnsFalse()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        structure.LevelNameExistsInPhase(phase.Id, "Gold").Should().BeFalse();
+    }
+
+    [Fact]
+    public void GetGroupsForLevel_ReturnsCorrectGroups()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 3);
+        var level1Id = phase.Levels[0].Id;
+
+        var groups = structure.GetGroupsForLevel(phase.Id, level1Id);
+
+        groups.Should().HaveCount(2);
+        groups.Should().AllSatisfy(g => g.LevelId.Should().Be(level1Id));
+    }
+
+    [Fact]
+    public void GetGroupsForLevel_NonExistentLevel_ThrowsNotFoundException()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var act = () => structure.GetGroupsForLevel(phase.Id, "nonexistent");
+
+        act.Should().Throw<NotFoundException>();
+    }
+
+    [Fact]
+    public void AddPhase_WithThreeLevels_CreatesCorrectStructure()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 3, numberOfLevels: 2);
+
+        phase.Groups.Should().HaveCount(6); // 3 groups x 2 levels
+        phase.Levels.Should().HaveCount(2);
+        phase.Groups.Select(g => g.Name).Should().Equal("A", "B", "C", "D", "E", "F");
+
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+        level1Groups.Should().HaveCount(3);
+        level2Groups.Should().HaveCount(3);
+    }
 }

@@ -211,6 +211,22 @@ Operations on phases, groups, teams, and courts are restricted based on phase st
 
 All state violations return HTTP 409 Conflict. Validation errors (e.g., unassigned teams) return HTTP 400.
 
+# Levels
+
+- A phase can optionally define levels via `NumberOfLevels` (null or 0 means no levels)
+- When levels are defined, groups are evenly distributed across levels
+- `NumberOfGroups` represents groups **per level** (total groups = NumberOfGroups × NumberOfLevels)
+- Each level has a default name ("Level 1", "Level 2") that can be customized
+- Level names must be unique within a phase
+- Levels have an order (1-based) determining their ranking priority
+- Auto-assign respects levels: teams are split by seed into levels (top half → Level 1, bottom half → Level 2), then snake-drafted within each level's groups
+- At phase completion, rankings incorporate levels (all Level 1 teams ranked above Level 2)
+- Manual team assignment has no level restrictions — teams can be freely assigned to any group regardless of level
+- When levels are not defined, everything behaves exactly as before (backward compatible)
+- Levels are structural — the number of levels cannot be changed while games exist
+- Level names can be updated independently of other phase properties
+- Levels cannot be modified on a completed phase
+
 # TBC
 
 # Phase
