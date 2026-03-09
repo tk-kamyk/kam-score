@@ -44,8 +44,8 @@ public class ScheduleGenerationService
 
         var savedGames = (await _gameRepository.CreateBatchAsync(allGames)).ToList();
 
-        // Activate phase 1 when games are generated (New -> InProgress)
-        if (phase.Order == 1 && phase.Status == PhaseStatus.New)
+        // Activate phase when games are generated (New -> InProgress)
+        if (phase.Status == PhaseStatus.New)
         {
             structure.ActivatePhase(phaseId);
             await _structureRepository.UpdateAsync(structure);
