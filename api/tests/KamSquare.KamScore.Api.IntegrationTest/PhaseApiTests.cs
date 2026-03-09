@@ -526,6 +526,8 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
         result!.StartTime.Should().Be("14:00");
     }
 
+    // Phase 2+ auto-assign uses seed ordering (not Random.Shared), so these tests
+    // assert membership rather than specific group placement.
     [Fact]
     public async Task AutoAssign_Phase2_WithResolvedPlaceholders_ShouldUseRealTeamIds()
     {
@@ -732,6 +734,53 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .SelectMany(g => g.TeamIds ?? []).ToList();
         // Bottom 4 teams: Team5(50), Team6(40), Team7(30), Team8(20)
         level2TeamIds.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public async Task UpdatePhase_ChangedProgression_ShouldRegeneratePlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, groupWinners: 1);
+        var phase2 = structure.AddPhase("Finals", PhaseFormat.PlayoffElimination, 1);
+        SetupTournamentAndStructure(tournament, structure);
+
+        // Setup existing placeholders from phase1
+        var existingPlaceholders = Enumerable.Range(1, 2)
+            .Select(seed => Team.CreatePlaceholder($"Groups - Seed {seed}", tournament.Id, phase1.Id, seed))
+            .ToList();
+        // Assign them to phase2
+        foreach (var p in existingPlaceholders)
+            phase2.Groups[0].AddTeam(p.Id);
+
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> teams) => Task.FromResult(teams));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        // Update phase1 with new groupWinners (1 -> 2), which changes progression
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", GroupWinners: 2);
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Old placeholders should be deleted
+        A.CallTo(() => _factory.FakeTeamRepository.DeleteBySourcePhaseIdAsync(
+            tournament.Id, phase1.Id))
+            .MustHaveHappenedOnceExactly();
+
+        // Old next phase games should be deleted
+        A.CallTo(() => _factory.FakeGameRepository.DeleteByPhaseIdAsync(
+            tournament.Id, phase2.Id))
+            .MustHaveHappenedOnceExactly();
+
+        // New placeholders should be created (4 = 2 groups × 2 winners)
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(
+            A<List<Team>>.That.Matches(teams =>
+                teams.Count == 4 &&
+                teams.All(t => t.IsPlaceholder && t.SourcePhaseId == phase1.Id))))
+            .MustHaveHappenedOnceExactly();
     }
 
     // phase1 is phase2's previous phase because it was added first (Order 1 vs Order 2)

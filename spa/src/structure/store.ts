@@ -13,6 +13,14 @@ export const useStructureStore = defineStore('structure', () => {
   const structure = ref<TournamentStructureDto | null>(null)
   const loading = ref(false)
 
+  function replacePhase(phaseId: string, data: PhaseDto) {
+    if (!structure.value?.phases) return
+    const index = structure.value.phases.findIndex(p => p.id === phaseId)
+    if (index >= 0) {
+      structure.value.phases[index] = data
+    }
+  }
+
   async function fetchStructure(tournamentId: string) {
     loading.value = true
     try {
@@ -45,12 +53,7 @@ export const useStructureStore = defineStore('structure', () => {
       `/tournaments/${tournamentId}/structure/phases/${phaseId}`,
       dto,
     )
-    if (structure.value?.phases) {
-      const index = structure.value.phases.findIndex(p => p.id === phaseId)
-      if (index >= 0) {
-        structure.value.phases[index] = data
-      }
-    }
+    replacePhase(phaseId, data)
     return data
   }
 
@@ -147,12 +150,7 @@ export const useStructureStore = defineStore('structure', () => {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/auto-assign`,
     )
-    if (structure.value?.phases) {
-      const index = structure.value.phases.findIndex(p => p.id === phaseId)
-      if (index >= 0) {
-        structure.value.phases[index] = data
-      }
-    }
+    replacePhase(phaseId, data)
     return data
   }
 
@@ -160,12 +158,7 @@ export const useStructureStore = defineStore('structure', () => {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/complete`,
     )
-    if (structure.value?.phases) {
-      const index = structure.value.phases.findIndex(p => p.id === phaseId)
-      if (index >= 0) {
-        structure.value.phases[index] = data
-      }
-    }
+    replacePhase(phaseId, data)
     return data
   }
 
@@ -193,12 +186,7 @@ export const useStructureStore = defineStore('structure', () => {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/reopen`,
     )
-    if (structure.value?.phases) {
-      const index = structure.value.phases.findIndex(p => p.id === phaseId)
-      if (index >= 0) {
-        structure.value.phases[index] = data
-      }
-    }
+    replacePhase(phaseId, data)
     return data
   }
 

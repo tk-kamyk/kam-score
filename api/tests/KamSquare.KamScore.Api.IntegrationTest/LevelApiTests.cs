@@ -198,6 +198,22 @@ public class LevelApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task UpdateLevel_NonExistentPhase_ShouldReturn404()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new LevelDto(null, "Gold");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/nonexistent/levels/some-level", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
     public async Task UpdateLevel_NonOwner_ShouldReturn403()
     {
         var tournament = CreateTestTournament("alice");

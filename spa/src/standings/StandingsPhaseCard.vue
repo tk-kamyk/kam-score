@@ -61,20 +61,16 @@ const selectedGroupGames = computed(() => {
         >
           <template v-if="hasLevels">
             <template v-for="{ level, groups } in groupsByLevel" :key="level.id">
-              <div class="level-chip-section">
-                <div class="text-subtitle-2 font-weight-bold mb-1">{{ level.name }}</div>
-                <div class="d-flex flex-wrap ga-1">
-                  <v-chip
-                    v-for="group in groups"
-                    :key="group.id"
-                    :value="group.id"
-                    variant="outlined"
-                    filter
-                  >
-                    Group {{ group.name }}
-                  </v-chip>
-                </div>
-              </div>
+              <h4 class="level-chip-label text-subtitle-2 font-weight-bold w-100 mb-1">{{ level.name }}</h4>
+              <v-chip
+                v-for="group in groups"
+                :key="group.id"
+                :value="group.id"
+                variant="outlined"
+                filter
+              >
+                Group {{ group.name }}
+              </v-chip>
             </template>
           </template>
           <template v-else>
@@ -123,7 +119,11 @@ const selectedGroupGames = computed(() => {
 </template>
 
 <style scoped>
-.level-chip-section:not(:last-child) {
-  margin-bottom: 8px;
+.level-chip-label {
+  flex-basis: 100%;
+}
+
+.level-chip-label:not(:first-child) {
+  margin-top: 8px;
 }
 </style>

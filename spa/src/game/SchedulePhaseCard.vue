@@ -62,7 +62,7 @@ function groupName(groupId: string): string {
       <template v-if="games.length > 0">
         <template v-if="hasLevels">
           <div v-for="{ level, groupIds } in groupsByLevel" :key="level.id" class="level-section">
-            <div class="text-subtitle-1 font-weight-bold mb-1 mt-2">{{ level.name }}</div>
+            <h3 class="text-subtitle-1 font-weight-bold mb-1 mt-2">{{ level.name }}</h3>
             <template v-for="(groupGames, groupId) in gamesByGroup(games)" :key="groupId">
               <ScheduleGroupGames
                 v-if="groupIds.includes(groupId as string)"

@@ -74,9 +74,7 @@ public static class PhaseEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var phase = structure.GetPhase(phaseId);
-
-        if (phase.Status == PhaseStatus.Completed)
-            throw new PhaseStateException(phase.Name, "edit", "phase is completed");
+        await phaseGuardService.EnsureEditableAsync(phase);
 
         var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
         var structuralFieldsChanged = phase.Format != format
@@ -109,7 +107,6 @@ public static class PhaseEndpoints
         string phaseId,
         ITournamentStructureRepository structureRepository,
         ITournamentRepository tournamentRepository,
-        ITeamRepository teamRepository,
         PhaseCompletionService phaseCompletionService,
         PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
@@ -122,26 +119,7 @@ public static class PhaseEndpoints
         var phase = structure.GetPhase(phaseId);
         await phaseGuardService.EnsureDeletableAsync(phase, tournamentId);
 
-        // Capture neighbors before deletion
-        var previousPhase = structure.GetPreviousPhase(phaseId);
-        var nextPhase = structure.GetNextPhase(phaseId);
-
-        // Delete placeholder teams created FOR this phase (from previous phase's progression)
-        if (previousPhase is not null)
-        {
-            await teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, previousPhase.Id);
-        }
-
-        // Delete placeholder teams created FROM this phase's progression (for next phase)
-        await teamRepository.DeleteBySourcePhaseIdAsync(tournamentId, phaseId);
-
-        structure.RemovePhase(phaseId);
-
-        // Regenerate placeholders for successor phase based on new adjacency
-        await phaseCompletionService.RegeneratePlaceholdersAfterDeletionAsync(
-            structure, previousPhase, nextPhase, tournamentId);
-
-        await structureRepository.UpdateAsync(structure);
+        await phaseCompletionService.HandlePhaseDeletionAsync(structure, phaseId, tournamentId);
 
         return Results.NoContent();
     }

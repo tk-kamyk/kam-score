@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
@@ -20,6 +20,9 @@ const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } =
 const showRenameDialog = ref(false)
 const newName = ref('')
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
+const renameBtnRef = ref<InstanceType<any> | null>(null)
+
+const dialogTitleId = `rename-level-title-${props.level.id}`
 
 const nameRules = [
   (v: string) => !!v || 'Level name is required.',
@@ -42,6 +45,8 @@ async function handleRename() {
     })
     showRenameDialog.value = false
     showSuccess('Level renamed')
+    await nextTick()
+    renameBtnRef.value?.$el?.focus()
   } catch (error) {
     if (!handleError(error)) {
       showError('Failed to rename level')
@@ -52,9 +57,10 @@ async function handleRename() {
 
 <template>
   <div class="level-header d-flex align-center ga-2 mb-2">
-    <span class="text-subtitle-1 font-weight-bold">{{ level.name }}</span>
+    <h3 class="text-subtitle-1 font-weight-bold">{{ level.name }}</h3>
     <v-btn
       v-if="editing"
+      ref="renameBtnRef"
       icon="mdi-pencil"
       variant="text"
       size="x-small"
@@ -63,9 +69,9 @@ async function handleRename() {
     />
   </div>
 
-  <v-dialog v-model="showRenameDialog" max-width="400">
+  <v-dialog v-model="showRenameDialog" max-width="400" :aria-labelledby="dialogTitleId">
     <v-card class="pa-2">
-      <v-card-title class="text-uppercase dialog-title">Rename Level</v-card-title>
+      <v-card-title :id="dialogTitleId" class="text-uppercase dialog-title">Rename Level</v-card-title>
       <v-card-text>
         <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
           {{ generalError }}
