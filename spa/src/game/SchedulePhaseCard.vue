@@ -30,6 +30,16 @@ const allGamesCompleted = computed(() =>
   props.games.length > 0 && props.games.every(g => g.status === 'Completed'),
 )
 
+const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
+
+const groupsByLevel = computed(() => {
+  if (!hasLevels.value) return []
+  return (props.phase.levels ?? []).map(level => ({
+    level,
+    groupIds: (props.phase.groups ?? []).filter(g => g.levelId === level.id).map(g => g.id!),
+  }))
+})
+
 function gamesByGroup(games: GameDto[]): Record<string, GameDto[]> {
   const map: Record<string, GameDto[]> = {}
   for (const game of games) {
@@ -50,17 +60,36 @@ function groupName(groupId: string): string {
   <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
     <v-card-text class="py-0">
       <template v-if="games.length > 0">
-        <ScheduleGroupGames
-          v-for="(groupGames, groupId) in gamesByGroup(games)"
-          :key="groupId"
-          :phase-id="phase.id!"
-          :group-id="groupId as string"
-          :group-name="groupName(groupId as string)"
-          :games="groupGames"
-          :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
-          @toggle="emit('toggle-group', groupId as string)"
-          @open-result="(game) => emit('open-result', game)"
-        />
+        <template v-if="hasLevels">
+          <div v-for="{ level, groupIds } in groupsByLevel" :key="level.id" class="level-section">
+            <div class="text-subtitle-1 font-weight-bold mb-1 mt-2">{{ level.name }}</div>
+            <template v-for="(groupGames, groupId) in gamesByGroup(games)" :key="groupId">
+              <ScheduleGroupGames
+                v-if="groupIds.includes(groupId as string)"
+                :phase-id="phase.id!"
+                :group-id="groupId as string"
+                :group-name="groupName(groupId as string)"
+                :games="groupGames"
+                :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
+                @toggle="emit('toggle-group', groupId as string)"
+                @open-result="(game) => emit('open-result', game)"
+              />
+            </template>
+          </div>
+        </template>
+        <template v-else>
+          <ScheduleGroupGames
+            v-for="(groupGames, groupId) in gamesByGroup(games)"
+            :key="groupId"
+            :phase-id="phase.id!"
+            :group-id="groupId as string"
+            :group-name="groupName(groupId as string)"
+            :games="groupGames"
+            :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
+            @toggle="emit('toggle-group', groupId as string)"
+            @open-result="(game) => emit('open-result', game)"
+          />
+        </template>
       </template>
 
       <v-alert
@@ -119,3 +148,10 @@ function groupName(groupId: string): string {
     </template>
   </CollapsiblePhaseCard>
 </template>
+
+<style scoped>
+.level-section:not(:last-child) {
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--ks-border-subtle);
+}
+</style>
