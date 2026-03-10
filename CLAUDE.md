@@ -202,6 +202,7 @@ docker compose up              # Full stack (API + SPA)
 
 #### Domain logic placement
 - Validation, format-checking, and business rules that operate on a single entity belong **in the entity class**, not in API helpers or endpoints. Example: tournament code validation (`IsCodeValid()`) lives on `Tournament`, not in an endpoint helper
+- **Endpoint handlers must NOT contain business rules** — including field classification (e.g., which fields are "structural"), conditional business logic, or domain calculations. Move these to entity methods or domain services. Endpoints should only: validate auth, map DTOs, delegate to domain/services, return HTTP responses
 - Use `[GeneratedRegex]` with `partial class` when entities need regex validation
 - Domain services (static classes in `Domain/Services/`) handle cross-entity logic that doesn't belong to a single entity (e.g., `StandingsCalculator`, `GameScheduler`)
 

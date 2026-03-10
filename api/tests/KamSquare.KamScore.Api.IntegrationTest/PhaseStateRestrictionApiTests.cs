@@ -113,6 +113,58 @@ public class PhaseStateRestrictionApiTests : IClassFixture<KamScoreWebApplicatio
         result!.Name.Should().Be("Renamed Groups");
     }
 
+    // --- 3a. UpdatePhase progression fields with games returns 200 ---
+
+    [Fact]
+    public async Task UpdatePhase_ProgressionFieldsWithGames_Returns200()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        phase.Activate();
+        SetupTournamentAndStructure(tournament, structure);
+
+        A.CallTo(() => _factory.FakeGameRepository.GamesExistForPhaseAsync(tournament.Id, phase.Id))
+            .Returns(true);
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        // Change groupWinners (default: null) and totalTeamsProceeding (default: null) — not structural
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", GroupWinners: 2, TotalTeamsProceeding: 6);
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.GroupWinners.Should().Be(2);
+        result!.TotalTeamsProceeding.Should().Be(6);
+    }
+
+    // --- 3b. UpdatePhase start time with games returns 409 ---
+
+    [Fact]
+    public async Task UpdatePhase_StartTimeWithGames_Returns409()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2,
+            startTime: new TimeOnly(9, 0));
+        phase.Activate();
+        SetupTournamentAndStructure(tournament, structure);
+
+        A.CallTo(() => _factory.FakeGameRepository.GamesExistForPhaseAsync(tournament.Id, phase.Id))
+            .Returns(true);
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        // Change start time — structural change
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", StartTime: "14:00");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+    }
+
     // --- 4. DeletePhase when Completed returns 409 ---
 
     [Fact]

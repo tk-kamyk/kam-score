@@ -77,17 +77,13 @@ public static class PhaseEndpoints
         await phaseGuardService.EnsureEditableAsync(phase);
 
         var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
-        var structuralFieldsChanged = phase.Format != format
-            || phase.GroupWinners != request.GroupWinners
-            || phase.TotalTeamsProceeding != request.TotalTeamsProceeding;
+        var startTime = mapper.Map<TimeOnly?>(request.StartTime);
 
-        if (structuralFieldsChanged)
+        if (phase.HasStructuralChanges(format, startTime))
             await phaseGuardService.EnsureStructureEditableAsync(phase, tournamentId);
 
         var oldGroupWinners = phase.GroupWinners;
         var oldTotalTeamsProceeding = phase.TotalTeamsProceeding;
-
-        var startTime = mapper.Map<TimeOnly?>(request.StartTime);
         structure.UpdatePhase(phaseId, request.Name, format,
             request.GroupWinners, request.TotalTeamsProceeding, startTime);
         await structureRepository.UpdateAsync(structure);

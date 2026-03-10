@@ -95,6 +95,7 @@ async function handleDeletePhase(phaseId: string) {
       v-model="showPhaseForm"
       :tournament-id="tournamentId"
       :phase="editingPhase"
+      :has-games="editingPhase !== null && editingPhase.status !== 'New'"
       @saved="handlePhaseSaved"
     />
   </div>

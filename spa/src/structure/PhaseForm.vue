@@ -10,6 +10,7 @@ import type { VForm } from 'vuetify/components'
 const props = defineProps<{
   tournamentId: string
   phase: PhaseDto | null
+  hasGames?: boolean
 }>()
 
 const model = defineModel<boolean>()
@@ -139,6 +140,9 @@ async function handleSave() {
             :items="PHASE_FORMATS"
             item-title="title"
             item-value="value"
+            :disabled="props.hasGames"
+            :hint="props.hasGames ? 'Cannot change format while games exist' : undefined"
+            :persistent-hint="!!props.hasGames"
             :error-messages="fieldErrors('format')"
             @update:model-value="clearFieldError('format')"
           />
@@ -192,8 +196,9 @@ async function handleSave() {
             v-model="form.startTime"
             label="Start Time"
             type="time"
-            hint="Baseline time for scheduling games in this phase"
+            :hint="props.hasGames ? 'Cannot change start time while games exist' : 'Baseline time for scheduling games in this phase'"
             persistent-hint
+            :disabled="props.hasGames"
             clearable
           />
         </v-form>

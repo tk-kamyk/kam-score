@@ -26,6 +26,18 @@ Feature: Phase State Restrictions
     When I update the phase name to "Round Robin Stage"
     Then the request succeeds with status 200
 
+  Scenario: Can change progression fields when games exist
+    Given a phase "Group Stage" with status "InProgress" and generated games
+    When I update the phase with groupWinners 2 and totalTeamsProceeding 6
+    Then the request succeeds with status 200
+    And the phase has groupWinners 2 and totalTeamsProceeding 6
+
+  Scenario: Cannot change start time when games exist
+    Given a phase "Group Stage" with status "InProgress", start time "09:00", and generated games
+    When I try to change the start time to "14:00"
+    Then the request is rejected with status 409
+    And the error message contains "games have been generated"
+
   Scenario: Cannot delete a phase with generated games
     Given a phase "Group Stage" with status "InProgress" and generated games
     When I try to delete the phase
