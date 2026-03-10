@@ -55,6 +55,12 @@ The codebase follows a strict placement hierarchy for business logic:
 
 **Rule of thumb**: If logic only needs the entity's own state, it belongs on the entity. If it needs multiple repositories or cross-entity coordination, it belongs in an Application service. API-layer code should only contain HTTP-specific concerns (headers, routing, auth checks) and delegation.
 
+**Anti-patterns — do NOT put these in endpoint handlers:**
+- Field classification logic (e.g., determining which fields are "structural" vs "non-structural") → entity method
+- Conditional business logic (e.g., "if format changed, block update") → entity or guard service
+- Domain calculations or comparisons between old and new state → entity method
+- Business rule checks beyond simple null/empty guards → entity or domain service
+
 ### Application Services
 
 Services are introduced when endpoint handlers grow beyond simple CRUD:

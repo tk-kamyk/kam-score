@@ -41,8 +41,9 @@ const previousPhaseId = computed(() => {
   return phases.find(p => p.order === currentOrder - 1)?.id
 })
 
-const isLocked = computed(() => props.phase.status !== 'New')
-const lockReason = computed(() => {
+const isCompleted = computed(() => props.phase.status === 'Completed')
+const isActivated = computed(() => props.phase.status !== 'New')
+const structureLockReason = computed(() => {
   if (props.phase.status === 'Completed') return 'Reopen the phase first'
   if (props.phase.status === 'InProgress') return 'Delete games first to edit structure'
   return ''
@@ -124,13 +125,13 @@ async function handleAutoAssign() {
 
     <template #header-actions>
       <div v-if="editing">
-        <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+        <v-tooltip v-if="isCompleted" text="Reopen the phase first" location="top">
           <template #activator="{ props: tp }">
             <v-btn v-bind="tp" icon="mdi-pencil" variant="text" size="small" aria-disabled="true" :aria-label="'Edit phase ' + phase.name" />
           </template>
         </v-tooltip>
         <v-btn v-else icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click.stop="emit('edit', phase)" />
-        <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+        <v-tooltip v-if="isActivated" :text="structureLockReason" location="top">
           <template #activator="{ props: tp }">
             <v-btn v-bind="tp" icon="mdi-delete" variant="text" size="small" color="error" aria-disabled="true" :aria-label="'Delete phase ' + phase.name" />
           </template>
@@ -166,14 +167,14 @@ async function handleAutoAssign() {
 
     <v-card-text>
       <v-alert
-        v-if="editing && isLocked"
+        v-if="editing && isActivated"
         type="warning"
         variant="tonal"
         density="compact"
         class="mb-3"
         prepend-icon="mdi-lock"
       >
-        {{ lockReason }}
+        {{ structureLockReason }}
       </v-alert>
       <!-- Groups organized by level -->
       <template v-if="hasLevels">
@@ -182,7 +183,7 @@ async function handleAutoAssign() {
             :tournament-id="tournamentId"
             :phase-id="phase.id!"
             :level="level"
-            :editing="editing && !isLocked"
+            :editing="editing && !isActivated"
           />
           <div v-if="groups.length > 0" class="groups-grid">
             <StructureGroupItem
@@ -192,7 +193,7 @@ async function handleAutoAssign() {
               :phase-id="phase.id!"
               :group="group"
               :teams="teams"
-              :editing="editing && !isLocked"
+              :editing="editing && !isActivated"
               :all-groups="phase.groups ?? []"
               :phase-order="phase.order ?? 1"
               :previous-phase-id="previousPhaseId"
@@ -210,7 +211,7 @@ async function handleAutoAssign() {
           :phase-id="phase.id!"
           :group="group"
           :teams="teams"
-          :editing="editing && !isLocked"
+          :editing="editing && !isActivated"
           :all-groups="phase.groups ?? []"
           :phase-order="phase.order ?? 1"
           :previous-phase-id="previousPhaseId"
@@ -223,7 +224,7 @@ async function handleAutoAssign() {
     </v-card-text>
 
     <template v-if="editing" #actions>
-      <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+      <v-tooltip v-if="isActivated" :text="structureLockReason" location="top">
         <template #activator="{ props: tp }">
           <v-btn
             v-bind="tp"
@@ -245,7 +246,7 @@ async function handleAutoAssign() {
       >
         Add Group
       </v-btn>
-      <v-tooltip v-if="isLocked" :text="lockReason" location="top">
+      <v-tooltip v-if="isActivated" :text="structureLockReason" location="top">
         <template #activator="{ props: tp }">
           <v-btn
             v-bind="tp"

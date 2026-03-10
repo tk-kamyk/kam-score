@@ -71,6 +71,11 @@ public class Phase
         StartTime = startTime;
     }
 
+    public bool HasStructuralChanges(PhaseFormat newFormat, TimeOnly? newStartTime)
+    {
+        return Format != newFormat || StartTime != newStartTime;
+    }
+
     public void Activate()
     {
         Status = PhaseStatus.InProgress;

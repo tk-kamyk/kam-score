@@ -185,11 +185,11 @@ Operations on phases, groups, teams, and courts are restricted based on phase st
 - Must reopen first to make any changes
 
 ## Phases with generated games (InProgress or New with games)
-- Cannot change structural fields (format, groupWinners, totalTeamsProceeding)
+- Cannot change structural fields (format, start time)
 - Cannot add/delete groups
 - Cannot assign/remove teams or auto-assign teams
 - Cannot delete the phase
-- **Can** change non-structural fields (name, start time)
+- **Can** change non-structural fields (name, groupWinners, totalTeamsProceeding)
 - **Can** rename groups
 - Must delete games first to modify structure
 
