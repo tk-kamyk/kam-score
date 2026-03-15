@@ -45,6 +45,7 @@ const isCompleted = computed(() => props.phase.status === 'Completed')
 const isActivated = computed(() => props.phase.status !== 'New')
 const structureLockReason = computed(() => {
   if (props.phase.status === 'Completed') return 'Reopen the phase first'
+  if (props.phase.status === 'Scheduled') return 'Delete games first to edit structure'
   if (props.phase.status === 'InProgress') return 'Delete games first to edit structure'
   return ''
 })
