@@ -55,10 +55,3 @@ Feature: Team Auto-Assignment
     When I seed teams using "TopTogether" strategy
     Then group "A" should have Eagles(1st) and Hawks(2nd)
     And group "B" should have Wolves(3rd) and Bears(4th)
-
-  Scenario: Standings calculation
-    # Not yet implemented — depends on game results feature
-    Given group "A" has completed games with results
-    When I request standings for group "A"
-    Then standings should be ordered by: wins → set ratio → point ratio
-    And each entry should show: rank, team, wins, losses, sets won/lost, points won/lost
