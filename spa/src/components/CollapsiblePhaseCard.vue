@@ -15,6 +15,7 @@ const emit = defineEmits<{
 const slots = useSlots()
 
 const statusChip = computed(() => {
+  if (props.phase.status === 'Scheduled') return { color: 'info', icon: 'mdi-calendar-clock', label: 'Scheduled' }
   if (props.phase.status === 'InProgress') return { color: 'warning', icon: 'mdi-play-circle-outline', label: 'In Progress' }
   if (props.phase.status === 'Completed') return { color: 'success', icon: 'mdi-check-circle-outline', label: 'Completed' }
   return null

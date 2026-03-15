@@ -44,7 +44,7 @@ public class PhaseCompletionService
         structure.CompletePhase(phaseId);
 
         var nextPhase = structure.GetNextPhase(phaseId);
-        var hasProgressionConfig = phase.GroupWinners is not null || phase.TotalTeamsProceeding is not null;
+        var hasProgressionConfig = phase.HasProgressionConfig;
 
         if (nextPhase is not null && hasProgressionConfig)
         {
@@ -70,6 +70,11 @@ public class PhaseCompletionService
                 structure.AutoAssignTeams(nextPhase.Id, seededIds);
             }
 
+            // Activate next phase now that teams are resolved (Scheduled -> InProgress)
+            if (nextPhase.Status == PhaseStatus.Scheduled)
+            {
+                structure.ActivatePhase(nextPhase.Id);
+            }
         }
 
         await _structureRepository.UpdateAsync(structure);

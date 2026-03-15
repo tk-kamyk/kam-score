@@ -428,7 +428,7 @@ public class TournamentStructureTests
     }
 
     [Fact]
-    public void ReopenPhase_ShouldRevertNextPhaseToNew_ButKeepTeams()
+    public void ReopenPhase_ShouldRevertNextPhaseToScheduled_WhenInProgress()
     {
         var structure = TournamentStructure.Create("tournament-1");
         var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
@@ -440,8 +440,34 @@ public class TournamentStructureTests
 
         structure.ReopenPhase(phase1.Id);
 
-        phase2.Status.Should().Be(PhaseStatus.New);
+        phase2.Status.Should().Be(PhaseStatus.Scheduled);
         phase2.Groups.SelectMany(g => g.TeamIds).Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void ReopenPhase_ShouldNotChangeNextPhaseStatus_WhenScheduled()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase1 = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+        structure.ActivatePhase(phase1.Id);
+        structure.CompletePhase(phase1.Id);
+        structure.SchedulePhase(phase2.Id);
+
+        structure.ReopenPhase(phase1.Id);
+
+        phase2.Status.Should().Be(PhaseStatus.Scheduled);
+    }
+
+    [Fact]
+    public void SchedulePhase_ShouldSetStatusToScheduled()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        structure.SchedulePhase(phase.Id);
+
+        phase.Status.Should().Be(PhaseStatus.Scheduled);
     }
 
     [Fact]

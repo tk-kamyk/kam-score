@@ -275,7 +275,7 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
     }
 
     [Fact]
-    public async Task ReopenPhase_ClearsNextPhaseTeamsAndRevertsToNew()
+    public async Task ReopenPhase_ClearsNextPhaseTeamsAndRevertsToScheduled()
     {
         var tournament = CreateTestTournament();
         var structure = CreateTwoPhaseStructure(tournament.Id);
@@ -293,7 +293,7 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         await client.PostAsync(
             $"/api/tournaments/{tournament.Id}/structure/phases/{phase1.Id}/reopen", null);
 
-        phase2.Status.Should().Be(PhaseStatus.New);
+        phase2.Status.Should().Be(PhaseStatus.Scheduled);
         phase2.Groups.Should().AllSatisfy(g => g.TeamIds.Should().BeEmpty());
     }
 
@@ -654,5 +654,48 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         phase2.Status.Should().Be(PhaseStatus.InProgress);
+    }
+
+    [Fact]
+    public async Task GenerateGames_Phase2WithIncompletePreviousPhase_SetsScheduledStatus()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTwoPhaseStructure(tournament.Id);
+        var phase1 = structure.Phases[0];
+        var phase2 = structure.Phases[1];
+
+        // Phase 1 is InProgress (not completed) — phase 2 should become Scheduled
+        phase2.Groups[0].AddTeam("team1");
+        phase2.Groups[0].AddTeam("team2");
+        phase2.Groups[0].AddTeam("team3");
+        phase2.Groups[0].AddTeam("team4");
+
+        var courts = new List<Court> { Court.Create("Court 1", tournament.Id) };
+        var teams = new List<Team>
+        {
+            Team.Create("Team 1", 50, tournament.Id),
+            Team.Create("Team 2", 40, tournament.Id),
+            Team.Create("Team 3", 30, tournament.Id),
+            Team.Create("Team 4", 20, tournament.Id)
+        };
+
+        SetupFakes(tournament, structure);
+        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(courts);
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(teams);
+        A.CallTo(() => _factory.FakeGameRepository.GamesExistForPhaseAsync(
+            tournament.Id, phase2.Id)).Returns(false);
+        A.CallTo(() => _factory.FakeGameRepository.CreateBatchAsync(A<IEnumerable<Game>>.Ignored))
+            .ReturnsLazily((IEnumerable<Game> games) => Task.FromResult(games));
+
+        phase2.Status.Should().Be(PhaseStatus.New);
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase2.Id}/generate-schedule", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        phase2.Status.Should().Be(PhaseStatus.Scheduled);
     }
 }
