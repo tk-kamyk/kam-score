@@ -62,3 +62,41 @@ Feature: Team Management
     Given a tournament "Summer Cup" exists
     When a visitor attempts to add a team to "Summer Cup"
     Then the request is rejected with 401 Unauthorized
+
+  # --- Team Schedule & Participation ---
+
+  Scenario: API returns games filtered by teamId
+    Given a tournament with teams "Eagles" and "Hawks" and "Wolves"
+    And a phase with scheduled games including "Eagles" vs "Hawks" and "Hawks" vs "Wolves"
+    When a user requests games filtered by teamId for "Hawks"
+    Then the response contains games where "Hawks" plays (home or away) or referees
+    And the response does not contain games where "Hawks" is not involved
+
+  Scenario: Game response includes phase, group, and level names
+    Given a tournament with a phase "Group Stage" (RoundRobin) with group "A" in level "Main"
+    And scheduled games in that group
+    When a user requests the games
+    Then each game includes phaseName "Group Stage", groupName "A", and levelName "Main"
+
+  Scenario: Team schedule shows games grouped by phase
+    Given a tournament with teams assigned to multiple phases
+    And games scheduled across those phases
+    When a user expands a team row in the team list
+    Then the team's games are displayed grouped under phase headers
+    And each header shows the phase name, format, and group name
+
+  Scenario: Team schedule highlights team's role in each game
+    Given a tournament with "Eagles" playing home, away, and refereeing in different games
+    When a user expands the "Eagles" team row
+    Then each game row shows the team's role: "Home", "Away", or "Referee"
+
+  Scenario: Team schedule shows breaks when toggled on
+    Given a tournament with scheduled games across 5 time slots
+    And "Eagles" is involved in 3 of those 5 time slots
+    When a user expands "Eagles" and enables "Show breaks"
+    Then 2 break rows are displayed for the time slots where "Eagles" has no game
+
+  Scenario: Team with no scheduled games shows empty message
+    Given a tournament with team "Eagles" assigned to no games
+    When a user expands the "Eagles" team row
+    Then the message "No games scheduled for this team" is displayed
