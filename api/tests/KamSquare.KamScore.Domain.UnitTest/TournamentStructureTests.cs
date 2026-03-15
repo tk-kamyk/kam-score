@@ -796,4 +796,266 @@ public class TournamentStructureTests
         phase.Groups[1].TeamIds.Should().Equal("team-2", "team-5", "team-8");
         phase.Groups[2].TeamIds.Should().Equal("team-3", "team-4", "team-9");
     }
+
+    // --- Cascading Level Constraint ---
+
+    [Fact]
+    public void AddPhase_SameLevelCountAsPrevious_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 2);
+
+        phase2.Levels.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void AddPhase_MultipleLevelCountOfPrevious_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 4);
+
+        phase2.Levels.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public void AddPhase_TripleLevelCount_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 6);
+
+        phase2.Levels.Should().HaveCount(6);
+    }
+
+    [Fact]
+    public void AddPhase_FewerLevelsThanPrevious_ThrowsArgumentException()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var act = () => structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 1);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*at least 2 levels*");
+    }
+
+    [Fact]
+    public void AddPhase_NonMultipleLevelCount_ThrowsArgumentException()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var act = () => structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 3);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*multiple*");
+    }
+
+    [Fact]
+    public void AddPhase_NoLevelsAfterLeveledPhase_ThrowsArgumentException()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+
+        var act = () => structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*must have levels*");
+    }
+
+    [Fact]
+    public void AddPhase_NoLevelsAfterNoLevels_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1);
+
+        phase2.Levels.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AddPhase_IntroduceLevelsAfterNoLevels_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+
+        var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 2);
+
+        phase2.Levels.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RemovePhase_ValidMultipleLevelGap_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        var phase2 = structure.AddPhase("Phase 2", PhaseFormat.RoundRobin, 2, numberOfLevels: 4);
+        structure.AddPhase("Phase 3", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 4);
+
+        // Removing Phase 2 would leave Phase 1 (2 levels) → Phase 3 (4 levels), which is valid (4 % 2 == 0)
+        structure.RemovePhase(phase2.Id);
+
+        structure.Phases.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RemovePhase_ValidNonMultipleGap_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 2, numberOfLevels: 3);
+        var phase2 = structure.AddPhase("Phase 2", PhaseFormat.RoundRobin, 2, numberOfLevels: 6);
+        structure.AddPhase("Phase 3", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 6);
+
+        // Removing Phase 2: Phase 1 (3 levels) → Phase 3 (6 levels), valid (6 % 3 == 0)
+        structure.RemovePhase(phase2.Id);
+
+        structure.Phases.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RemovePhase_GapFromNoLevelsToLevels_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 2);
+        var phase2 = structure.AddPhase("Phase 2", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        structure.AddPhase("Phase 3", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 2);
+
+        // Removing Phase 2: Phase 1 (0 levels) → Phase 3 (2 levels)
+        // Phase 1 has no levels, so any count is valid → should succeed
+        structure.RemovePhase(phase2.Id);
+
+        structure.Phases.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RemovePhase_SameLevelCountGap_Succeeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 2, numberOfLevels: 4);
+        var phase2 = structure.AddPhase("Phase 2", PhaseFormat.RoundRobin, 2, numberOfLevels: 4);
+        structure.AddPhase("Phase 3", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 4);
+
+        // Removing Phase 2: Phase 1 (4 levels) → Phase 3 (4 levels) — valid
+        structure.RemovePhase(phase2.Id);
+
+        structure.Phases.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RemovePhase_ValidChain_CanNeverBreakConstraint()
+    {
+        // Divisibility is transitive: if a | b and b | c, then a | c.
+        // So removing a middle phase from a validly-constructed chain can never create
+        // an invalid gap. This test documents that the RemovePhase validation is defensive.
+        var structure = TournamentStructure.Create("tournament-1");
+        structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        var phase2 = structure.AddPhase("Phase 2", PhaseFormat.RoundRobin, 2, numberOfLevels: 4);
+        structure.AddPhase("Phase 3", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 4);
+
+        // Removing Phase 2: Phase 1 (2) → Phase 3 (4) — valid (4 % 2 == 0)
+        structure.RemovePhase(phase2.Id);
+
+        structure.Phases.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void RemovePhase_FirstPhase_AlwaysSucceeds()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase1 = structure.AddPhase("Phase 1", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        structure.AddPhase("Phase 2", PhaseFormat.PlayoffElimination, 1, numberOfLevels: 2);
+
+        structure.RemovePhase(phase1.Id);
+
+        structure.Phases.Should().HaveCount(1);
+        structure.Phases[0].Name.Should().Be("Phase 2");
+    }
+
+    // --- Level-Scoped Auto-Assign with Split ---
+
+    [Fact]
+    public void AutoAssignTeams_WithLevelSplit_DistributesPerSourceLevel()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        // Target phase has 4 levels, source had 2 levels
+        var phase = structure.AddPhase("Playoffs", PhaseFormat.RoundRobin, 1, numberOfLevels: 4);
+        // 8 teams ordered by seed: seeds 1-4 from source L1, seeds 5-8 from source L2
+        var orderedIds = Enumerable.Range(1, 8).Select(i => $"seed-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, orderedIds, sourceLevelCount: 2);
+
+        // Source L1 (seeds 1-4) → Target L1 + L2
+        var tl1 = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).SelectMany(g => g.TeamIds).ToList();
+        var tl2 = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).SelectMany(g => g.TeamIds).ToList();
+        tl1.Should().BeEquivalentTo(["seed-1", "seed-2"]);
+        tl2.Should().BeEquivalentTo(["seed-3", "seed-4"]);
+
+        // Source L2 (seeds 5-8) → Target L3 + L4
+        var tl3 = phase.Groups.Where(g => g.LevelId == phase.Levels[2].Id).SelectMany(g => g.TeamIds).ToList();
+        var tl4 = phase.Groups.Where(g => g.LevelId == phase.Levels[3].Id).SelectMany(g => g.TeamIds).ToList();
+        tl3.Should().BeEquivalentTo(["seed-5", "seed-6"]);
+        tl4.Should().BeEquivalentTo(["seed-7", "seed-8"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_WithLevelSplit_UnevenTeamsPerSourceLevel()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Playoffs", PhaseFormat.RoundRobin, 1, numberOfLevels: 4);
+        // 6 teams: 3 per source level
+        var orderedIds = Enumerable.Range(1, 6).Select(i => $"seed-{i}").ToList();
+
+        structure.AutoAssignTeams(phase.Id, orderedIds, sourceLevelCount: 2);
+
+        // Source L1 (seeds 1-3) → Target L1 + L2 (2 + 1)
+        var tl1 = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).SelectMany(g => g.TeamIds).ToList();
+        var tl2 = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).SelectMany(g => g.TeamIds).ToList();
+        (tl1.Count + tl2.Count).Should().Be(3);
+        tl1.Concat(tl2).Should().BeEquivalentTo(["seed-1", "seed-2", "seed-3"]);
+
+        // Source L2 (seeds 4-6) → Target L3 + L4 (2 + 1)
+        var tl3 = phase.Groups.Where(g => g.LevelId == phase.Levels[2].Id).SelectMany(g => g.TeamIds).ToList();
+        var tl4 = phase.Groups.Where(g => g.LevelId == phase.Levels[3].Id).SelectMany(g => g.TeamIds).ToList();
+        (tl3.Count + tl4.Count).Should().Be(3);
+        tl3.Concat(tl4).Should().BeEquivalentTo(["seed-4", "seed-5", "seed-6"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_SameLevelCount_NoSplit()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Playoffs", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        var orderedIds = Enumerable.Range(1, 8).Select(i => $"seed-{i}").ToList();
+
+        // sourceLevelCount == targetLevelCount → no split, even distribution
+        structure.AutoAssignTeams(phase.Id, orderedIds, sourceLevelCount: 2);
+
+        var level1Teams = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id)
+            .SelectMany(g => g.TeamIds).ToList();
+        var level2Teams = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id)
+            .SelectMany(g => g.TeamIds).ToList();
+        level1Teams.Should().BeEquivalentTo(["seed-1", "seed-2", "seed-3", "seed-4"]);
+        level2Teams.Should().BeEquivalentTo(["seed-5", "seed-6", "seed-7", "seed-8"]);
+    }
+
+    [Fact]
+    public void AutoAssignTeams_ZeroSourceLevelCount_EvenDistribution()
+    {
+        var structure = TournamentStructure.Create("tournament-1");
+        var phase = structure.AddPhase("Playoffs", PhaseFormat.RoundRobin, 1, numberOfLevels: 2);
+        var orderedIds = Enumerable.Range(1, 4).Select(i => $"seed-{i}").ToList();
+
+        // Source had no levels, target introduces levels → even distribution
+        structure.AutoAssignTeams(phase.Id, orderedIds, sourceLevelCount: 0);
+
+        var level1Teams = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id)
+            .SelectMany(g => g.TeamIds).ToList();
+        var level2Teams = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id)
+            .SelectMany(g => g.TeamIds).ToList();
+        level1Teams.Should().BeEquivalentTo(["seed-1", "seed-2"]);
+        level2Teams.Should().BeEquivalentTo(["seed-3", "seed-4"]);
+    }
 }

@@ -213,20 +213,46 @@ All state violations return HTTP 409 Conflict. Validation errors (e.g., unassign
 
 # Levels
 
+## Basic properties
 - A phase can optionally define levels via `NumberOfLevels` (null or 0 means no levels)
 - When levels are defined, groups are evenly distributed across levels
 - `NumberOfGroups` represents groups **per level** (total groups = NumberOfGroups × NumberOfLevels)
 - Each level has a default name ("Level 1", "Level 2") that can be customized
 - Level names must be unique within a phase
 - Levels have an order (1-based) determining their ranking priority
-- Auto-assign respects levels: teams are split by seed into levels (top half → Level 1, bottom half → Level 2), then snake-drafted within each level's groups
-- At phase completion, rankings incorporate levels (all Level 1 teams ranked above Level 2)
-- When levels are defined, `GroupWinners` and `TotalTeamsProceeding` apply per level. The total number of teams advancing is multiplied by the number of levels
-- Manual team assignment has no level restrictions — teams can be freely assigned to any group regardless of level
 - When levels are not defined, everything behaves exactly as before (backward compatible)
 - Levels are structural — the number of levels cannot be changed while games exist
 - Level names can be updated independently of other phase properties
 - Levels cannot be modified on a completed phase
+
+## Cascading level constraint
+- Levels cascade forward through phases: once a phase defines levels, subsequent phases must maintain at least as many levels
+- Specifically, Phase N+1's `NumberOfLevels` must be a **multiple** of Phase N's level count (e.g., 2→2, 2→4, 2→6 are valid; 2→3, 2→1 are not)
+- If Phase N has no levels, Phase N+1 can freely introduce levels or have none — levels can be introduced at any point
+- Validation is applied when adding a new phase and prevents invalid level counts with a 400 error
+- When deleting a phase, re-validate that the gap doesn't break the constraint between the now-adjacent phases
+
+## Auto-assign with levels
+- Auto-assign respects levels: teams are split by seed into levels (top half → Level 1, bottom half → Level 2), then snake-drafted within each level's groups
+- Manual team assignment has no level restrictions — teams can be freely assigned to any group regardless of level
+
+## Progression with levels
+- At phase completion, rankings incorporate levels (all Level 1 teams ranked above Level 2)
+- When levels are defined, `GroupWinners` and `TotalTeamsProceeding` apply per level. The total number of teams advancing is multiplied by the number of levels
+
+## Level-scoped progression (cross-phase)
+- When levels increase between phases (e.g., source phase has 2 levels, target phase has 4), progression uses **level-scoped split**
+- The split factor is `targetLevels / sourceLevels` (e.g., 4 / 2 = 2)
+- Qualifying teams from source Level K feed into target levels `(K-1) × splitFactor + 1` through `K × splitFactor`
+  - Example: source Level 1 → target Levels 1-2; source Level 2 → target Levels 3-4
+- Within each target level, teams are seeded by their qualifying rank and distributed via snake draft
+- When the source phase has no levels but the target has levels, all qualifying teams are treated as a single pool and distributed across target levels by seed (top seeds → Level 1, etc.)
+- When both phases have the same number of levels, progression works as before (Level 1 → Level 1, Level 2 → Level 2)
+
+## Placeholder generation with level split
+- Placeholder generation respects the level-scoped split: when levels increase, placeholders are distributed across target levels proportionally
+- Each source level's expected team count is split evenly across its corresponding target levels
+- Placeholder naming includes the source level context: `"{SourcePhaseName} - {SourceLevelName} - Seed {N}"`
 
 # TBC
 

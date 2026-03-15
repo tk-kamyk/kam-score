@@ -199,7 +199,8 @@ public static class PhaseEndpoints
                     [new ValidationFailure("Teams", "No placeholder teams found. Configure progression on the previous phase first.")]);
 
             var orderedIds = placeholderTeams.Select(t => t.EffectiveId).ToList();
-            structure.AutoAssignTeams(phaseId, orderedIds);
+            var sourceLevelCount = previousPhase.Levels.Count;
+            structure.AutoAssignTeams(phaseId, orderedIds, sourceLevelCount);
         }
         else
         {

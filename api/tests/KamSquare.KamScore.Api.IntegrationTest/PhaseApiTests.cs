@@ -783,6 +783,96 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .MustHaveHappenedOnceExactly();
     }
 
+    // --- Cascading Level Constraint ---
+
+    [Fact]
+    public async Task AddPhase_FewerLevelsThanPrevious_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination",
+            NumberOfGroups: 1, NumberOfLevels: 1);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AddPhase_NonMultipleLevels_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination",
+            NumberOfGroups: 1, NumberOfLevels: 3);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AddPhase_NoLevelsAfterLeveledPhase_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination", NumberOfGroups: 1);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task AddPhase_MultipleLevels_ShouldSucceed()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination",
+            NumberOfGroups: 1, NumberOfLevels: 4);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.Levels.Should().HaveCount(4);
+    }
+
+    [Fact]
+    public async Task AddPhase_IntroduceLevelsAfterNoLevels_ShouldSucceed()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Playoffs", "PlayoffElimination",
+            NumberOfGroups: 1, NumberOfLevels: 2);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.Levels.Should().HaveCount(2);
+    }
+
     // phase1 is phase2's previous phase because it was added first (Order 1 vs Order 2)
     private (Tournament tournament, Phase phase1, Phase phase2) SetupTwoPhaseAutoAssignScenario()
     {

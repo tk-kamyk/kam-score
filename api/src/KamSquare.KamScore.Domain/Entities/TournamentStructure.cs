@@ -22,6 +22,9 @@ public class TournamentStructure : Entity
         int? groupWinners = null, int? totalTeamsProceeding = null, TimeOnly? startTime = null,
         int? numberOfLevels = null)
     {
+        var previousPhase = Phases.Count > 0 ? Phases[^1] : null;
+        ValidateLevelCount(numberOfLevels, previousPhase);
+
         var order = Phases.Count + 1;
         var phase = Phase.Create(name, format, order, numberOfGroups, groupWinners, totalTeamsProceeding, startTime, numberOfLevels);
         Phases.Add(phase);
@@ -40,6 +43,15 @@ public class TournamentStructure : Entity
     public void RemovePhase(string phaseId)
     {
         var phase = GetPhase(phaseId);
+        var previousPhase = Phases.FirstOrDefault(p => p.Order == phase.Order - 1);
+        var nextPhase = Phases.FirstOrDefault(p => p.Order == phase.Order + 1);
+
+        if (previousPhase is not null && nextPhase is not null)
+        {
+            var nextLevelCount = nextPhase.Levels.Count > 0 ? nextPhase.Levels.Count : (int?)null;
+            ValidateLevelCount(nextLevelCount, previousPhase);
+        }
+
         Phases.Remove(phase);
         ReorderPhases();
         LastModified = DateTime.UtcNow;
@@ -207,7 +219,7 @@ public class TournamentStructure : Entity
         AutoAssignTeams(phaseId, orderedTeamIds);
     }
 
-    public void AutoAssignTeams(string phaseId, List<string> orderedTeamIds)
+    public void AutoAssignTeams(string phaseId, List<string> orderedTeamIds, int sourceLevelCount = 0)
     {
         var phase = GetPhase(phaseId);
 
@@ -220,7 +232,7 @@ public class TournamentStructure : Entity
 
         if (phase.Levels.Count > 0)
         {
-            AssignTeamsWithLevels(phase, orderedTeamIds);
+            AssignTeamsWithLevels(phase, orderedTeamIds, sourceLevelCount);
         }
         else
         {
@@ -230,18 +242,48 @@ public class TournamentStructure : Entity
         LastModified = DateTime.UtcNow;
     }
 
-    private static void AssignTeamsWithLevels(Phase phase, List<string> orderedTeamIds)
+    private static void AssignTeamsWithLevels(Phase phase, List<string> orderedTeamIds, int sourceLevelCount)
     {
         var orderedLevels = phase.Levels.OrderBy(l => l.Order).ToList();
-        var levelCount = orderedLevels.Count;
-        var teamsPerLevel = orderedTeamIds.Count / levelCount;
-        var remainder = orderedTeamIds.Count % levelCount;
+        var targetLevelCount = orderedLevels.Count;
+
+        // Level-scoped split: when target has more levels than source,
+        // distribute each source level's teams across its child target levels
+        if (sourceLevelCount > 0 && targetLevelCount > sourceLevelCount && targetLevelCount % sourceLevelCount == 0)
+        {
+            var splitFactor = targetLevelCount / sourceLevelCount;
+            var teamsPerSourceLevel = orderedTeamIds.Count / sourceLevelCount;
+            var sourceRemainder = orderedTeamIds.Count % sourceLevelCount;
+
+            var offset = 0;
+            for (var sourceLevelIndex = 0; sourceLevelIndex < sourceLevelCount; sourceLevelIndex++)
+            {
+                var sourceChunkSize = teamsPerSourceLevel + (sourceLevelIndex < sourceRemainder ? 1 : 0);
+                var sourceChunk = orderedTeamIds.Skip(offset).Take(sourceChunkSize).ToList();
+                offset += sourceChunkSize;
+
+                var childLevels = orderedLevels.Skip(sourceLevelIndex * splitFactor).Take(splitFactor).ToList();
+                DistributeAcrossLevels(phase, childLevels, sourceChunk);
+            }
+
+            return;
+        }
+
+        // Default: even distribution across all levels
+        DistributeAcrossLevels(phase, orderedLevels, orderedTeamIds);
+    }
+
+    private static void DistributeAcrossLevels(Phase phase, List<Level> levels, List<string> teamIds)
+    {
+        var levelCount = levels.Count;
+        var teamsPerLevel = teamIds.Count / levelCount;
+        var remainder = teamIds.Count % levelCount;
 
         var offset = 0;
-        foreach (var level in orderedLevels)
+        foreach (var level in levels)
         {
             var count = teamsPerLevel + (offset < remainder ? 1 : 0);
-            var chunk = orderedTeamIds.Skip(offset).Take(count).ToList();
+            var chunk = teamIds.Skip(offset).Take(count).ToList();
             offset += count;
 
             var levelGroups = phase.Groups.Where(g => g.LevelId == level.Id).ToList();
@@ -261,6 +303,33 @@ public class TournamentStructure : Entity
             var groupIndex = round % 2 == 0 ? positionInRound : groupCount - 1 - positionInRound;
             groups[groupIndex].AddTeam(teamIds[i]);
         }
+    }
+
+    /// <summary>
+    /// Validates that the new phase's level count is compatible with the previous phase.
+    /// Rules:
+    ///   - If previous phase has no levels, any count (including 0/null) is valid
+    ///   - If previous phase has levels, new phase must also have levels and the count must be a multiple
+    /// </summary>
+    public static void ValidateLevelCount(int? numberOfLevels, Phase? previousPhase)
+    {
+        if (previousPhase is null || previousPhase.Levels.Count == 0)
+            return;
+
+        var previousLevelCount = previousPhase.Levels.Count;
+        var newLevelCount = numberOfLevels is > 0 ? numberOfLevels.Value : 0;
+
+        if (newLevelCount == 0)
+            throw new ArgumentException(
+                $"Phase must have levels because the previous phase has {previousLevelCount} levels.");
+
+        if (newLevelCount < previousLevelCount)
+            throw new ArgumentException(
+                $"Phase must have at least {previousLevelCount} levels (same as the previous phase).");
+
+        if (newLevelCount % previousLevelCount != 0)
+            throw new ArgumentException(
+                $"Number of levels ({newLevelCount}) must be a multiple of the previous phase's level count ({previousLevelCount}).");
     }
 
     private void ReorderPhases()

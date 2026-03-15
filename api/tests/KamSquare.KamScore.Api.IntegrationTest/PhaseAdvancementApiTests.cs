@@ -565,7 +565,7 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
             groupWinners: 1, startTime: new TimeOnly(9, 0), numberOfLevels: 2);
         // Phase 1: 2 levels × 1 group = 2 groups total
         var phase2 = structure.AddPhase("Playoffs", PhaseFormat.PlayoffElimination, 1,
-            startTime: new TimeOnly(14, 0));
+            startTime: new TimeOnly(14, 0), numberOfLevels: 2);
 
         var level1Group = phase1.Groups.First(g => g.LevelId == phase1.Levels[0].Id);
         var level2Group = phase1.Groups.First(g => g.LevelId == phase1.Levels[1].Id);
@@ -604,9 +604,13 @@ public class PhaseAdvancementApiTests : IClassFixture<KamScoreWebApplicationFact
         // Phase 2 should have 2 teams assigned (1 from each level)
         var phase2TeamIds = phase2.Groups.SelectMany(g => g.TeamIds).ToList();
         phase2TeamIds.Should().HaveCount(2);
-        // Level 1 winner (L1-t1) should come first (seed 1), Level 2 winner (L2-t1) second
-        phase2TeamIds[0].Should().Be("L1-t1");
-        phase2TeamIds[1].Should().Be("L2-t1");
+        // Level 1 winner (L1-t1) should be in Level 1 group, Level 2 winner (L2-t1) in Level 2 group
+        var phase2L1Teams = phase2.Groups.Where(g => g.LevelId == phase2.Levels[0].Id)
+            .SelectMany(g => g.TeamIds).ToList();
+        var phase2L2Teams = phase2.Groups.Where(g => g.LevelId == phase2.Levels[1].Id)
+            .SelectMany(g => g.TeamIds).ToList();
+        phase2L1Teams.Should().Contain("L1-t1");
+        phase2L2Teams.Should().Contain("L2-t1");
     }
 
     [Fact]
