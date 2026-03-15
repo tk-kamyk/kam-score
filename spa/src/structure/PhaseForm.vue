@@ -162,7 +162,9 @@ async function handleSave() {
             label="Number of Levels"
             type="number"
             :rules="levelsRules"
+            :error-messages="fieldErrors('numberOfLevels')"
             min="1"
+            @update:model-value="clearFieldError('numberOfLevels')"
           />
           <v-text-field
             v-if="!phase"
@@ -170,9 +172,11 @@ async function handleSave() {
             :label="groupsLabel"
             type="number"
             :rules="groupsRules"
+            :error-messages="fieldErrors('numberOfGroups')"
             :hint="totalGroupsHint"
             :persistent-hint="!!totalGroupsHint"
             min="1"
+            @update:model-value="clearFieldError('numberOfGroups')"
           />
           <v-text-field
             v-model.number="form.groupWinners"
@@ -180,8 +184,10 @@ async function handleSave() {
             type="number"
             hint="Top N teams from each group advance automatically"
             persistent-hint
+            :error-messages="fieldErrors('groupWinners')"
             min="1"
             clearable
+            @update:model-value="clearFieldError('groupWinners')"
           />
           <v-text-field
             v-model.number="form.totalTeamsProceeding"
@@ -189,8 +195,10 @@ async function handleSave() {
             type="number"
             hint="Total teams qualifying from this phase (includes lucky losers)"
             persistent-hint
+            :error-messages="fieldErrors('totalTeamsProceeding')"
             min="1"
             clearable
+            @update:model-value="clearFieldError('totalTeamsProceeding')"
           />
           <v-text-field
             v-model="form.startTime"
@@ -198,8 +206,10 @@ async function handleSave() {
             type="time"
             :hint="props.hasGames ? 'Cannot change start time while games exist' : 'Baseline time for scheduling games in this phase'"
             persistent-hint
+            :error-messages="fieldErrors('startTime')"
             :disabled="props.hasGames"
             clearable
+            @update:model-value="clearFieldError('startTime')"
           />
         </v-form>
       </v-card-text>
