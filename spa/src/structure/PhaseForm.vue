@@ -45,9 +45,29 @@ const groupsRules = [
   (v: number) => v >= 1 || 'At least 1 group is required.',
 ]
 
-const levelsRules = [
-  (v: number) => v >= 1 || 'At least 1 level is required.',
-]
+/** Level count of the previous phase (0 if no levels or no previous phase) */
+const previousPhaseLevelCount = computed(() => {
+  if (props.phase) return 0 // editing — levels are structural, can't change
+  const phases = structureStore.structure?.phases ?? []
+  if (phases.length === 0) return 0
+  const lastPhase = phases[phases.length - 1]
+  return lastPhase.levels?.length ?? 0
+})
+
+/** Whether the previous phase requires this phase to have levels */
+const levelsRequired = computed(() => previousPhaseLevelCount.value > 0)
+
+/** Minimum number of levels for this phase */
+const minLevels = computed(() => levelsRequired.value ? previousPhaseLevelCount.value : 1)
+
+const levelsRules = computed(() => [
+  (v: number) => v >= minLevels.value || `At least ${minLevels.value} levels required (previous phase has ${previousPhaseLevelCount.value}).`,
+  (v: number) => {
+    if (previousPhaseLevelCount.value === 0) return true
+    return v % previousPhaseLevelCount.value === 0
+      || `Must be a multiple of ${previousPhaseLevelCount.value} (previous phase level count).`
+  },
+])
 
 const groupsLabel = computed(() =>
   useLevels.value ? 'Groups per Level' : 'Number of Groups',
@@ -62,6 +82,15 @@ const totalGroupsHint = computed(() => {
   }
   return ''
 })
+
+const levelsHint = computed(() => {
+  if (!levelsRequired.value) return 'Split groups into levels (e.g. Gold, Silver)'
+  return `Previous phase has ${previousPhaseLevelCount.value} levels — must be a multiple`
+})
+
+const totalProceedingLabel = computed(() =>
+  useLevels.value ? 'Total Teams proceeding per Level' : 'Total Teams proceeding',
+)
 
 watch(model, (open) => {
   if (open) {
@@ -78,8 +107,9 @@ watch(model, (open) => {
         startTime: props.phase.startTime ?? '',
       }
     } else {
-      useLevels.value = false
-      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, numberOfLevels: 2, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
+      useLevels.value = levelsRequired.value
+      const defaultLevels = levelsRequired.value ? previousPhaseLevelCount.value : 2
+      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, numberOfLevels: defaultLevels, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
     }
   }
 })
@@ -147,7 +177,7 @@ async function handleSave() {
             @update:model-value="clearFieldError('format')"
           />
           <v-switch
-            v-if="!phase"
+            v-if="!phase && !levelsRequired"
             v-model="useLevels"
             label="Use Levels"
             hint="Split groups into levels (e.g. Gold, Silver)"
@@ -157,13 +187,15 @@ async function handleSave() {
             class="mb-2"
           />
           <v-text-field
-            v-if="!phase && useLevels"
+            v-if="!phase && (useLevels || levelsRequired)"
             v-model.number="form.numberOfLevels"
             label="Number of Levels"
             type="number"
             :rules="levelsRules"
             :error-messages="fieldErrors('numberOfLevels')"
-            min="1"
+            :min="minLevels"
+            :hint="levelsHint"
+            persistent-hint
             @update:model-value="clearFieldError('numberOfLevels')"
           />
           <v-text-field
@@ -191,9 +223,9 @@ async function handleSave() {
           />
           <v-text-field
             v-model.number="form.totalTeamsProceeding"
-            label="Total Teams Proceeding"
+            :label="totalProceedingLabel"
             type="number"
-            hint="Total teams qualifying from this phase (includes lucky losers)"
+            hint="Total teams qualifying from this phase/level (includes lucky losers)"
             persistent-hint
             :error-messages="fieldErrors('totalTeamsProceeding')"
             min="1"

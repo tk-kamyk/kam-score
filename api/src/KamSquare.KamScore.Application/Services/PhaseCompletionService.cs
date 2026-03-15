@@ -67,7 +67,7 @@ public class PhaseCompletionService
             else
             {
                 // No placeholder teams -- assign real teams directly (legacy/fallback)
-                structure.AutoAssignTeams(nextPhase.Id, seededIds);
+                structure.AutoAssignTeams(nextPhase.Id, seededIds, phase.Levels.Count);
             }
 
             // Activate next phase now that teams are resolved (Scheduled -> InProgress)
