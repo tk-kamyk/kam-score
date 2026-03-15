@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
 import SectionHeader from '@/components/SectionHeader.vue'
+import TeamSchedule from '@/team/TeamSchedule.vue'
 import type { TeamDto } from '@/team/types'
 import type { VForm } from 'vuetify/components'
 
@@ -12,9 +14,34 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
+const route = useRoute()
+const router = useRouter()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
+
+const expandedTeam = ref<string | null>((route.query.team as string) || null)
+
+watch(expandedTeam, (teamId) => {
+  const query = { ...route.query }
+  if (teamId) {
+    query.team = teamId
+  } else {
+    delete query.team
+  }
+  router.replace({ query })
+})
+
+function toggleExpand(teamId?: string) {
+  if (!teamId) return
+  expandedTeam.value = expandedTeam.value === teamId ? null : teamId
+}
+
+const columnCount = computed(() => {
+  let count = 2 // Name + Level
+  if (props.isOwner) count += 3 // Email + Phone + Actions
+  return count
+})
 
 const showFormDialog = ref(false)
 const showDeleteDialog = ref(false)
@@ -116,16 +143,35 @@ async function handleDelete() {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="team in teamStore.teams" :key="team.id">
-            <td>{{ team.name }}</td>
-            <td>{{ team.level }}</td>
-            <td v-if="isOwner">{{ team.email ?? '—' }}</td>
-            <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
-            <td v-if="isOwner" class="text-right">
-              <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit team ' + team.name" @click="openEdit(team)" />
-              <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete team ' + team.name" @click="openDelete(team)" />
-            </td>
-          </tr>
+          <template v-for="team in teamStore.teams" :key="team.id">
+            <tr class="team-row" @click="toggleExpand(team.id)">
+              <td>
+                <v-icon
+                  :icon="expandedTeam === team.id ? 'mdi-chevron-down' : 'mdi-chevron-right'"
+                  size="small"
+                  class="mr-1"
+                />
+                {{ team.name }}
+              </td>
+              <td>{{ team.level }}</td>
+              <td v-if="isOwner">{{ team.email ?? '—' }}</td>
+              <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
+              <td v-if="isOwner" class="text-right">
+                <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit team ' + team.name" @click.stop="openEdit(team)" />
+                <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete team ' + team.name" @click.stop="openDelete(team)" />
+              </td>
+            </tr>
+            <tr v-if="expandedTeam === team.id">
+              <td :colspan="columnCount" class="pa-0 team-expanded-cell">
+                <TeamSchedule
+                  :tournament-id="tournamentId"
+                  :team-id="team.id!"
+                  :team-name="team.name"
+                  :is-owner="isOwner"
+                />
+              </td>
+            </tr>
+          </template>
         </tbody>
       </v-table>
     </v-card>
@@ -218,7 +264,15 @@ async function handleDelete() {
     background-color: rgb(var(--v-theme-surface-bright));
 }
 
-.styled-table tbody tr:hover {
+.styled-table tbody tr.team-row {
+    cursor: pointer;
+}
+
+.styled-table tbody tr.team-row:hover {
     background-color: var(--ks-border-subtle);
+}
+
+.team-expanded-cell {
+    background-color: rgb(var(--v-theme-surface-bright));
 }
 </style>
