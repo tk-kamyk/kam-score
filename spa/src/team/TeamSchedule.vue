@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import apiClient from '@/api/client'
 import type { GameDto } from '@/game/types'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
+import GameResultDialog from '@/game/GameResultDialog.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -12,59 +14,47 @@ const props = defineProps<{
 
 const loading = ref(false)
 const showBreaks = ref(false)
+const games = ref<GameDto[]>([])
+const allTimeSlots = ref<Set<string>>(new Set())
+const timeSlotsLoaded = ref(false)
+const showResultDialog = ref(false)
+const selectedGame = ref<GameDto | null>(null)
 
-// --- Dummy data for UI review (will be replaced with API call) ---
-const games = ref<GameDto[]>([
-  {
-    id: 'g1', phaseId: 'p1', groupId: 'gr1', round: 1,
-    homeTeamId: props.teamId, awayTeamId: 't2',
-    homeTeamName: props.teamName, awayTeamName: 'Hawks',
-    refereeTeamId: 't3', refereeTeamName: 'Wolves',
-    courtId: 'c1', courtName: 'Court 1',
-    startTime: '2026-03-15T09:00:00Z', status: 'Completed',
-    homeScore: 2, awayScore: 1,
-    sets: [{ homePoints: 25, awayPoints: 20 }, { homePoints: 25, awayPoints: 22 }, { homePoints: 18, awayPoints: 25 }],
-    phaseName: 'Group Stage', groupName: 'A', levelName: 'Main',
-  },
-  {
-    id: 'g2', phaseId: 'p1', groupId: 'gr1', round: 2,
-    homeTeamId: 't3', awayTeamId: props.teamId,
-    homeTeamName: 'Wolves', awayTeamName: props.teamName,
-    refereeTeamId: 't2', refereeTeamName: 'Hawks',
-    courtId: 'c2', courtName: 'Court 2',
-    startTime: '2026-03-15T10:00:00Z', status: 'Scheduled',
-    phaseName: 'Group Stage', groupName: 'A', levelName: 'Main',
-  },
-  {
-    id: 'g3', phaseId: 'p1', groupId: 'gr1', round: 3,
-    homeTeamId: 't2', awayTeamId: 't3',
-    homeTeamName: 'Hawks', awayTeamName: 'Wolves',
-    refereeTeamId: props.teamId, refereeTeamName: props.teamName,
-    courtId: 'c1', courtName: 'Court 1',
-    startTime: '2026-03-15T11:00:00Z', status: 'Scheduled',
-    phaseName: 'Group Stage', groupName: 'A', levelName: 'Main',
-  },
-  {
-    id: 'g4', phaseId: 'p2', groupId: 'gr2', round: 1, label: 'Semifinal 1',
-    homeTeamId: props.teamId, awayTeamId: 't4',
-    homeTeamName: props.teamName, awayTeamName: 'Falcons',
-    courtId: 'c1', courtName: 'Court 1',
-    startTime: '2026-03-15T13:00:00Z', status: 'Scheduled',
-    phaseName: 'Playoffs', groupName: 'Main Bracket',
-  },
-])
+async function loadGames() {
+  loading.value = true
+  try {
+    const response = await apiClient.get<GameDto[]>(
+      `/tournaments/${props.tournamentId}/games?teamId=${props.teamId}`,
+    )
+    games.value = response.data
+  } finally {
+    loading.value = false
+  }
+}
 
-// All time slots in the tournament (dummy — normally fetched or derived)
-const allTimeSlots = ref<string[]>([
-  '2026-03-15T09:00:00Z',
-  '2026-03-15T09:40:00Z',
-  '2026-03-15T10:00:00Z',
-  '2026-03-15T10:40:00Z',
-  '2026-03-15T11:00:00Z',
-  '2026-03-15T12:00:00Z',
-  '2026-03-15T13:00:00Z',
-])
-// --- End dummy data ---
+async function loadAllTimeSlots() {
+  const response = await apiClient.get<GameDto[]>(
+    `/tournaments/${props.tournamentId}/games`,
+  )
+  allTimeSlots.value = new Set(response.data.map(g => g.startTime).filter(Boolean) as string[])
+  timeSlotsLoaded.value = true
+}
+
+watch(showBreaks, (on) => {
+  if (on && !timeSlotsLoaded.value) loadAllTimeSlots()
+})
+
+function openResultDialog(game: GameDto) {
+  selectedGame.value = game
+  showResultDialog.value = true
+}
+
+async function onResultSaved() {
+  await loadGames()
+  if (timeSlotsLoaded.value) await loadAllTimeSlots()
+}
+
+onMounted(loadGames)
 
 interface PhaseGroup {
   phaseId: string
@@ -122,7 +112,7 @@ function phaseGroupEntries(phaseGroup: PhaseGroup): ScheduleEntry[] {
   const firstTime = sortedGames[0].time
   const lastTime = sortedGames[sortedGames.length - 1].time
 
-  const breakEntries: ScheduleEntry[] = allTimeSlots.value
+  const breakEntries: ScheduleEntry[] = [...allTimeSlots.value]
     .filter(slot => slot >= firstTime && slot <= lastTime && !teamTimeSlots.value.has(slot))
     .map(slot => ({ type: 'break' as const, time: slot }))
 
@@ -194,7 +184,7 @@ function formatTime(startTime?: string): string {
                 <td>{{ entry.game!.courtName ?? '-' }}</td>
                 <td>{{ opponentName(entry.game!) }}</td>
                 <td class="text-center">
-                  <GameResultDisplay :game="entry.game!" />
+                  <GameResultDisplay :game="entry.game!" @enter-result="openResultDialog(entry.game!)" />
                 </td>
                 <td>
                   <v-chip
@@ -219,6 +209,15 @@ function formatTime(startTime?: string): string {
     <div v-else-if="!loading" class="text-body-medium text-medium-emphasis">
       No games scheduled for this team.
     </div>
+
+    <GameResultDialog
+      v-if="selectedGame"
+      v-model="showResultDialog"
+      :game="selectedGame"
+      :tournament-id="tournamentId"
+      :is-owner="isOwner"
+      @saved="onResultSaved"
+    />
   </div>
 </template>
 

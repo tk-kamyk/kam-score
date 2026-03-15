@@ -22,4 +22,7 @@ public record GameDto(
     string? RefereeTeamName = null,
     string? CourtName = null,
     bool? HomeTeamIsPlaceholder = null,
-    bool? AwayTeamIsPlaceholder = null);
+    bool? AwayTeamIsPlaceholder = null,
+    string? PhaseName = null,
+    string? GroupName = null,
+    string? LevelName = null);

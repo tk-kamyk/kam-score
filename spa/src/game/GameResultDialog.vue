@@ -15,6 +15,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
+  (e: 'saved'): void
 }>()
 
 const gameStore = useGameStore()
@@ -98,6 +99,7 @@ async function submit() {
       )
     }
     showSuccess('Result recorded')
+    emit('saved')
     close()
   } catch (error) {
     if (!handleError(error)) {

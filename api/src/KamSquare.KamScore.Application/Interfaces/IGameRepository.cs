@@ -6,7 +6,7 @@ public interface IGameRepository
 {
     Task<IEnumerable<Game>> GetByTournamentIdAsync(string tournamentId);
     Task<IEnumerable<Game>> GetByPhaseIdAsync(string tournamentId, string phaseId);
-    Task<IEnumerable<Game>> GetGamesAsync(string tournamentId, string? phaseId = null, string? groupId = null, string? courtId = null);
+    Task<IEnumerable<Game>> GetGamesAsync(string tournamentId, string? phaseId = null, string? groupId = null, string? courtId = null, string? teamId = null);
     Task<Game?> GetByIdAsync(string tournamentId, string gameId);
     Task<IEnumerable<Game>> CreateBatchAsync(IEnumerable<Game> games);
     Task<Game> UpdateAsync(Game game);

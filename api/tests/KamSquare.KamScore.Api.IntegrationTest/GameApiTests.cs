@@ -282,9 +282,11 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         testGames[0].AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
 
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null)).Returns(testGames);
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null, null)).Returns(testGames);
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
         A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns((TournamentStructure?)null);
 
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/games");
@@ -296,6 +298,9 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         games[0].AwayTeamName.Should().Be("Team 2");
         games[0].RefereeTeamName.Should().Be("Team 3");
         games[0].CourtName.Should().Be("Court 1");
+        games[0].PhaseName.Should().BeNull();
+        games[0].GroupName.Should().BeNull();
+        games[0].LevelName.Should().BeNull();
     }
 
     [Fact]
@@ -312,10 +317,12 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         };
 
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, "p1", null, null))
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, "p1", null, null, null))
             .Returns(new List<Game> { testGames[0] });
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
         A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns((TournamentStructure?)null);
 
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/games?phaseId=p1");
@@ -331,12 +338,14 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
     {
         var tournament = CreateTestTournament();
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null))
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null, null))
             .Returns(new List<Game>());
         A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
             .Returns(new List<Team>());
         A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id))
             .Returns(new List<Court>());
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns((TournamentStructure?)null);
 
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/games");
@@ -378,5 +387,74 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
             $"/api/tournaments/{tournament.Id}/structure/phases/phase1/games");
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GetGames_WithTeamIdFilter_ShouldReturnOnlyTeamGames()
+    {
+        var tournament = CreateTestTournament();
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 3);
+
+        var teamGame = Game.Create(tournament.Id, "p1", "g1", 1,
+            homeTeamId: "team1", awayTeamId: "team2", refereeTeamId: "team3");
+        teamGame.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+
+        var refGame = Game.Create(tournament.Id, "p1", "g1", 2,
+            homeTeamId: "team2", awayTeamId: "team3", refereeTeamId: "team1");
+        refGame.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 30, 0));
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null, "team1"))
+            .Returns(new List<Game> { teamGame, refGame });
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
+        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
+
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/games?teamId=team1");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var games = await response.Content.ReadFromJsonAsync<List<GameDto>>();
+        games.Should().HaveCount(2);
+        games!.Should().AllSatisfy(g =>
+        {
+            var isInvolved = g.HomeTeamId == "team1" || g.AwayTeamId == "team1" || g.RefereeTeamId == "team1";
+            isInvolved.Should().BeTrue();
+        });
+    }
+
+    [Fact]
+    public async Task GetGames_ShouldIncludePhaseGroupAndLevelNames()
+    {
+        var tournament = CreateTestTournament();
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 3);
+
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 1,
+            startTime: new TimeOnly(9, 0), numberOfLevels: 1);
+        var group = phase.Groups[0];
+        var level = phase.Levels[0];
+
+        var testGame = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        testGame.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeGameRepository.GetGamesAsync(tournament.Id, null, null, null, null))
+            .Returns(new List<Game> { testGame });
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
+        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id)).Returns(structure);
+
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/games");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var games = await response.Content.ReadFromJsonAsync<List<GameDto>>();
+        games.Should().HaveCount(1);
+        games![0].PhaseName.Should().Be("Group Stage");
+        games[0].GroupName.Should().Be(group.Name);
+        games[0].LevelName.Should().Be(level.Name);
     }
 }
