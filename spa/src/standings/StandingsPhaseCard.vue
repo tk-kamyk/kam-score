@@ -59,20 +59,22 @@ const selectedGroupGames = computed(() => {
           mandatory
           aria-label="Select group"
         >
-          <template v-if="hasLevels">
-            <template v-for="{ level, groups } in groupsByLevel" :key="level.id">
+          <div v-if="hasLevels" class="d-flex">
+            <div v-for="{ level, groups } in groupsByLevel" :key="level.id" class="d-flex flex-column">
               <h4 class="level-chip-label text-subtitle-2 font-weight-bold w-100 mb-1">{{ level.name }}</h4>
-              <v-chip
-                v-for="group in groups"
-                :key="group.id"
-                :value="group.id"
-                variant="outlined"
-                filter
-              >
-                Group {{ group.name }}
-              </v-chip>
-            </template>
-          </template>
+              <div>
+                <v-chip
+                  v-for="group in groups"
+                  :key="group.id"
+                  :value="group.id"
+                  variant="outlined"
+                  filter
+                >
+                  Group {{ group.name }}
+                </v-chip>
+              </div>
+            </div>
+          </div>
           <template v-else>
             <v-chip
               v-for="group in phase.groups"

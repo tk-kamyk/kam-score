@@ -125,25 +125,21 @@ async function handleAutoAssign() {
 
     <template #header-actions>
       <div v-if="editing">
-        <v-tooltip v-if="isCompleted" text="Reopen the phase first" location="top">
-          <template #activator="{ props: tp }">
-            <v-btn v-bind="tp" icon="mdi-pencil" variant="text" size="small" aria-disabled="true" :aria-label="'Edit phase ' + phase.name" />
-          </template>
-        </v-tooltip>
-        <v-btn v-else icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit phase ' + phase.name" @click.stop="emit('edit', phase)" />
-        <v-tooltip v-if="isActivated" :text="structureLockReason" location="top">
-          <template #activator="{ props: tp }">
-            <v-btn v-bind="tp" icon="mdi-delete" variant="text" size="small" color="error" aria-disabled="true" :aria-label="'Delete phase ' + phase.name" />
-          </template>
-        </v-tooltip>
         <v-btn
-          v-else
+          icon="mdi-pencil"
+          variant="text"
+          size="small"
+          :aria-label="'Edit phase ' + phase.name"
+          @click.stop="emit('edit', phase)" 
+          :disabled="isCompleted" />
+        <v-btn
           icon="mdi-delete"
           variant="text"
           size="small"
           color="error"
           :aria-label="'Delete phase ' + phase.name"
           @click.stop="confirmDelete"
+          :disabled="isActivated"
         />
 
         <v-dialog v-model="showDeleteDialog" max-width="400" :aria-labelledby="deleteDialogTitleId">
@@ -224,47 +220,21 @@ async function handleAutoAssign() {
     </v-card-text>
 
     <template v-if="editing" #actions>
-      <v-tooltip v-if="isActivated" :text="structureLockReason" location="top">
-        <template #activator="{ props: tp }">
-          <v-btn
-            v-bind="tp"
-            color="primary"
-            variant="elevated"
-            prepend-icon="mdi-plus"
-            aria-disabled="true"
-          >
-            Add Group
-          </v-btn>
-        </template>
-      </v-tooltip>
       <v-btn
-        v-else
         color="primary"
         variant="elevated"
         prepend-icon="mdi-plus"
         @click="openAddGroup"
+        :disabled="isActivated"
       >
         Add Group
       </v-btn>
-      <v-tooltip v-if="isActivated" :text="structureLockReason" location="top">
-        <template #activator="{ props: tp }">
-          <v-btn
-            v-bind="tp"
-            color="primary"
-            variant="elevated"
-            prepend-icon="mdi-shuffle-variant"
-            aria-disabled="true"
-          >
-            Auto-assign Teams
-          </v-btn>
-        </template>
-      </v-tooltip>
       <v-btn
-        v-else
         color="primary"
         variant="elevated"
         prepend-icon="mdi-shuffle-variant"
         @click="clearErrors(); showAutoAssignDialog = true"
+        :disabled="isActivated"
       >
         Auto-assign Teams
       </v-btn>
