@@ -235,7 +235,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
-    public async Task DeleteTournament_Owner_ShouldAlsoDeleteStructure()
+    public async Task DeleteTournament_Owner_ShouldAlsoDeleteAllRelatedEntities()
     {
         var client = _factory.CreateAuthenticatedClient("alice");
         var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
@@ -245,6 +245,12 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var response = await client.DeleteAsync($"/api/tournaments/{tournament.Id}");
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        A.CallTo(() => _factory.FakeGameRepository.DeleteByTournamentIdAsync(tournament.Id))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _factory.FakeTeamRepository.DeleteByTournamentIdAsync(tournament.Id))
+            .MustHaveHappenedOnceExactly();
+        A.CallTo(() => _factory.FakeCourtRepository.DeleteByTournamentIdAsync(tournament.Id))
+            .MustHaveHappenedOnceExactly();
         A.CallTo(() => _factory.FakeStructureRepository.DeleteByTournamentIdAsync(tournament.Id))
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => _factory.FakeRepository.DeleteAsync(tournament.Id, "alice"))

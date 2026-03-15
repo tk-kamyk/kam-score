@@ -56,6 +56,13 @@ public class CosmosCourtRepository : CosmosRepository<Court>, ICourtRepository
         await Container.DeleteItemAsync<Court>(id, new PartitionKey(tournamentId));
     }
 
+    public async Task DeleteByTournamentIdAsync(string tournamentId)
+    {
+        var courts = await GetByTournamentIdAsync(tournamentId);
+        await Task.WhenAll(courts.Select(court =>
+            Container.DeleteItemAsync<Court>(court.Id, new PartitionKey(tournamentId))));
+    }
+
     public async Task<bool> ExistsByNameAsync(string tournamentId, string name, string? excludeCourtId = null)
     {
         var query = excludeCourtId is null

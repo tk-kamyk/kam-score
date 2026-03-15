@@ -115,6 +115,13 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             Container.DeleteItemAsync<Game>(game.Id, new PartitionKey(tournamentId))));
     }
 
+    public async Task DeleteByTournamentIdAsync(string tournamentId)
+    {
+        var games = await GetByTournamentIdAsync(tournamentId);
+        await Task.WhenAll(games.Select(game =>
+            Container.DeleteItemAsync<Game>(game.Id, new PartitionKey(tournamentId))));
+    }
+
     public async Task<bool> GamesExistForPhaseAsync(string tournamentId, string phaseId)
     {
         var query = new QueryDefinition(

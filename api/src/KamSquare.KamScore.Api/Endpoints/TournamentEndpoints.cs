@@ -149,9 +149,17 @@ public static class TournamentEndpoints
         string id,
         ITournamentRepository repository,
         ITournamentStructureRepository structureRepository,
+        IGameRepository gameRepository,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
         ICurrentUserService currentUser)
     {
         var tournament = await repository.GetOwnedTournamentAsync(currentUser, id);
+
+        await Task.WhenAll(
+            gameRepository.DeleteByTournamentIdAsync(id),
+            teamRepository.DeleteByTournamentIdAsync(id),
+            courtRepository.DeleteByTournamentIdAsync(id));
 
         await structureRepository.DeleteByTournamentIdAsync(id);
         await repository.DeleteAsync(id, tournament.OwnerId);
