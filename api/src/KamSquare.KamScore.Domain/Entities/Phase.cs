@@ -71,9 +71,16 @@ public class Phase
         StartTime = startTime;
     }
 
+    public bool HasProgressionConfig => GroupWinners is not null || TotalTeamsProceeding is not null;
+
     public bool HasStructuralChanges(PhaseFormat newFormat, TimeOnly? newStartTime)
     {
         return Format != newFormat || StartTime != newStartTime;
+    }
+
+    public void Schedule()
+    {
+        Status = PhaseStatus.Scheduled;
     }
 
     public void Activate()

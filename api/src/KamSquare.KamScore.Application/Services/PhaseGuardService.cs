@@ -55,9 +55,11 @@ public class PhaseGuardService
 
     public Task EnsureResultsCanBeRecordedAsync(Phase phase)
     {
-        if (phase.Status == PhaseStatus.Completed)
+        if (phase.Status != PhaseStatus.InProgress)
             throw new PhaseStateException(phase.Name, "record results in",
-                "phase is completed. Reopen the phase first");
+                phase.Status == PhaseStatus.Completed
+                    ? "phase is completed. Reopen the phase first"
+                    : "phase must be in progress");
 
         return Task.CompletedTask;
     }

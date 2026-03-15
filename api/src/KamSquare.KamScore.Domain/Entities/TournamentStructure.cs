@@ -142,6 +142,13 @@ public class TournamentStructure : Entity
         return phase.Groups.Any(g => g.HasTeam(teamId));
     }
 
+    public void SchedulePhase(string phaseId)
+    {
+        var phase = GetPhase(phaseId);
+        phase.Schedule();
+        LastModified = DateTime.UtcNow;
+    }
+
     public void ActivatePhase(string phaseId)
     {
         var phase = GetPhase(phaseId);
@@ -169,9 +176,9 @@ public class TournamentStructure : Entity
         phase.Reopen();
 
         var nextPhase = GetNextPhase(phaseId);
-        if (nextPhase is not null)
+        if (nextPhase is not null && nextPhase.Status == PhaseStatus.InProgress)
         {
-            nextPhase.Status = PhaseStatus.New;
+            nextPhase.Schedule();
         }
 
         LastModified = DateTime.UtcNow;

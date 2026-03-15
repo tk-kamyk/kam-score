@@ -44,10 +44,23 @@ public class ScheduleGenerationService
 
         var savedGames = (await _gameRepository.CreateBatchAsync(allGames)).ToList();
 
-        // Activate phase when games are generated (New -> InProgress)
+        // Transition phase status: Scheduled if waiting on previous phase, InProgress otherwise
         if (phase.Status == PhaseStatus.New)
         {
-            structure.ActivatePhase(phaseId);
+            var previousPhase = structure.GetPreviousPhase(phaseId);
+            var hasUnresolvedDependency = previousPhase is not null
+                && previousPhase.HasProgressionConfig
+                && previousPhase.Status != PhaseStatus.Completed;
+
+            if (hasUnresolvedDependency)
+            {
+                structure.SchedulePhase(phaseId);
+            }
+            else
+            {
+                structure.ActivatePhase(phaseId);
+            }
+
             await _structureRepository.UpdateAsync(structure);
         }
 

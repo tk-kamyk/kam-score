@@ -98,8 +98,8 @@ public static class GameEndpoints
 
         await gameRepository.DeleteByPhaseIdAsync(tournamentId, phaseId);
 
-        // Reset phase status to New since games were the trigger for activation
-        if (phase.Status == PhaseStatus.InProgress)
+        // Reset phase status to New since games were the trigger for status change
+        if (phase.Status is PhaseStatus.Scheduled or PhaseStatus.InProgress)
         {
             structure.ResetPhase(phaseId);
             await structureRepository.UpdateAsync(structure);
