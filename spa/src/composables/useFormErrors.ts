@@ -15,6 +15,7 @@ export function useFormErrors() {
     const parsed = parseValidationErrors(error)
     if (parsed) {
       serverErrors.value = parsed.fieldErrors
+      generalError.value = parsed.message
       return true
     }
 
