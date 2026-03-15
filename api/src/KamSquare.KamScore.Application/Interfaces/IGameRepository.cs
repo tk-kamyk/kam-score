@@ -11,6 +11,7 @@ public interface IGameRepository
     Task<IEnumerable<Game>> CreateBatchAsync(IEnumerable<Game> games);
     Task<Game> UpdateAsync(Game game);
     Task DeleteByPhaseIdAsync(string tournamentId, string phaseId);
+    Task DeleteByTournamentIdAsync(string tournamentId);
     Task<bool> GamesExistForPhaseAsync(string tournamentId, string phaseId);
     Task<bool> TeamIsReferencedInGamesAsync(string tournamentId, string teamId);
 }
