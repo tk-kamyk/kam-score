@@ -17,8 +17,8 @@
 - Phases are ordered sequentially (1, 2, 3...) and automatically reordered when one is deleted
 - Teams are assigned to groups via auto-assign (snake draft based on team level for first phase, random for later phases) or manually
 - Manual assignment can override auto-assign; retriggering auto-assign resets manual edits
-- In each phase, each position after the game is played is assigned a unique identifier, e.g. phaseA-groupA-position1 (TBC)
-- Output from one phase (positions after the games) is input (seeded teams) to another phase (TBC)
+- In each phase, each position after the game is played is assigned a unique identifier, e.g. phaseA-groupA-position1
+- Output from one phase (positions after the games) is input (seeded teams) to another phase
 - Phase edit is a view dedicated to the authenticated users
 - Once the phases are saved, a dedicated phase overview is available to everyone
 
