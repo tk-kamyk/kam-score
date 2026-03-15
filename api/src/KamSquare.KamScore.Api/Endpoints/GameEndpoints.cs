@@ -53,7 +53,7 @@ public static class GameEndpoints
 
         return Results.Created(
             $"/api/tournaments/{tournamentId}/games?phaseId={phaseId}",
-            EnrichGamesWithNames(savedGames, teams, courts, mapper));
+            EnrichGamesWithNames(savedGames, teams, courts, structure, mapper));
     }
 
     private static async Task<IResult> GetGames(
@@ -61,22 +61,25 @@ public static class GameEndpoints
         string? phaseId,
         string? groupId,
         string? courtId,
+        string? teamId,
         ITournamentRepository tournamentRepository,
         IGameRepository gameRepository,
         ITeamRepository teamRepository,
         ICourtRepository courtRepository,
+        ITournamentStructureRepository structureRepository,
         IMapper mapper)
     {
         var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
         if (tournament is null)
             throw new NotFoundException(nameof(Tournament), tournamentId);
 
-        var games = (await gameRepository.GetGamesAsync(tournamentId, phaseId, groupId, courtId)).ToList();
+        var games = (await gameRepository.GetGamesAsync(tournamentId, phaseId, groupId, courtId, teamId)).ToList();
 
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId);
 
-        return Results.Ok(EnrichGamesWithNames(games.OrderBy(g => g.StartTime), teams, courts, mapper));
+        return Results.Ok(EnrichGamesWithNames(games.OrderBy(g => g.StartTime), teams, courts, structure, mapper));
     }
 
     private static async Task<IResult> DeleteGames(
@@ -171,15 +174,33 @@ public static class GameEndpoints
     }
 
     private static List<GameDto> EnrichGamesWithNames(
-        IEnumerable<Game> games, List<Team> teams, List<Court> courts, IMapper mapper)
+        IEnumerable<Game> games, List<Team> teams, List<Court> courts,
+        TournamentStructure? structure, IMapper mapper)
     {
         var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
         var placeholderLookup = teams.Where(t => t.IsPlaceholder).Select(t => t.Id).ToHashSet();
         var courtLookup = courts.ToDictionary(c => c.Id, c => c.Name);
 
+        var phaseLookup = structure?.Phases.ToDictionary(p => p.Id, p => p.Name) ?? [];
+        var groupLookup = structure?.Phases
+            .SelectMany(p => p.Groups)
+            .ToDictionary(g => g.Id, g => g.Name) ?? [];
+        var groupToLevelLookup = structure?.Phases
+            .SelectMany(p => p.Groups.Where(g => g.LevelId is not null)
+                .Select(g => new { g.Id, g.LevelId }))
+            .ToDictionary(x => x.Id, x => x.LevelId!) ?? [];
+        var levelLookup = structure?.Phases
+            .SelectMany(p => p.Levels)
+            .ToDictionary(l => l.Id, l => l.Name) ?? [];
+
         return games.Select(g =>
         {
             var dto = mapper.Map<GameDto>(g);
+
+            string? levelName = null;
+            if (groupToLevelLookup.TryGetValue(g.GroupId, out var levelId))
+                levelLookup.TryGetValue(levelId, out levelName);
+
             return dto with
             {
                 HomeTeamName = g.HomeTeamId is not null && teamLookup.TryGetValue(g.HomeTeamId, out var hn) ? hn : null,
@@ -187,7 +208,10 @@ public static class GameEndpoints
                 RefereeTeamName = g.RefereeTeamId is not null && teamLookup.TryGetValue(g.RefereeTeamId, out var rn) ? rn : null,
                 CourtName = g.CourtId is not null && courtLookup.TryGetValue(g.CourtId, out var cn) ? cn : null,
                 HomeTeamIsPlaceholder = g.HomeTeamId is not null && placeholderLookup.Contains(g.HomeTeamId) ? true : null,
-                AwayTeamIsPlaceholder = g.AwayTeamId is not null && placeholderLookup.Contains(g.AwayTeamId) ? true : null
+                AwayTeamIsPlaceholder = g.AwayTeamId is not null && placeholderLookup.Contains(g.AwayTeamId) ? true : null,
+                PhaseName = phaseLookup.TryGetValue(g.PhaseId, out var pn) ? pn : null,
+                GroupName = groupLookup.TryGetValue(g.GroupId, out var gn) ? gn : null,
+                LevelName = levelName
             };
         }).ToList();
     }

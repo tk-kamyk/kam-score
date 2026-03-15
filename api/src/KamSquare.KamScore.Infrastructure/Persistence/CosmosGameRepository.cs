@@ -34,7 +34,7 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
     }
 
     public async Task<IEnumerable<Game>> GetGamesAsync(
-        string tournamentId, string? phaseId = null, string? groupId = null, string? courtId = null)
+        string tournamentId, string? phaseId = null, string? groupId = null, string? courtId = null, string? teamId = null)
     {
         var conditions = new List<string> { "c.tournamentId = @tournamentId" };
 
@@ -44,6 +44,8 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             conditions.Add("c.groupId = @groupId");
         if (courtId is not null)
             conditions.Add("c.courtId = @courtId");
+        if (teamId is not null)
+            conditions.Add("(c.homeTeamId = @teamId OR c.awayTeamId = @teamId OR c.refereeTeamId = @teamId)");
 
         var query = new QueryDefinition("SELECT * FROM c WHERE " + string.Join(" AND ", conditions))
             .WithParameter("@tournamentId", tournamentId);
@@ -54,6 +56,8 @@ public class CosmosGameRepository : CosmosRepository<Game>, IGameRepository
             query = query.WithParameter("@groupId", groupId);
         if (courtId is not null)
             query = query.WithParameter("@courtId", courtId);
+        if (teamId is not null)
+            query = query.WithParameter("@teamId", teamId);
 
         return await ExecuteQueryAsync<Game>(query,
             new QueryRequestOptions { PartitionKey = new PartitionKey(tournamentId) });
