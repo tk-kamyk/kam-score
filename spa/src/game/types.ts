@@ -26,6 +26,9 @@ export interface GameDto {
   courtName?: string
   homeTeamIsPlaceholder?: boolean
   awayTeamIsPlaceholder?: boolean
+  phaseName?: string
+  groupName?: string
+  levelName?: string
 }
 
 export interface GameResultInput {
