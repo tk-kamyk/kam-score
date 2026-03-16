@@ -186,9 +186,92 @@ public class StandingsCalculatorTests
     }
 
     [Fact]
-    public void RoundRobin_DirectResultTiebreaker_2TeamsExactlyTied()
+    public void RoundRobin_TiedOnPointsAndSetDiff_PointDifferenceBreaksTie()
     {
-        // 3-team group: a beats b, b beats c, c beats a (all 2-1) → all have same points AND same set diff
+        // 3-team circular: all 2 pts, all set diff 0
+        // Different point differences from set details
+        var teamIds = new List<string> { "a", "b", "c" };
+        var games = new List<Game>
+        {
+            // a beats b 2-1: a scores 60, b scores 55 → margin +5
+            CreateCompletedGame("a", "b", 2, 1, sets:
+            [
+                new SetResult(25, 20), new SetResult(20, 25), new SetResult(15, 10)
+            ]),
+            // b beats c 2-1: b scores 60, c scores 55 → margin +5
+            CreateCompletedGame("b", "c", 2, 1, sets:
+            [
+                new SetResult(25, 20), new SetResult(20, 25), new SetResult(15, 10)
+            ]),
+            // c beats a 2-1: c scores 63, a scores 61 → margin +2
+            CreateCompletedGame("c", "a", 2, 1, sets:
+            [
+                new SetResult(25, 23), new SetResult(23, 25), new SetResult(15, 13)
+            ]),
+        };
+
+        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+
+        // All: 2 pts, set diff 0
+        // Point diffs: a=+3 (121-118), b=0 (115-115), c=-3 (118-121)
+        standings[0].TeamId.Should().Be("a");
+        standings[0].PointDifference.Should().Be(3);
+        standings[1].TeamId.Should().Be("b");
+        standings[1].PointDifference.Should().Be(0);
+        standings[2].TeamId.Should().Be("c");
+        standings[2].PointDifference.Should().Be(-3);
+    }
+
+    [Fact]
+    public void RoundRobin_PointsScoredBreaksTie_AfterCircularDirectResult()
+    {
+        // 3-team circular: all 2 pts, set diff 0, point diff 0
+        // Circular direct result → still tied after h2h
+        // Different total points scored breaks the tie
+        var teamIds = new List<string> { "a", "b", "c" };
+        var games = new List<Game>
+        {
+            // a beats b 2-1: a scores 75, b scores 70 (margin +5)
+            CreateCompletedGame("a", "b", 2, 1, sets:
+            [
+                new SetResult(25, 22), new SetResult(22, 25), new SetResult(28, 23)
+            ]),
+            // b beats c 2-1: b scores 65, c scores 60 (margin +5)
+            CreateCompletedGame("b", "c", 2, 1, sets:
+            [
+                new SetResult(25, 20), new SetResult(20, 25), new SetResult(20, 15)
+            ]),
+            // c beats a 2-1: c scores 55, a scores 50 (margin +5)
+            CreateCompletedGame("c", "a", 2, 1, sets:
+            [
+                new SetResult(20, 15), new SetResult(15, 20), new SetResult(20, 15)
+            ]),
+        };
+
+        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+
+        // All: 2 pts, set diff 0, point diff 0
+        // Points scored: b=135, a=125, c=115
+        standings.Should().AllSatisfy(s =>
+        {
+            s.Points.Should().Be(2);
+            s.SetDifference.Should().Be(0);
+            s.PointDifference.Should().Be(0);
+        });
+
+        standings[0].TeamId.Should().Be("b");
+        standings[0].PointsWon.Should().Be(135);
+        standings[1].TeamId.Should().Be("a");
+        standings[1].PointsWon.Should().Be(125);
+        standings[2].TeamId.Should().Be("c");
+        standings[2].PointsWon.Should().Be(115);
+    }
+
+    [Fact]
+    public void RoundRobin_DirectResultTiebreaker_CircularTie_AllSharePosition()
+    {
+        // 3-team group: a beats b, b beats c, c beats a (all 2-1, simple results)
+        // No set details → point diff 0, points scored 0 → truly tied
         var teamIds = new List<string> { "a", "b", "c" };
         var games = new List<Game>
         {
@@ -199,8 +282,6 @@ public class StandingsCalculatorTests
 
         var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
 
-        // All teams: 2 pts, set diff 0 → circular tie
-        // Head-to-head mini-table also results in same stats → truly tied
         standings.Should().HaveCount(3);
         standings.Should().AllSatisfy(s =>
         {
