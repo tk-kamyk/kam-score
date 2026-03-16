@@ -115,7 +115,7 @@ public class CosmosTeamRepository : CosmosRepository<Team>, ITeamRepository
     public async Task<int> CountByTournamentIdAsync(string tournamentId)
     {
         var query = new QueryDefinition(
-                "SELECT VALUE COUNT(1) FROM c WHERE c.tournamentId = @tournamentId")
+                "SELECT VALUE COUNT(1) FROM c WHERE c.tournamentId = @tournamentId AND (NOT IS_DEFINED(c.isPlaceholder) OR c.isPlaceholder = false)")
             .WithParameter("@tournamentId", tournamentId);
 
         var results = await ExecuteQueryAsync<int>(query,
