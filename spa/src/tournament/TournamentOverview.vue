@@ -27,8 +27,8 @@ const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
 const standingsStore = useStandingsStore()
 
-const validTabs = ['details', 'teams', 'courts', 'structure', 'schedule', 'standings']
-const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'details')
+const validTabs = ['overview', 'teams', 'courts', 'structure', 'schedule', 'standings']
+const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'overview')
 
 watch(activeTab, (tab) => {
   router.replace({ query: { ...route.query, tab } })
@@ -40,7 +40,7 @@ const isOwner = computed(() =>
 )
 
 const tabLabels: Record<string, string> = {
-  details: 'Details',
+  overview: 'Overview',
   teams: 'Teams',
   courts: 'Courts',
   structure: 'Structure',
@@ -81,7 +81,7 @@ async function handleDelete() {
 
 <template>
   <div>
-    <TournamentBreadcrumb :items="breadcrumbItems" @navigate="activeTab = 'details'" />
+    <TournamentBreadcrumb :items="breadcrumbItems" @navigate="activeTab = 'overview'" />
 
     <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" aria-label="Loading tournament" />
 
@@ -95,7 +95,7 @@ async function handleDelete() {
       </v-tabs>
 
       <v-tabs-window v-model="activeTab">
-        <v-tabs-window-item value="details">
+        <v-tabs-window-item value="overview">
           <TournamentInfo
             :tournament="tournament"
             :is-owner="isOwner"

@@ -98,9 +98,11 @@
 
 ## Round Robin
 - 2 points for winning a game, 1 point for a draw, 0 points for losing
-- Ordering: win points (descending), then set difference (descending), then direct result between the tied teams
+- Ordering: win points (descending), then set difference (descending), then point difference (descending), then direct result between the tied teams, then points scored (descending)
 - Set difference = sets won minus sets lost (from HomeScore/AwayScore)
-- Direct result tiebreaker: when teams are tied on points and set difference, their head-to-head match result is used
+- Point difference = points won minus points lost (from set detail points, e.g. 25-20)
+- Direct result tiebreaker: when teams are tied on points, set difference, and point difference, their head-to-head match result is used (applying the same tiebreaker chain within the h2h mini-table)
+- Points scored = total points won (from set details, descending) — final tiebreaker after direct result
 - Teams still tied after all tiebreakers share the same position
 
 ## Playoff Elimination

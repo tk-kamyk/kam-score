@@ -28,10 +28,13 @@ public static class StandingsCalculator
         {
             var cmp = b.Stats.Points.CompareTo(a.Stats.Points);
             if (cmp != 0) return cmp;
-            return b.Stats.SetDifference.CompareTo(a.Stats.SetDifference);
+            cmp = b.Stats.SetDifference.CompareTo(a.Stats.SetDifference);
+            if (cmp != 0) return cmp;
+            return b.Stats.PointDifference.CompareTo(a.Stats.PointDifference);
         });
 
         entries = ApplyDirectResultTiebreaker(entries, completedGames);
+        entries = ApplyPointsScoredTiebreaker(entries);
 
         return AssignRoundRobinPositions(entries);
     }
@@ -273,11 +276,12 @@ public static class StandingsCalculator
 
         while (i < sortedEntries.Count)
         {
-            // Find group of tied teams (same points and set difference)
+            // Find group of tied teams (same points, set difference, and point difference)
             var j = i + 1;
             while (j < sortedEntries.Count
                    && sortedEntries[j].Stats.Points == sortedEntries[i].Stats.Points
-                   && sortedEntries[j].Stats.SetDifference == sortedEntries[i].Stats.SetDifference)
+                   && sortedEntries[j].Stats.SetDifference == sortedEntries[i].Stats.SetDifference
+                   && sortedEntries[j].Stats.PointDifference == sortedEntries[i].Stats.PointDifference)
             {
                 j++;
             }
@@ -292,6 +296,42 @@ public static class StandingsCalculator
             else
             {
                 result.Add(sortedEntries[i]);
+            }
+
+            i = j;
+        }
+
+        return result;
+    }
+
+    private static List<RoundRobinEntry> ApplyPointsScoredTiebreaker(
+        List<RoundRobinEntry> entries)
+    {
+        var result = new List<RoundRobinEntry>();
+        var i = 0;
+
+        while (i < entries.Count)
+        {
+            // Find group still tied (same points, set diff, point diff) after direct result
+            var j = i + 1;
+            while (j < entries.Count
+                   && entries[j].Stats.Points == entries[i].Stats.Points
+                   && entries[j].Stats.SetDifference == entries[i].Stats.SetDifference
+                   && entries[j].Stats.PointDifference == entries[i].Stats.PointDifference)
+            {
+                j++;
+            }
+
+            if (j - i > 1)
+            {
+                // Sort tied group by total points scored (descending)
+                var tiedGroup = entries.GetRange(i, j - i);
+                tiedGroup.Sort((a, b) => b.Stats.PointsWon.CompareTo(a.Stats.PointsWon));
+                result.AddRange(tiedGroup);
+            }
+            else
+            {
+                result.Add(entries[i]);
             }
 
             i = j;
@@ -319,32 +359,10 @@ public static class StandingsCalculator
             var home = miniStats[game.HomeTeamId!];
             var away = miniStats[game.AwayTeamId!];
 
-            var homeScore = game.HomeScore ?? 0;
-            var awayScore = game.AwayScore ?? 0;
-
-            home.SetsWon += homeScore;
-            home.SetsLost += awayScore;
-            away.SetsWon += awayScore;
-            away.SetsLost += homeScore;
-
-            if (homeScore > awayScore)
-            {
-                home.Wins++;
-                away.Losses++;
-            }
-            else if (awayScore > homeScore)
-            {
-                away.Wins++;
-                home.Losses++;
-            }
-            else
-            {
-                home.Draws++;
-                away.Draws++;
-            }
+            AccumulateGameStats(home, away, game);
         }
 
-        // Sort by h2h points, then h2h set difference
+        // Sort by h2h points, then h2h set difference, then h2h point difference
         var sorted = tiedEntries.ToList();
         sorted.Sort((a, b) =>
         {
@@ -353,7 +371,9 @@ public static class StandingsCalculator
 
             var cmp = bH2H.Points.CompareTo(aH2H.Points);
             if (cmp != 0) return cmp;
-            return bH2H.SetDifference.CompareTo(aH2H.SetDifference);
+            cmp = bH2H.SetDifference.CompareTo(aH2H.SetDifference);
+            if (cmp != 0) return cmp;
+            return bH2H.PointDifference.CompareTo(aH2H.PointDifference);
         });
 
         return sorted;
@@ -373,7 +393,9 @@ public static class StandingsCalculator
 
                 // Same position if all sort criteria match
                 if (curr.Points != prev.Points
-                    || curr.SetDifference != prev.SetDifference)
+                    || curr.SetDifference != prev.SetDifference
+                    || curr.PointDifference != prev.PointDifference
+                    || curr.PointsWon != prev.PointsWon)
                 {
                     position = i + 1;
                 }

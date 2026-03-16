@@ -37,11 +37,25 @@ Feature: Group Standings
     Then all three teams should have 2 points
     And the team with the best set difference should be ranked first
 
+  Scenario: Round robin tiebreaker by point difference
+    Given a round-robin phase with group "A" containing teams "Eagles", "Hawks", "Wolves"
+    And all three teams have the same points and set difference
+    But "Eagles" has a better point difference (from set details) than "Hawks" and "Wolves"
+    When I request standings for group "A"
+    Then "Eagles" should be ranked first based on point difference
+
   Scenario: Round robin tiebreaker by direct result
     Given a round-robin phase with group "A" containing teams "Eagles", "Hawks", "Wolves", "Bears"
-    And "Eagles" and "Hawks" are tied on points and set difference
+    And "Eagles" and "Hawks" are tied on points, set difference, and point difference
     When I request standings for group "A"
     Then the winner of the direct match between "Eagles" and "Hawks" should be ranked higher
+
+  Scenario: Round robin tiebreaker by points scored
+    Given a round-robin phase with group "A" containing teams "Eagles", "Hawks", "Wolves"
+    And all three teams are tied on points, set difference, point difference, and direct result
+    But "Eagles" has more total points scored (from set details) than the other teams
+    When I request standings for group "A"
+    Then "Eagles" should be ranked first based on total points scored
 
   Scenario: Round robin no completed games
     Given a round-robin phase with group "A" containing teams "Eagles", "Hawks", "Wolves"
