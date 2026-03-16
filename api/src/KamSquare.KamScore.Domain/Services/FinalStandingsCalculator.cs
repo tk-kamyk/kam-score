@@ -41,7 +41,9 @@ public static class FinalStandingsCalculator
         Dictionary<string, string> teamNameLookup,
         bool provisional)
     {
-        var standings = CalculateForTeamPool(orderedPhases, allGames, teamNameLookup, null);
+        var groupsForPhase = orderedPhases.ToDictionary(p => p.Id, p => p.Groups.ToList());
+        var globalPositioned = new HashSet<string>();
+        var standings = CalculateForTeamPool(orderedPhases, allGames, teamNameLookup, null, groupsForPhase, globalPositioned);
         return new FinalStandingsResult(provisional, standings);
     }
 
@@ -51,40 +53,81 @@ public static class FinalStandingsCalculator
         Dictionary<string, string> teamNameLookup,
         bool provisional)
     {
-        // Collect all unique levels across phases (use first phase that defines levels)
-        var phaseWithLevels = orderedPhases.First(p => p.Levels.Count > 0);
+        var rootLeveledPhase = orderedPhases.First(p => p.Levels.Count > 0);
         var allStandings = new List<FinalStanding>();
+        var globalPositionedTeams = new HashSet<string>();
 
-        foreach (var level in phaseWithLevels.Levels.OrderBy(l => l.Order))
+        foreach (var rootLevel in rootLeveledPhase.Levels.OrderBy(l => l.Order))
         {
-            var levelStandings = CalculateForTeamPool(orderedPhases, allGames, teamNameLookup, level);
+            var groupsForPhase = BuildGroupsForRootLevel(orderedPhases, rootLeveledPhase, rootLevel);
+            var levelStandings = CalculateForTeamPool(
+                orderedPhases, allGames, teamNameLookup, rootLevel.Name, groupsForPhase, globalPositionedTeams);
             allStandings.AddRange(levelStandings);
         }
 
         return new FinalStandingsResult(provisional, allStandings);
     }
 
+    /// <summary>
+    /// Builds a per-phase group mapping for a given root level.
+    /// Handles phases with no levels, same levels, or more levels (split factor).
+    /// </summary>
+    private static Dictionary<string, List<Group>> BuildGroupsForRootLevel(
+        List<Phase> orderedPhases,
+        Phase rootLeveledPhase,
+        Level rootLevel)
+    {
+        var rootLevelCount = rootLeveledPhase.Levels.Count;
+        var result = new Dictionary<string, List<Group>>();
+
+        foreach (var phase in orderedPhases)
+        {
+            if (phase.Levels.Count == 0)
+            {
+                // Pre-level phase: include all groups
+                result[phase.Id] = phase.Groups.ToList();
+                continue;
+            }
+
+            if (phase.Id == rootLeveledPhase.Id)
+            {
+                // Root leveled phase: match directly
+                result[phase.Id] = phase.Groups.Where(g => g.LevelId == rootLevel.Id).ToList();
+                continue;
+            }
+
+            // Phase with different level count: compute corresponding levels by order
+            var phaseLevelCount = phase.Levels.Count;
+            var overallFactor = phaseLevelCount / rootLevelCount;
+            var startOrder = (rootLevel.Order - 1) * overallFactor + 1;
+            var endOrder = rootLevel.Order * overallFactor;
+
+            var matchingLevelIds = phase.Levels
+                .Where(l => l.Order >= startOrder && l.Order <= endOrder)
+                .Select(l => l.Id)
+                .ToHashSet();
+
+            result[phase.Id] = phase.Groups.Where(g => g.LevelId is not null && matchingLevelIds.Contains(g.LevelId)).ToList();
+        }
+
+        return result;
+    }
+
     private static List<FinalStanding> CalculateForTeamPool(
         List<Phase> orderedPhases,
         List<Game> allGames,
         Dictionary<string, string> teamNameLookup,
-        Level? level)
+        string? levelName,
+        Dictionary<string, List<Group>> groupsForPhase,
+        HashSet<string> globalPositionedTeams)
     {
-        var levelName = level?.Name;
         var gamesByPhase = allGames.ToLookup(g => g.PhaseId);
-
-        // Cache level-filtered groups per phase
-        var groupsByPhase = orderedPhases.ToDictionary(
-            p => p.Id,
-            p => level is not null
-                ? p.Groups.Where(g => g.LevelId == level.Id).ToList()
-                : p.Groups.ToList());
 
         // Collect assigned team IDs from each phase
         var assignedTeams = new Dictionary<string, HashSet<string>>();
         foreach (var phase in orderedPhases)
         {
-            var teamIds = groupsByPhase[phase.Id]
+            var teamIds = groupsForPhase[phase.Id]
                 .SelectMany(g => g.TeamIds)
                 .Where(id => teamNameLookup.ContainsKey(id))
                 .ToHashSet();
@@ -94,7 +137,7 @@ public static class FinalStandingsCalculator
 
         // Work from last phase to first, assigning positions
         var result = new List<FinalStanding>();
-        var positionedTeams = new HashSet<string>();
+        var positionedTeams = new HashSet<string>(globalPositionedTeams);
         var nextPosition = 1;
 
         for (var i = orderedPhases.Count - 1; i >= 0; i--)
@@ -103,14 +146,20 @@ public static class FinalStandingsCalculator
             if (assignedTeams[phase.Id].Count == 0) continue;
 
             var phaseGames = gamesByPhase[phase.Id].ToList();
-            var groups = groupsByPhase[phase.Id];
+            var groups = groupsForPhase[phase.Id];
 
             var groupStandings = CalculateGroupStandings(groups, phaseGames, phase.Format, teamNameLookup);
 
             if (i == orderedPhases.Count - 1)
-                AssignLastPhasePositions(groupStandings, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
+                AssignLastPhasePositions(groupStandings, phase.Format, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
             else
                 AssignEarlierPhasePositions(phase, groupStandings, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
+        }
+
+        // Track all positioned teams globally to avoid double-counting across level iterations
+        foreach (var standing in result)
+        {
+            globalPositionedTeams.Add(standing.TeamId);
         }
 
         return result;
@@ -134,13 +183,14 @@ public static class FinalStandingsCalculator
 
     private static void AssignLastPhasePositions(
         List<(string GroupId, List<Standing> Standings)> groupStandings,
+        PhaseFormat format,
         Dictionary<string, string> teamNameLookup,
         string? levelName,
         List<FinalStanding> result,
         HashSet<string> positionedTeams,
         ref int nextPosition)
     {
-        var ranked = RankCrossGroup(groupStandings);
+        var ranked = RankCrossGroup(groupStandings, format);
         foreach (var standing in ranked)
         {
             if (positionedTeams.Contains(standing.TeamId)) continue;
@@ -162,7 +212,7 @@ public static class FinalStandingsCalculator
         ref int nextPosition)
     {
         var advancingTeamIds = GetAdvancingTeamIds(phase, groupStandings);
-        var nonAdvancing = RankCrossGroup(groupStandings)
+        var nonAdvancing = RankCrossGroup(groupStandings, phase.Format)
             .Where(s => !advancingTeamIds.Contains(s.TeamId))
             .Where(s => !positionedTeams.Contains(s.TeamId))
             .ToList();
@@ -189,10 +239,20 @@ public static class FinalStandingsCalculator
     }
 
     private static List<Standing> RankCrossGroup(
-        List<(string GroupId, List<Standing> Standings)> groupStandings)
+        List<(string GroupId, List<Standing> Standings)> groupStandings,
+        PhaseFormat format)
     {
-        return groupStandings
-            .SelectMany(gs => gs.Standings)
+        var all = groupStandings.SelectMany(gs => gs.Standings);
+
+        if (format is PhaseFormat.PlayoffElimination or PhaseFormat.PlayoffWithPlacement)
+        {
+            return all
+                .OrderBy(s => s.Position)
+                .ThenByDescending(s => s.Wins)
+                .ToList();
+        }
+
+        return all
             .OrderByDescending(s => s.Points ?? 0)
             .ThenByDescending(s => s.SetDifference ?? 0)
             .ThenByDescending(s => s.PointDifference ?? 0)
