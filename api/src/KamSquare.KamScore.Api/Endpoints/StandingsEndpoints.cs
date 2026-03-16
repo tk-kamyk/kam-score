@@ -15,6 +15,7 @@ public static class StandingsEndpoints
             .WithTags("Standings");
 
         group.MapGet("/standings", GetStandings);
+        group.MapGet("/final-standings", GetFinalStandings);
 
         return group;
     }
@@ -68,5 +69,34 @@ public static class StandingsEndpoints
             s.PointsWon,
             s.PointsLost,
             s.PointDifference)));
+    }
+
+    private static async Task<IResult> GetFinalStandings(
+        string tournamentId,
+        ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
+        IGameRepository gameRepository,
+        ITeamRepository teamRepository)
+    {
+        var tournament = await tournamentRepository.GetByIdAsync(tournamentId);
+        if (tournament is null)
+            throw new NotFoundException(nameof(Tournament), tournamentId);
+
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId);
+        if (structure is null)
+            throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var gamesTask = gameRepository.GetByTournamentIdAsync(tournamentId);
+        var teamsTask = teamRepository.GetByTournamentIdAsync(tournamentId);
+        await Task.WhenAll(gamesTask, teamsTask);
+        var allGames = (await gamesTask).ToList();
+        var allTeams = (await teamsTask).ToList();
+
+        var result = FinalStandingsCalculator.Calculate(structure.Phases, allGames, allTeams);
+
+        return Results.Ok(new FinalStandingsResponseDto(
+            result.Provisional,
+            result.Standings.Select(s => new FinalStandingDto(
+                s.Position, s.TeamId, s.TeamName, s.LevelName)).ToList()));
     }
 }
