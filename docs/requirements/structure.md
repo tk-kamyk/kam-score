@@ -115,6 +115,20 @@
 - The winner of the Final is 1st, loser is 2nd; winner of 3rd-place game is 3rd, loser is 4th; and so on
 - Positions are only assigned for completed placement games
 
+## Final Standings (Tournament-wide)
+- Final standings aggregate results across all phases to produce a single tournament-wide ranking
+- Placeholder teams are excluded — only real teams appear
+- The last phase (highest order) assigns positions 1 through N from its group standings
+- For each earlier phase with progression config, teams that did **not** advance get positions starting after the advancing teams, ranked by their cross-group standings within that phase
+    - Example: 8 teams in Phase 1, 4 advance to Phase 2 → Phase 2 standings give positions 1-4, Phase 1 non-advancing teams get positions 5-8
+- When levels are used, final standings are calculated independently per level — each level has its own 1-N ranking
+- Final standings are available as soon as any phase has completed games (provisional mode):
+    - Completed phases contribute finalized positions for eliminated teams
+    - The current (in-progress or last) phase contributes current positions for active teams
+    - When not all phases are complete, standings are marked as "provisional"
+- Final standings are read-only and publicly accessible (anonymous access)
+- The response includes: position, team ID, team name, and optionally level name
+
 # Bracket Advancement
 
 - When a playoff game result is recorded (or corrected), downstream games referencing it via placeholders are automatically updated with actual team IDs
