@@ -30,25 +30,10 @@ export const useStandingsStore = defineStore('standings', () => {
   async function fetchFinalStandings(tournamentId: string) {
     finalStandingsLoading.value = true
     try {
-      // TODO: Replace with real API call in iteration 3
-      // const { data } = await apiClient.get<FinalStandingsResponse>(
-      //   `/tournaments/${tournamentId}/final-standings`,
-      // )
-      // finalStandings.value = data
-      void tournamentId
-      finalStandings.value = {
-        provisional: true,
-        standings: [
-          { position: 1, teamId: '1', teamName: 'Eagles', levelName: 'Gold' },
-          { position: 2, teamId: '2', teamName: 'Hawks', levelName: 'Gold' },
-          { position: 3, teamId: '3', teamName: 'Wolves', levelName: 'Gold' },
-          { position: 4, teamId: '4', teamName: 'Bears', levelName: 'Gold' },
-          { position: 1, teamId: '5', teamName: 'Lions', levelName: 'Silver' },
-          { position: 2, teamId: '6', teamName: 'Tigers', levelName: 'Silver' },
-          { position: 3, teamId: '7', teamName: 'Panthers', levelName: 'Silver' },
-          { position: 4, teamId: '8', teamName: 'Falcons', levelName: 'Silver' },
-        ],
-      }
+      const { data } = await apiClient.get<FinalStandingsResponse>(
+        `/tournaments/${tournamentId}/final-standings`,
+      )
+      finalStandings.value = data
     } finally {
       finalStandingsLoading.value = false
     }
