@@ -8,6 +8,8 @@ import { useSnackbar } from '@/composables/useSnackbar'
 import { parseErrorDetail } from '@/api/errors'
 import TournamentBreadcrumb from '@/tournament/TournamentBreadcrumb.vue'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
+import FinalStandings from '@/standings/FinalStandings.vue'
+import { useStandingsStore } from '@/standings/store'
 import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
 import StructureDetail from '@/structure/StructureDetail.vue'
@@ -23,6 +25,7 @@ const auth = useAuthStore()
 const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
+const standingsStore = useStandingsStore()
 
 const validTabs = ['details', 'teams', 'courts', 'structure', 'schedule', 'standings']
 const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'details')
@@ -53,6 +56,7 @@ const breadcrumbItems = computed(() => [
 
 onMounted(() => {
   tournamentStore.fetchTournament(props.id)
+  standingsStore.fetchFinalStandings(props.id)
 })
 
 async function handleUpdate(dto: TournamentDto) {
@@ -97,6 +101,10 @@ async function handleDelete() {
             :is-owner="isOwner"
             @updated="handleUpdate"
             @deleted="handleDelete"
+          />
+          <FinalStandings
+            :data="standingsStore.finalStandings"
+            :loading="standingsStore.finalStandingsLoading"
           />
         </v-tabs-window-item>
 

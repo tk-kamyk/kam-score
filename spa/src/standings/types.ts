@@ -14,3 +14,15 @@ export interface StandingDto {
   pointsLost?: number
   pointDifference?: number
 }
+
+export interface FinalStandingDto {
+  position: number
+  teamId: string
+  teamName: string
+  levelName?: string
+}
+
+export interface FinalStandingsResponse {
+  provisional: boolean
+  standings: FinalStandingDto[]
+}

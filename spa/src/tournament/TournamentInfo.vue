@@ -61,7 +61,7 @@ function handleDelete() {
     </SectionHeader>
 
     <v-card class="data-table-card">
-      <v-table density="comfortable" class="styled-table">
+      <v-table density="compact" class="styled-table">
         <thead>
           <tr>
             <th scope="col">Property</th>
