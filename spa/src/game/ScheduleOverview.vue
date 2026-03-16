@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
+import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
 import { parseErrorDetail } from '@/api/errors'
@@ -20,6 +21,7 @@ const props = defineProps<{
 
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
+const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
 const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
@@ -103,6 +105,7 @@ async function handleComplete() {
     await Promise.all([
       structureStore.fetchStructure(props.tournamentId),
       gameStore.fetchGames(props.tournamentId),
+      teamStore.fetchTeams(props.tournamentId, true),
     ])
     showCompleteDialog.value = false
     showSuccess('Phase completed')
@@ -130,6 +133,7 @@ async function handleReopen() {
     await Promise.all([
       structureStore.fetchStructure(props.tournamentId),
       gameStore.fetchGames(props.tournamentId),
+      teamStore.fetchTeams(props.tournamentId, true),
     ])
     showReopenDialog.value = false
     showSuccess('Phase reopened')

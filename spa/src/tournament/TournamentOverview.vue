@@ -32,6 +32,9 @@ const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.que
 
 watch(activeTab, (tab) => {
   router.replace({ query: { ...route.query, tab } })
+  if (tab === 'overview') {
+    standingsStore.fetchFinalStandings(props.id)
+  }
 })
 
 const tournament = computed(() => tournamentStore.currentTournament)
