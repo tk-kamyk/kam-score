@@ -112,15 +112,15 @@ async function handleDelete() {
         </v-tabs-window-item>
 
         <v-tabs-window-item value="teams">
-          <TeamList :tournament-id="id" :is-owner="isOwner" />
+          <TeamList :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'teams'" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="courts">
-          <CourtList :tournament-id="id" :is-owner="isOwner" />
+          <CourtList :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'courts'" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="structure">
-          <StructureDetail :tournament-id="id" :is-owner="isOwner" />
+          <StructureDetail :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'structure'" />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="standings">
@@ -128,7 +128,7 @@ async function handleDelete() {
         </v-tabs-window-item>
 
         <v-tabs-window-item value="schedule">
-          <ScheduleOverview :tournament-id="id" :is-owner="isOwner" />
+          <ScheduleOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'schedule'" />
         </v-tabs-window-item>
       </v-tabs-window>
     </template>

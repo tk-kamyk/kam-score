@@ -12,6 +12,7 @@ import type { VForm } from 'vuetify/components'
 const props = defineProps<{
   tournamentId: string
   isOwner: boolean
+  active: boolean
 }>()
 
 const route = useRoute()
@@ -65,6 +66,10 @@ const phoneRules = [
 
 onMounted(() => {
   teamStore.fetchTeams(props.tournamentId)
+})
+
+watch(() => props.active, (isActive) => {
+  if (isActive) teamStore.fetchTeams(props.tournamentId)
 })
 
 function openCreate() {
