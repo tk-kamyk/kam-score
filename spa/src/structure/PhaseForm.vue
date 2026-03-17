@@ -25,6 +25,7 @@ const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } =
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
 
 const useLevels = ref(false)
+const isFinalPhase = ref(false)
 
 const form = ref({
   name: '',
@@ -34,6 +35,16 @@ const form = ref({
   groupWinners: null as number | null,
   totalTeamsProceeding: null as number | null,
   startTime: '',
+})
+
+watch(isFinalPhase, (final) => {
+  if (final) {
+    form.value.groupWinners = 0
+    form.value.totalTeamsProceeding = 0
+  } else {
+    form.value.groupWinners = null
+    form.value.totalTeamsProceeding = null
+  }
 })
 
 const nameRules = [
@@ -97,6 +108,7 @@ watch(model, (open) => {
     clearErrors()
     if (props.phase) {
       useLevels.value = (props.phase.levels?.length ?? 0) > 0
+      isFinalPhase.value = props.phase.groupWinners === 0 && props.phase.totalTeamsProceeding === 0
       form.value = {
         name: props.phase.name,
         format: props.phase.format,
@@ -108,6 +120,7 @@ watch(model, (open) => {
       }
     } else {
       useLevels.value = levelsRequired.value
+      isFinalPhase.value = false
       const defaultLevels = levelsRequired.value ? previousPhaseLevelCount.value : 2
       form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, numberOfLevels: defaultLevels, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
     }
@@ -124,8 +137,8 @@ async function handleSave() {
       format: form.value.format,
       numberOfGroups: props.phase ? undefined : form.value.numberOfGroups,
       numberOfLevels: props.phase ? undefined : (useLevels.value ? form.value.numberOfLevels : undefined),
-      groupWinners: form.value.groupWinners ?? undefined,
-      totalTeamsProceeding: form.value.totalTeamsProceeding ?? undefined,
+      groupWinners: isFinalPhase.value ? 0 : (form.value.groupWinners ?? undefined),
+      totalTeamsProceeding: isFinalPhase.value ? 0 : (form.value.totalTeamsProceeding ?? undefined),
       startTime: form.value.startTime || undefined,
     }
 
@@ -210,25 +223,36 @@ async function handleSave() {
             min="1"
             @update:model-value="clearFieldError('numberOfGroups')"
           />
+          <v-switch
+            v-model="isFinalPhase"
+            label="Final Phase (no teams advance)"
+            hint="Mark this as the last phase — no teams will progress further"
+            persistent-hint
+            color="primary"
+            density="compact"
+            class="mb-2"
+          />
           <v-text-field
+            v-if="!isFinalPhase"
             v-model.number="form.groupWinners"
             label="Teams Proceeding per Group"
             type="number"
             hint="Top N teams from each group advance automatically"
             persistent-hint
             :error-messages="fieldErrors('groupWinners')"
-            min="1"
+            min="0"
             clearable
             @update:model-value="clearFieldError('groupWinners')"
           />
           <v-text-field
+            v-if="!isFinalPhase"
             v-model.number="form.totalTeamsProceeding"
             :label="totalProceedingLabel"
             type="number"
             hint="Total teams qualifying from this phase/level (includes lucky losers)"
             persistent-hint
             :error-messages="fieldErrors('totalTeamsProceeding')"
-            min="1"
+            min="0"
             clearable
             @update:model-value="clearFieldError('totalTeamsProceeding')"
           />

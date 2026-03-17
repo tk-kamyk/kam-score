@@ -93,6 +93,17 @@ Feature: Phase Management
       | StartTime | 14:00 |
     Then the phase has startTime "14:00"
 
+  Scenario: Owner creates a phase with zero progression (final phase)
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with a structure
+    When the user adds a phase with:
+      | Name                 | Final Round  |
+      | Format               | RoundRobin   |
+      | GroupWinners         | 0            |
+      | TotalTeamsProceeding | 0            |
+    Then the phase has groupWinners 0
+    And the phase has totalTeamsProceeding 0
+
   Scenario: Non-owner cannot add a phase
     Given user "Alice" owns tournament "Summer Cup" with a structure
     When user "Bob" attempts to add a phase

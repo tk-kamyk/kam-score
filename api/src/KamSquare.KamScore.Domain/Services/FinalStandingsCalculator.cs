@@ -151,9 +151,9 @@ public static class FinalStandingsCalculator
             var groupStandings = CalculateGroupStandings(groups, phaseGames, phase.Format, teamNameLookup);
 
             if (i == orderedPhases.Count - 1)
-                AssignLastPhasePositions(groupStandings, phase.Format, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
+                AssignLastPhasePositions(phase, groups, groupStandings, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
             else
-                AssignEarlierPhasePositions(phase, groupStandings, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
+                AssignEarlierPhasePositions(phase, groups, groupStandings, teamNameLookup, levelName, result, positionedTeams, ref nextPosition);
         }
 
         // Track all positioned teams globally to avoid double-counting across level iterations
@@ -182,15 +182,16 @@ public static class FinalStandingsCalculator
     }
 
     private static void AssignLastPhasePositions(
+        Phase phase,
+        List<Group> groups,
         List<(string GroupId, List<Standing> Standings)> groupStandings,
-        PhaseFormat format,
         Dictionary<string, string> teamNameLookup,
         string? levelName,
         List<FinalStanding> result,
         HashSet<string> positionedTeams,
         ref int nextPosition)
     {
-        var ranked = RankCrossGroup(groupStandings, format);
+        var ranked = RankRespectingLevels(phase, groups, groupStandings, phase.Format);
         foreach (var standing in ranked)
         {
             if (positionedTeams.Contains(standing.TeamId)) continue;
@@ -204,6 +205,7 @@ public static class FinalStandingsCalculator
 
     private static void AssignEarlierPhasePositions(
         Phase phase,
+        List<Group> groups,
         List<(string GroupId, List<Standing> Standings)> groupStandings,
         Dictionary<string, string> teamNameLookup,
         string? levelName,
@@ -212,7 +214,7 @@ public static class FinalStandingsCalculator
         ref int nextPosition)
     {
         var advancingTeamIds = GetAdvancingTeamIds(phase, groupStandings);
-        var nonAdvancing = RankCrossGroup(groupStandings, phase.Format)
+        var nonAdvancing = RankRespectingLevels(phase, groups, groupStandings, phase.Format)
             .Where(s => !advancingTeamIds.Contains(s.TeamId))
             .Where(s => !positionedTeams.Contains(s.TeamId))
             .ToList();
@@ -234,8 +236,40 @@ public static class FinalStandingsCalculator
         if (!phase.HasProgressionConfig)
             return [];
 
+        if (phase.GroupWinners is 0 && phase.TotalTeamsProceeding is null or 0)
+            return [];
+
         var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
         return qualifyingIds.ToHashSet();
+    }
+
+    private static List<Standing> RankRespectingLevels(
+        Phase phase,
+        List<Group> groups,
+        List<(string GroupId, List<Standing> Standings)> groupStandings,
+        PhaseFormat format)
+    {
+        if (phase.Levels.Count == 0)
+            return RankCrossGroup(groupStandings, format);
+
+        var result = new List<Standing>();
+        var relevantLevels = phase.Levels
+            .Where(l => groups.Any(g => g.LevelId == l.Id))
+            .OrderBy(l => l.Order);
+
+        foreach (var level in relevantLevels)
+        {
+            var levelGroupIds = groups
+                .Where(g => g.LevelId == level.Id)
+                .Select(g => g.Id)
+                .ToHashSet();
+            var levelStandings = groupStandings
+                .Where(gs => levelGroupIds.Contains(gs.GroupId))
+                .ToList();
+            result.AddRange(RankCrossGroup(levelStandings, format));
+        }
+
+        return result;
     }
 
     private static List<Standing> RankCrossGroup(

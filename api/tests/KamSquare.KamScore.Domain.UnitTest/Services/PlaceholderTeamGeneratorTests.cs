@@ -51,6 +51,28 @@ public class PlaceholderTeamGeneratorTests
     }
 
     [Fact]
+    public void Generate_WithGroupWinnersZero_ReturnsEmptyList()
+    {
+        var phase = Phase.Create("Final Round", PhaseFormat.RoundRobin, 1, 2, groupWinners: 0);
+
+        var result = PlaceholderTeamGenerator.Generate(phase, "t1");
+
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Generate_WithTotalTeamsProceedingZero_ReturnsEmptyList()
+    {
+        var phase = Phase.Create("Final Round", PhaseFormat.RoundRobin, 1, 2, totalTeamsProceeding: 0);
+
+        var result = PlaceholderTeamGenerator.Generate(phase, "t1");
+
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public void Generate_SetsCorrectProperties()
     {
         var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2, totalTeamsProceeding: 3);

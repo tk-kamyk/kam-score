@@ -93,9 +93,19 @@ public class PhaseDtoValidatorTests
     }
 
     [Fact]
-    public void GroupWinners_Zero_ShouldFailValidation()
+    public void GroupWinners_Zero_ShouldPassValidation_FinalPhase()
     {
         var dto = new PhaseDto(null, "Groups", "RoundRobin", GroupWinners: 0);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.GroupWinners);
+    }
+
+    [Fact]
+    public void GroupWinners_Negative_ShouldFailValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", GroupWinners: -1);
 
         var result = _validator.TestValidate(dto);
 
@@ -123,9 +133,19 @@ public class PhaseDtoValidatorTests
     }
 
     [Fact]
-    public void TotalTeamsProceeding_Zero_ShouldFailValidation()
+    public void TotalTeamsProceeding_Zero_ShouldPassValidation_FinalPhase()
     {
         var dto = new PhaseDto(null, "Groups", "RoundRobin", TotalTeamsProceeding: 0);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.TotalTeamsProceeding);
+    }
+
+    [Fact]
+    public void TotalTeamsProceeding_Negative_ShouldFailValidation()
+    {
+        var dto = new PhaseDto(null, "Groups", "RoundRobin", TotalTeamsProceeding: -1);
 
         var result = _validator.TestValidate(dto);
 

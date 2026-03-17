@@ -82,6 +82,51 @@ public class PhaseAdvancementCalculatorTests
         result.Should().BeEmpty();
     }
 
+    [Fact]
+    public void CalculateQualifyingTeamIds_GroupWinnersZero_ReturnsEmpty()
+    {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2, groupWinners: 0);
+        var groupStandings = new List<(string, List<Standing>)>
+        {
+            ("g1", [MakeStanding("t1", 1, 6), MakeStanding("t2", 2, 4)]),
+            ("g2", [MakeStanding("t3", 1, 6), MakeStanding("t4", 2, 4)])
+        };
+
+        var result = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CalculateQualifyingTeamIds_TotalTeamsProceedingZero_ReturnsEmpty()
+    {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2, totalTeamsProceeding: 0);
+        var groupStandings = new List<(string, List<Standing>)>
+        {
+            ("g1", [MakeStanding("t1", 1, 6), MakeStanding("t2", 2, 4)]),
+            ("g2", [MakeStanding("t3", 1, 6), MakeStanding("t4", 2, 4)])
+        };
+
+        var result = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void CalculateQualifyingTeamIds_BothZero_ReturnsEmpty()
+    {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2, groupWinners: 0, totalTeamsProceeding: 0);
+        var groupStandings = new List<(string, List<Standing>)>
+        {
+            ("g1", [MakeStanding("t1", 1, 6), MakeStanding("t2", 2, 4)]),
+            ("g2", [MakeStanding("t3", 1, 6), MakeStanding("t4", 2, 4)])
+        };
+
+        var result = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
+
+        result.Should().BeEmpty();
+    }
+
     // --- CalculateSeeding ---
 
     [Fact]
@@ -146,6 +191,22 @@ public class PhaseAdvancementCalculatorTests
         var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2);
 
         PhaseAdvancementCalculator.GetExpectedTeamCount(phase).Should().BeNull();
+    }
+
+    [Fact]
+    public void GetExpectedTeamCount_GroupWinnersZero_ReturnsZero()
+    {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2, groupWinners: 0);
+
+        PhaseAdvancementCalculator.GetExpectedTeamCount(phase).Should().Be(0);
+    }
+
+    [Fact]
+    public void GetExpectedTeamCount_TotalTeamsProceedingZero_ReturnsZero()
+    {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2, totalTeamsProceeding: 0);
+
+        PhaseAdvancementCalculator.GetExpectedTeamCount(phase).Should().Be(0);
     }
 
     // --- Level-Aware Tests ---
