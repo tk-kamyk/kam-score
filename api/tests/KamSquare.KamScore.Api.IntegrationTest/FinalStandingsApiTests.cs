@@ -86,14 +86,13 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var result = await response.Content.ReadFromJsonAsync<FinalStandingsResponseDto>();
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
         result.Should().NotBeNull();
-        result!.Provisional.Should().BeFalse();
-        result.Standings.Should().HaveCount(3);
-        result.Standings[0].TeamName.Should().Be("Eagles");
-        result.Standings[0].Position.Should().Be(1);
-        result.Standings[1].TeamName.Should().Be("Hawks");
-        result.Standings[2].TeamName.Should().Be("Wolves");
+        result.Should().HaveCount(3);
+        result![0].TeamName.Should().Be("Eagles");
+        result[0].Position.Should().Be(1);
+        result[1].TeamName.Should().Be("Hawks");
+        result[2].TeamName.Should().Be("Wolves");
     }
 
     [Fact]
@@ -131,20 +130,20 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
 
-        var result = await response.Content.ReadFromJsonAsync<FinalStandingsResponseDto>();
-        result!.Standings.Should().HaveCount(4);
-        result.Standings[0].TeamName.Should().Be("Hawks");
-        result.Standings[0].Position.Should().Be(1);
-        result.Standings[1].TeamName.Should().Be("Eagles");
-        result.Standings[1].Position.Should().Be(2);
-        result.Standings[2].TeamName.Should().Be("Wolves");
-        result.Standings[2].Position.Should().Be(3);
-        result.Standings[3].TeamName.Should().Be("Bears");
-        result.Standings[3].Position.Should().Be(4);
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().HaveCount(4);
+        result![0].TeamName.Should().Be("Hawks");
+        result[0].Position.Should().Be(1);
+        result[1].TeamName.Should().Be("Eagles");
+        result[1].Position.Should().Be(2);
+        result[2].TeamName.Should().Be("Wolves");
+        result[2].Position.Should().Be(3);
+        result[3].TeamName.Should().Be("Bears");
+        result[3].Position.Should().Be(4);
     }
 
     [Fact]
-    public async Task GetFinalStandings_Provisional_WhenPhaseInProgress()
+    public async Task GetFinalStandings_ReturnsEmpty_WhenPhaseNotCompleted()
     {
         var tournament = CreateTestTournament();
         var structure = TournamentStructure.Create(tournament.Id);
@@ -166,8 +165,9 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
 
-        var result = await response.Content.ReadFromJsonAsync<FinalStandingsResponseDto>();
-        result!.Provisional.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().BeEmpty();
     }
 
     [Fact]
@@ -184,8 +184,8 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
 
-        var result = await response.Content.ReadFromJsonAsync<FinalStandingsResponseDto>();
-        result!.Standings.Should().BeEmpty();
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().BeEmpty();
     }
 
     [Fact]
@@ -217,9 +217,9 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
 
-        var result = await response.Content.ReadFromJsonAsync<FinalStandingsResponseDto>();
-        result!.Standings.Should().HaveCount(2);
-        result.Standings.Should().NotContain(s => s.TeamName.Contains("Seed"));
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().HaveCount(2);
+        result.Should().NotContain(s => s.TeamName.Contains("Seed"));
     }
 
     [Fact]

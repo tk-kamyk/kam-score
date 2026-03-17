@@ -1,38 +1,34 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { FinalStandingsResponse } from '@/standings/types'
+import type { FinalStandingDto } from '@/standings/types'
 import SectionHeader from '@/components/SectionHeader.vue'
 
 const props = defineProps<{
-  data: FinalStandingsResponse | null
+  data: FinalStandingDto[]
   loading: boolean
 }>()
 
 const levels = computed(() => {
-  if (!props.data?.standings.length) return []
+  if (!props.data.length) return []
 
-  const levelNames = [...new Set(props.data.standings.map(s => s.levelName).filter(Boolean))]
+  const levelNames = [...new Set(props.data.map(s => s.levelName).filter(Boolean))]
 
   if (levelNames.length === 0) {
-    return [{ name: null, standings: props.data.standings }]
+    return [{ name: null, standings: props.data }]
   }
 
   return levelNames.map(name => ({
     name,
-    standings: props.data!.standings.filter(s => s.levelName === name),
+    standings: props.data.filter(s => s.levelName === name),
   }))
 })
 
-const hasData = computed(() => (props.data?.standings.length ?? 0) > 0)
+const hasData = computed(() => props.data.length > 0)
 </script>
 
 <template>
   <div v-if="hasData || loading" class="mt-8">
-    <SectionHeader title="Final Standings">
-      <v-chip v-if="data?.provisional" color="warning" size="small" variant="tonal" prepend-icon="mdi-clock-outline">
-        Provisional
-      </v-chip>
-    </SectionHeader>
+    <SectionHeader title="Final Standings" />
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 

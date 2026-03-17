@@ -21,8 +21,3 @@ export interface FinalStandingDto {
   teamName: string
   levelName?: string
 }
-
-export interface FinalStandingsResponse {
-  provisional: boolean
-  standings: FinalStandingDto[]
-}

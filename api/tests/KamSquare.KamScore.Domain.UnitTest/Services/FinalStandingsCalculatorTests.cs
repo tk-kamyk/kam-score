@@ -50,11 +50,10 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Provisional.Should().BeFalse();
-        result.Standings.Should().HaveCount(3);
-        result.Standings[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "b", "Hawks", null));
-        result.Standings[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
+        result.Should().HaveCount(3);
+        result[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
+        result[1].Should().Be(new FinalStanding(2, "b", "Hawks", null));
+        result[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
     }
 
     [Fact]
@@ -81,12 +80,11 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Standings.Should().HaveCount(4);
-        // All group winners first (by cross-group ranking), then losers
-        result.Standings[0].Position.Should().Be(1);
-        result.Standings[1].Position.Should().Be(2);
-        result.Standings[2].Position.Should().Be(3);
-        result.Standings[3].Position.Should().Be(4);
+        result.Should().HaveCount(4);
+        result[0].Position.Should().Be(1);
+        result[1].Position.Should().Be(2);
+        result[2].Position.Should().Be(3);
+        result[3].Position.Should().Be(4);
     }
 
     // --- Multi-Phase ---
@@ -128,12 +126,11 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Provisional.Should().BeFalse();
-        result.Standings.Should().HaveCount(4);
-        result.Standings[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
-        result.Standings[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
-        result.Standings[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
+        result.Should().HaveCount(4);
+        result[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
+        result[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
+        result[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
+        result[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
     }
 
     [Fact]
@@ -173,11 +170,11 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2, phase3], games, teams);
 
-        result.Standings.Should().HaveCount(4);
-        result.Standings[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "b", "Hawks", null));
-        result.Standings[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
-        result.Standings[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
+        result.Should().HaveCount(4);
+        result[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
+        result[1].Should().Be(new FinalStanding(2, "b", "Hawks", null));
+        result[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
+        result[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
     }
 
     // --- Levels ---
@@ -208,14 +205,14 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Standings.Should().HaveCount(4);
+        result.Should().HaveCount(4);
 
-        var goldStandings = result.Standings.Where(s => s.LevelName == "Level 1").ToList();
+        var goldStandings = result.Where(s => s.LevelName == "Level 1").ToList();
         goldStandings.Should().HaveCount(2);
         goldStandings[0].Should().Be(new FinalStanding(1, "a", "Eagles", "Level 1"));
         goldStandings[1].Should().Be(new FinalStanding(2, "b", "Hawks", "Level 1"));
 
-        var silverStandings = result.Standings.Where(s => s.LevelName == "Level 2").ToList();
+        var silverStandings = result.Where(s => s.LevelName == "Level 2").ToList();
         silverStandings.Should().HaveCount(2);
         silverStandings[0].Should().Be(new FinalStanding(1, "c", "Wolves", "Level 2"));
         silverStandings[1].Should().Be(new FinalStanding(2, "d", "Bears", "Level 2"));
@@ -257,16 +254,16 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Standings.Should().HaveCount(4);
+        result.Should().HaveCount(4);
 
         // Level 1: a (from playoff) at 1, b (eliminated in phase 1) at 2
-        var level1 = result.Standings.Where(s => s.LevelName == "Level 1").ToList();
+        var level1 = result.Where(s => s.LevelName == "Level 1").ToList();
         level1.Should().HaveCount(2);
         level1[0].Should().Be(new FinalStanding(1, "a", "Eagles", "Level 1"));
         level1[1].Should().Be(new FinalStanding(2, "b", "Hawks", "Level 1"));
 
         // Level 2: c at 1, d at 2
-        var level2 = result.Standings.Where(s => s.LevelName == "Level 2").ToList();
+        var level2 = result.Where(s => s.LevelName == "Level 2").ToList();
         level2.Should().HaveCount(2);
         level2[0].Should().Be(new FinalStanding(1, "c", "Wolves", "Level 2"));
         level2[1].Should().Be(new FinalStanding(2, "d", "Bears", "Level 2"));
@@ -328,16 +325,16 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2, phase3], games, teams);
 
-        result.Standings.Should().HaveCount(4);
+        result.Should().HaveCount(4);
 
         // Level 1: a (phase 3 level 1) = 1st, b (eliminated phase 2 level 1) = 2nd
-        var level1 = result.Standings.Where(s => s.LevelName == "Level 1").ToList();
+        var level1 = result.Where(s => s.LevelName == "Level 1").ToList();
         level1.Should().HaveCount(2);
         level1[0].Should().Be(new FinalStanding(1, "a", "Eagles", "Level 1"));
         level1[1].Should().Be(new FinalStanding(2, "b", "Hawks", "Level 1"));
 
         // Level 2: c (phase 3 level 3) = 1st, d (eliminated phase 2 level 2) = 2nd
-        var level2 = result.Standings.Where(s => s.LevelName == "Level 2").ToList();
+        var level2 = result.Where(s => s.LevelName == "Level 2").ToList();
         level2.Should().HaveCount(2);
         level2[0].Should().Be(new FinalStanding(1, "c", "Wolves", "Level 2"));
         level2[1].Should().Be(new FinalStanding(2, "d", "Bears", "Level 2"));
@@ -383,25 +380,25 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Standings.Should().HaveCount(4);
+        result.Should().HaveCount(4);
 
         // Level 1: a (from phase2 level 1) at 1, b (eliminated in phase 1 level 1) at 2
-        var level1 = result.Standings.Where(s => s.LevelName == "Level 1").ToList();
+        var level1 = result.Where(s => s.LevelName == "Level 1").ToList();
         level1.Should().HaveCount(2);
         level1[0].Should().Be(new FinalStanding(1, "a", "Eagles", "Level 1"));
         level1[1].Should().Be(new FinalStanding(2, "b", "Hawks", "Level 1"));
 
         // Level 2: c (from phase2 level 3) at 1, d (eliminated in phase 1 level 2) at 2
-        var level2 = result.Standings.Where(s => s.LevelName == "Level 2").ToList();
+        var level2 = result.Where(s => s.LevelName == "Level 2").ToList();
         level2.Should().HaveCount(2);
         level2[0].Should().Be(new FinalStanding(1, "c", "Wolves", "Level 2"));
         level2[1].Should().Be(new FinalStanding(2, "d", "Bears", "Level 2"));
     }
 
-    // --- Provisional ---
+    // --- Not All Phases Completed ---
 
     [Fact]
-    public void ProvisionalWhenLastPhaseIsInProgress()
+    public void ReturnsEmpty_WhenNotAllPhasesCompleted()
     {
         var phase1 = Phase.Create("P1", PhaseFormat.RoundRobin, 1, 1, groupWinners: 1);
         phase1.Status = PhaseStatus.Completed;
@@ -423,14 +420,11 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Provisional.Should().BeTrue();
-        result.Standings.Should().HaveCount(2);
-        // b is eliminated from P1
-        result.Standings.Last().Should().Be(new FinalStanding(2, "b", "Hawks", null));
+        result.Should().BeEmpty();
     }
 
     [Fact]
-    public void ProvisionalWhenOnlyFirstPhaseHasGames()
+    public void ReturnsEmpty_WhenFirstPhaseStillInProgress()
     {
         var phase1 = Phase.Create("P1", PhaseFormat.RoundRobin, 1, 1, groupWinners: 1);
         phase1.Status = PhaseStatus.InProgress;
@@ -449,27 +443,7 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Provisional.Should().BeTrue();
-        result.Standings.Should().HaveCount(2);
-    }
-
-    [Fact]
-    public void NotProvisionalWhenAllPhasesCompleted()
-    {
-        var phase = Phase.Create("P1", PhaseFormat.RoundRobin, 1, 1);
-        phase.Status = PhaseStatus.Completed;
-        phase.Groups[0].TeamIds.AddRange(["a", "b"]);
-
-        var games = new List<Game>
-        {
-            CompletedGame(phase.Id, phase.Groups[0].Id, "a", "b", 2, 0),
-        };
-
-        var teams = new List<Team> { RealTeam("a", "Eagles"), RealTeam("b", "Hawks") };
-
-        var result = FinalStandingsCalculator.Calculate([phase], games, teams);
-
-        result.Provisional.Should().BeFalse();
+        result.Should().BeEmpty();
     }
 
     // --- Placeholder Exclusion ---
@@ -494,8 +468,8 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Standings.Should().HaveCount(2);
-        result.Standings.Should().NotContain(s => s.TeamId == "p1");
+        result.Should().HaveCount(2);
+        result.Should().NotContain(s => s.TeamId == "p1");
     }
 
     // --- Playoff Elimination ---
@@ -526,12 +500,12 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Standings.Should().HaveCount(4);
-        result.Standings[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "d", "Bears", null));
+        result.Should().HaveCount(4);
+        result[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
+        result[1].Should().Be(new FinalStanding(2, "d", "Bears", null));
         // b and c both lost in SF (round 1) → positions 3 and 4 (both had position 3 in bracket)
-        result.Standings[2].Position.Should().Be(3);
-        result.Standings[3].Position.Should().Be(4);
+        result[2].Position.Should().Be(3);
+        result[3].Position.Should().Be(4);
     }
 
     [Fact]
@@ -562,11 +536,11 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Standings.Should().HaveCount(4);
-        result.Standings[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "c", "Wolves", null));
-        result.Standings[2].Should().Be(new FinalStanding(3, "b", "Hawks", null));
-        result.Standings[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
+        result.Should().HaveCount(4);
+        result[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
+        result[1].Should().Be(new FinalStanding(2, "c", "Wolves", null));
+        result[2].Should().Be(new FinalStanding(3, "b", "Hawks", null));
+        result[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
     }
 
     [Fact]
@@ -605,13 +579,13 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Standings.Should().HaveCount(4);
+        result.Should().HaveCount(4);
         // Phase 2 (playoff): b=1st, a=2nd
-        result.Standings[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
-        // Phase 1 non-advancing: c=3rd, d=4th (by RR standings)
-        result.Standings[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
-        result.Standings[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
+        result[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
+        result[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
+        // Phase 1 non-advancing: c=3rd, d=4th
+        result[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
+        result[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
     }
 
     [Fact]
@@ -663,15 +637,15 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Standings.Should().HaveCount(6);
+        result.Should().HaveCount(6);
         // Phase 2 (playoff with placement): a=1st, b=2nd, d=3rd, c=4th
-        result.Standings[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "b", "Hawks", null));
-        result.Standings[2].Should().Be(new FinalStanding(3, "d", "Bears", null));
-        result.Standings[3].Should().Be(new FinalStanding(4, "c", "Wolves", null));
+        result[0].Should().Be(new FinalStanding(1, "a", "Eagles", null));
+        result[1].Should().Be(new FinalStanding(2, "b", "Hawks", null));
+        result[2].Should().Be(new FinalStanding(3, "d", "Bears", null));
+        result[3].Should().Be(new FinalStanding(4, "c", "Wolves", null));
         // Phase 1 non-advancing: e=5th, f=6th
-        result.Standings[4].Should().Be(new FinalStanding(5, "e", "Lions", null));
-        result.Standings[5].Should().Be(new FinalStanding(6, "f", "Tigers", null));
+        result[4].Should().Be(new FinalStanding(5, "e", "Lions", null));
+        result[5].Should().Be(new FinalStanding(6, "f", "Tigers", null));
     }
 
     // --- Zero Progression (Final Phase) ---
@@ -710,13 +684,13 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
 
-        result.Standings.Should().HaveCount(4);
+        result.Should().HaveCount(4);
         // Phase 2 positions 1-2 (all teams since zero progression = none advance)
-        result.Standings[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
-        result.Standings[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
+        result[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
+        result[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
         // Phase 1 non-advancing: c=3rd, d=4th
-        result.Standings[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
-        result.Standings[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
+        result[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
+        result[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
     }
 
     [Fact]
@@ -789,11 +763,10 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase1, phase2, phase3], games, teams);
 
-        result.Standings.Should().HaveCount(8);
+        result.Should().HaveCount(8);
 
         // Root Level 1 pool: Phase3 Levels 1-2
-        // Within Level 1: all Level 1 teams first (a winner, b loser), then Level 2 teams (c winner, d loser)
-        var level1 = result.Standings.Where(s => s.LevelName == "Level 1").ToList();
+        var level1 = result.Where(s => s.LevelName == "Level 1").ToList();
         level1.Should().HaveCount(4);
         level1[0].Should().Be(new FinalStanding(1, "a", "T-a", "Level 1"));
         level1[1].Should().Be(new FinalStanding(2, "b", "T-b", "Level 1"));
@@ -801,8 +774,7 @@ public class FinalStandingsCalculatorTests
         level1[3].Should().Be(new FinalStanding(4, "d", "T-d", "Level 1"));
 
         // Root Level 2 pool: Phase3 Levels 3-4
-        // Within Level 3: e winner, f loser; then Level 4: g winner, h loser
-        var level2 = result.Standings.Where(s => s.LevelName == "Level 2").ToList();
+        var level2 = result.Where(s => s.LevelName == "Level 2").ToList();
         level2.Should().HaveCount(4);
         level2[0].Should().Be(new FinalStanding(1, "e", "T-e", "Level 2"));
         level2[1].Should().Be(new FinalStanding(2, "f", "T-f", "Level 2"));
@@ -816,13 +788,14 @@ public class FinalStandingsCalculatorTests
     public void NoGames_ReturnsEmpty()
     {
         var phase = Phase.Create("P1", PhaseFormat.RoundRobin, 1, 1);
+        phase.Status = PhaseStatus.Completed;
         phase.Groups[0].TeamIds.AddRange(["a", "b"]);
 
         var teams = new List<Team> { RealTeam("a", "Eagles"), RealTeam("b", "Hawks") };
 
         var result = FinalStandingsCalculator.Calculate([phase], [], teams);
 
-        result.Standings.Should().BeEmpty();
+        result.Should().BeEmpty();
     }
 
     [Fact]
@@ -841,16 +814,15 @@ public class FinalStandingsCalculatorTests
 
         var result = FinalStandingsCalculator.Calculate([phase], games, teams);
 
-        result.Standings.Should().HaveCount(2);
-        result.Standings[0].Position.Should().Be(1);
-        result.Standings[1].Position.Should().Be(2);
+        result.Should().HaveCount(2);
+        result[0].Position.Should().Be(1);
+        result[1].Position.Should().Be(2);
     }
 
     [Fact]
     public void EmptyPhasesReturnsEmpty()
     {
         var result = FinalStandingsCalculator.Calculate([], [], []);
-        result.Standings.Should().BeEmpty();
-        result.Provisional.Should().BeFalse();
+        result.Should().BeEmpty();
     }
 }
