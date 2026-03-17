@@ -8,7 +8,7 @@ public static class RoundRobinGenerator
     /// <summary>
     /// Generates round-robin games for a group using the circle method.
     /// Home/away is balanced per team using a tracking approach.
-    /// Referee for each game: the available team (not playing) with fewest referee duties.
+    /// Referees are assigned separately after scheduling by RefereeAssigner.
     /// </summary>
     public static List<Game> Generate(
         string tournamentId,
@@ -32,8 +32,6 @@ public static class RoundRobinGenerator
 
         // Track home game counts per team for balancing
         var homeCount = teams.ToDictionary(t => t, _ => 0);
-        // Track referee counts for balanced distribution
-        var refCount = teamIds.ToDictionary(t => t, _ => 0);
 
         // Circle method: fix teams[0], rotate the rest
         var rotating = teams.Skip(1).ToList();
@@ -65,23 +63,14 @@ public static class RoundRobinGenerator
                 }
             }
 
-            // Create games, skip BYE pairings, assign referee per game
+            // Create games, skip BYE pairings
             foreach (var (home, away) in pairings)
             {
                 if (home == ByePlaceholder || away == ByePlaceholder) continue;
 
-                // Pick referee: available team with fewest referee duties
-                var referee = teamIds
-                    .Where(t => t != home && t != away)
-                    .MinBy(t => refCount[t]);
-
-                if (referee is not null)
-                    refCount[referee]++;
-
                 games.Add(Game.Create(
                     tournamentId, phaseId, groupId, roundNumber,
-                    homeTeamId: home, awayTeamId: away,
-                    refereeTeamId: referee));
+                    homeTeamId: home, awayTeamId: away));
             }
 
             // Rotate: move last element to second position

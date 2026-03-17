@@ -6,9 +6,10 @@ public static class GameScheduler
 {
     /// <summary>
     /// Schedules games across courts and time slots.
-    /// Constraints: no team plays/referees two games in the same slot, no consecutive refereeing,
-    /// sequential court assignment (first available), group interleaving by provided order,
-    /// round ordering for playoffs.
+    /// Constraints: no team plays two games in the same slot, teams must have a free slot
+    /// before playing, sequential court assignment (first available), group interleaving
+    /// by provided order, round ordering for playoffs.
+    /// Referees are not assigned during scheduling — use RefereeAssigner after scheduling.
     /// </summary>
     public static List<Game> Schedule(
         List<Game> games,
@@ -25,20 +26,19 @@ public static class GameScheduler
 
         // Track team activity per time slot for conflict checking
         var busyInSlot = new Dictionary<int, HashSet<string>>();
-        var refereedInSlot = new Dictionary<int, HashSet<string>>();
         var courtSlotUsed = new Dictionary<(int slot, string courtId), bool>();
 
         var maxSlotLimit = games.Count * 10;
 
         foreach (var game in sorted)
         {
-            var involvedTeamIds = GetInvolvedTeamIds(game);
+            var playingTeamIds = GetPlayingTeamIds(game);
             var scheduled = false;
 
             for (var slot = 0; slot < maxSlotLimit; slot++)
             {
-                if (TryScheduleGameInSlot(game, slot, involvedTeamIds, courtIds, startTime, gameLengthMinutes,
-                        busyInSlot, refereedInSlot, courtSlotUsed))
+                if (TryScheduleGameInSlot(game, slot, playingTeamIds, courtIds, startTime, gameLengthMinutes,
+                        busyInSlot, courtSlotUsed))
                 {
                     scheduled = true;
                     break;
@@ -92,19 +92,25 @@ public static class GameScheduler
     private static bool TryScheduleGameInSlot(
         Game game,
         int slot,
-        List<string> involvedTeamIds,
+        List<string> playingTeamIds,
         List<string> courtIds,
         DateTime startTime,
         int gameLengthMinutes,
         Dictionary<int, HashSet<string>> busyInSlot,
-        Dictionary<int, HashSet<string>> refereedInSlot,
         Dictionary<(int slot, string courtId), bool> courtSlotUsed)
     {
-        if (involvedTeamIds.Any(t => IsInSet(busyInSlot, slot, t)))
+        // No team can play two games in the same slot
+        if (playingTeamIds.Any(t => busyInSlot.ContainsTeam(slot, t)))
             return false;
 
-        if (slot > 0 && game.RefereeTeamId is not null
-            && IsInSet(refereedInSlot, slot - 1, game.RefereeTeamId))
+        // Teams must have a free slot before playing (no activity in preceding slot)
+        if (slot > 0 && playingTeamIds.Any(t => busyInSlot.ContainsTeam(slot - 1, t)))
+            return false;
+
+        // Teams must not already be scheduled in the next slot (bidirectional rest guarantee).
+        // Safe because games are processed in round/group order and earlier slots fill first,
+        // so any game already in slot+1 is a real conflict.
+        if (playingTeamIds.Any(t => busyInSlot.ContainsTeam(slot + 1, t)))
             return false;
 
         var court = FindAvailableCourt(courtIds, slot, courtSlotUsed);
@@ -118,31 +124,18 @@ public static class GameScheduler
 
         if (!busyInSlot.ContainsKey(slot))
             busyInSlot[slot] = [];
-        foreach (var teamId in involvedTeamIds)
+        foreach (var teamId in playingTeamIds)
             busyInSlot[slot].Add(teamId);
-
-        if (game.RefereeTeamId is not null)
-        {
-            if (!refereedInSlot.ContainsKey(slot))
-                refereedInSlot[slot] = [];
-            refereedInSlot[slot].Add(game.RefereeTeamId);
-        }
 
         return true;
     }
 
-    private static List<string> GetInvolvedTeamIds(Game game)
+    private static List<string> GetPlayingTeamIds(Game game)
     {
         var ids = new List<string>();
         if (game.HomeTeamId is not null) ids.Add(game.HomeTeamId);
         if (game.AwayTeamId is not null) ids.Add(game.AwayTeamId);
-        if (game.RefereeTeamId is not null) ids.Add(game.RefereeTeamId);
         return ids;
-    }
-
-    private static bool IsInSet(Dictionary<int, HashSet<string>> slotMap, int slot, string teamId)
-    {
-        return slotMap.TryGetValue(slot, out var teams) && teams.Contains(teamId);
     }
 
     private static string? FindAvailableCourt(

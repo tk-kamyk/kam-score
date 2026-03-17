@@ -45,7 +45,7 @@
 - Games should not be created manually
 - A single "Generate & Schedule" button generates all games in a phase and auto-schedules them across courts and time slots
 - Game generation depends on the phase format:
-    - **Round Robin**: all-play-all within each group. Uses circle method for pairings with home/away balance. Referee auto-assigned for every game: the available team (not playing) with fewest referee duties so far. This produces balanced distribution for any group size
+    - **Round Robin**: all-play-all within each group. Uses circle method for pairings with home/away balance
     - **Playoff Elimination**: single-elimination bracket per group. First round uses real team IDs (seeded). Later rounds use placeholders (e.g., "Winner SF1", "Winner QF2")
     - **Playoff with Placement**: single-elimination bracket with full placement games for all final positions (1st through Nth). After each elimination round, losers form a consolation bracket (B) and winners form the main bracket (A). Consolation rounds are always scheduled before main bracket rounds at each level. Placement games (final position matches) are ordered worst-to-best position, with the Final always last. Example for 8 teams: QF → B-SF (QF losers) → A-SF (QF winners) → 7th → 5th → 3rd → Final
 - Playoffs apply to each group individually; bracket size is determined by the number of teams in the group
@@ -56,7 +56,9 @@
 - The games should be uniformly distributed among courts
 - The games within each phase should be uniformly distributed among groups (e.g. the first game should happen at the same time in each group if possible due to amount of courts)
 - No team should play or referee in two games at the same time
+- A team must have a free time slot before any game they play in (no activity — playing or refereeing — in the immediately preceding slot)
 - No team should referee two consecutive time slots
+- Referee assignment happens after scheduling: for each game, the available team from the same group (not playing in that slot and not playing in the next slot) with fewest referee duties is assigned. This produces balanced distribution for any group size
 - In round robin the team should have equal amount of home and away games if possible
 - For playoffs, rounds must be scheduled in order (quarterfinals before semifinals before finals)
 
