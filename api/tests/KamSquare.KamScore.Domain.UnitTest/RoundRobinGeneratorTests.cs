@@ -32,7 +32,7 @@ public class RoundRobinGeneratorTests
 
         games.Should().HaveCount(1);
         games[0].Round.Should().Be(1);
-        games[0].RefereeTeamId.Should().BeNull("no third team available to referee");
+        games[0].RefereeTeamId.Should().BeNull("referees are assigned after scheduling");
     }
 
     [Fact]
@@ -81,82 +81,12 @@ public class RoundRobinGeneratorTests
     }
 
     [Fact]
-    public void Generate_With3Teams_AllGamesShouldHaveReferee()
+    public void Generate_NoRefereesAssigned()
     {
-        var teams = new List<string> { "a", "b", "c" };
-        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
-
-        games.Should().AllSatisfy(g => g.RefereeTeamId.Should().NotBeNull());
-    }
-
-    [Fact]
-    public void Generate_With3Teams_RefereeIsIdleTeam()
-    {
-        var teams = new List<string> { "a", "b", "c" };
-        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
-
-        foreach (var game in games)
-        {
-            game.RefereeTeamId.Should().NotBe(game.HomeTeamId);
-            game.RefereeTeamId.Should().NotBe(game.AwayTeamId);
-            teams.Should().Contain(game.RefereeTeamId!);
-        }
-    }
-
-    [Fact]
-    public void Generate_With4Teams_AllGamesShouldHaveReferee()
-    {
-        var teams = new List<string> { "a", "b", "c", "d" };
-        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, ["a", "b", "c", "d"]);
 
         games.Should().AllSatisfy(g =>
-        {
-            g.RefereeTeamId.Should().NotBeNull();
-            g.RefereeTeamId.Should().NotBe(g.HomeTeamId);
-            g.RefereeTeamId.Should().NotBe(g.AwayTeamId);
-            teams.Should().Contain(g.RefereeTeamId!);
-        });
-    }
-
-    [Fact]
-    public void Generate_With4Teams_RefereeDistribution_ShouldBeBalanced()
-    {
-        var teams = new List<string> { "a", "b", "c", "d" };
-        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
-
-        foreach (var team in teams)
-        {
-            var refCount = games.Count(g => g.RefereeTeamId == team);
-            // 6 games, 4 teams → ~1-2 referee duties each
-            refCount.Should().BeGreaterThanOrEqualTo(1);
-            refCount.Should().BeLessThanOrEqualTo(2);
-        }
-    }
-
-    [Fact]
-    public void Generate_With6Teams_RefereeDistribution_ShouldBeBalanced()
-    {
-        var teams = new List<string> { "a", "b", "c", "d", "e", "f" };
-        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
-
-        // 15 games, 6 teams → ~2-3 referee duties each
-        games.Should().HaveCount(15);
-        foreach (var team in teams)
-        {
-            var refCount = games.Count(g => g.RefereeTeamId == team);
-            refCount.Should().BeGreaterThanOrEqualTo(2, $"team {team} should referee at least twice");
-            refCount.Should().BeLessThanOrEqualTo(3, $"team {team} should referee at most 3 times");
-        }
-    }
-
-    [Fact]
-    public void Generate_With5Teams_SomeGamesHaveReferee()
-    {
-        var teams = new List<string> { "a", "b", "c", "d", "e" };
-        var games = RoundRobinGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
-
-        // With 5 teams (padded to 6), 1 team has bye each round = potential referee
-        games.Where(g => g.RefereeTeamId is not null).Should().NotBeEmpty();
+            g.RefereeTeamId.Should().BeNull("referees are assigned after scheduling by RefereeAssigner"));
     }
 
     [Fact]

@@ -25,6 +25,18 @@ Feature: Auto-Scheduling
     When I generate and schedule games for the phase
     Then no team should referee in two consecutive time slots
 
+  Scenario: Team must have a free time slot before playing
+    Given a phase with 1 group of 4 teams (games with auto-referee) and 1 court
+    When I generate and schedule games for the phase
+    Then no team should be active (playing or refereeing) in the time slot immediately before a game they play in
+
+  Scenario: Referees assigned after scheduling from same group
+    Given a phase with 1 group of 4 teams and 1 court
+    When I generate and schedule games for the phase
+    Then every round-robin game should have a referee assigned
+    And no referee should be a team playing in that game
+    And referee duties should be balanced across teams in the group
+
   Scenario: Games interleaved across groups within a phase
     Given a phase with 2 groups of 3 teams each (3 games per group, 6 total) and 2 courts
     When I generate and schedule games for the phase

@@ -55,49 +55,71 @@ public class GameSchedulerTests
     }
 
     [Fact]
-    public void Schedule_ThreeTeams_ConsecutiveSlots()
+    public void Schedule_NoActivityInSlotBeforePlaying()
     {
-        // 3-team group: games should be in consecutive slots (no unnecessary gaps)
+        // 4-team group with 1 court: teams must have a free slot before playing
+        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
+        var courts = new List<string> { "c1" };
+
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
+
+        AssertRestSlotBeforePlaying(games);
+    }
+
+    [Fact]
+    public void Schedule_NoActivityInSlotBeforePlaying_MultipleCourts()
+    {
+        // 4-team group with 2 courts: even with parallel games, rest constraint holds
+        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
+        var courts = new List<string> { "c1", "c2" };
+
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
+
+        AssertRestSlotBeforePlaying(games);
+    }
+
+    [Fact]
+    public void Schedule_ThreeTeams_GamesHaveRestGaps()
+    {
+        // 3-team group: every team plays every game, so rest slots are needed between games
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
         var courts = new List<string> { "c1" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
-        var times = games.Select(g => g.StartTime!.Value).OrderBy(t => t).ToList();
-        for (var i = 1; i < times.Count; i++)
+        // All games should be scheduled
+        games.Should().AllSatisfy(g =>
         {
-            (times[i] - times[i - 1]).TotalMinutes
-                .Should().Be(GameLength, "3-team games should be scheduled consecutively");
-        }
+            g.CourtId.Should().NotBeNull();
+            g.StartTime.Should().NotBeNull();
+        });
+
+        // Verify rest constraint holds
+        AssertRestSlotBeforePlaying(games);
     }
 
     [Fact]
     public void Schedule_CourtsAssignedSequentiallyPerSlot()
     {
-        // 4 independent games, 4 courts — each slot should fill courts starting from c1
+        // Games with shared teams force multiple slots; courts should fill starting from c1
         var games = new List<Game>
         {
             Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b"),
             Game.Create("t1", "p1", "g1", 1, homeTeamId: "c", awayTeamId: "d"),
-            Game.Create("t1", "p1", "g1", 2, homeTeamId: "a", awayTeamId: "c"),
-            Game.Create("t1", "p1", "g1", 2, homeTeamId: "b", awayTeamId: "d")
+            Game.Create("t1", "p1", "g1", 2, homeTeamId: "e", awayTeamId: "f"),
+            Game.Create("t1", "p1", "g1", 2, homeTeamId: "g", awayTeamId: "h")
         };
         var courts = new List<string> { "c1", "c2", "c3", "c4" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
 
-        // Slot 0: should use c1 and c2 (first two courts)
+        // All games have independent teams, so all fit in slot 0 using courts c1-c4
         var slot0Games = games.Where(g => g.StartTime == StartTime).OrderBy(g => g.CourtId).ToList();
-        slot0Games.Should().HaveCount(2);
+        slot0Games.Should().HaveCount(4);
         slot0Games[0].CourtId.Should().Be("c1");
         slot0Games[1].CourtId.Should().Be("c2");
-
-        // Slot 1: should also use c1 and c2 (not c3 and c4)
-        var slot1Time = StartTime.AddMinutes(GameLength);
-        var slot1Games = games.Where(g => g.StartTime == slot1Time).OrderBy(g => g.CourtId).ToList();
-        slot1Games.Should().HaveCount(2);
-        slot1Games[0].CourtId.Should().Be("c1");
-        slot1Games[1].CourtId.Should().Be("c2");
+        slot0Games[2].CourtId.Should().Be("c3");
+        slot0Games[3].CourtId.Should().Be("c4");
     }
 
     [Fact]
@@ -128,8 +150,6 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_GroupsFollowProvidedOrder()
     {
-        // Group IDs are GUIDs — ordering by GUID would be unpredictable
-        // Provide explicit order: gB first, then gA
         var gamesA = RoundRobinGenerator.Generate("t1", "p1", "gA", ["a1", "a2", "a3"]);
         var gamesB = RoundRobinGenerator.Generate("t1", "p1", "gB", ["b1", "b2", "b3"]);
         var allGames = gamesA.Concat(gamesB).ToList();
@@ -182,37 +202,9 @@ public class GameSchedulerTests
     }
 
     [Fact]
-    public void Schedule_NoConsecutiveRefereeing()
-    {
-        // 4-team group: every game has a referee, ensure no team referees back-to-back
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
-        var courts = new List<string> { "c1" };
-
-        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
-
-        var ordered = games.OrderBy(g => g.StartTime).ToList();
-        for (var i = 1; i < ordered.Count; i++)
-        {
-            var prev = ordered[i - 1];
-            var curr = ordered[i];
-
-            // Only check truly consecutive slots (no gap)
-            if (curr.StartTime!.Value - prev.StartTime!.Value != TimeSpan.FromMinutes(GameLength))
-                continue;
-
-            if (prev.RefereeTeamId is not null && curr.RefereeTeamId is not null)
-            {
-                curr.RefereeTeamId.Should().NotBe(prev.RefereeTeamId,
-                    $"team {prev.RefereeTeamId} should not referee consecutive slots " +
-                    $"at {prev.StartTime} and {curr.StartTime}");
-            }
-        }
-    }
-
-    [Fact]
     public void Schedule_UsesCorrectGameLength()
     {
-        // Use independent teams so no back-to-back constraint applies
+        // Use independent teams so no rest constraint applies
         var games = new List<Game>
         {
             Game.Create("t1", "p1", "g1", 1, homeTeamId: "a", awayTeamId: "b"),
@@ -229,13 +221,70 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_UnschedulableGame_ThrowsInvalidOperationException()
     {
-        // The safest test: verify the loop terminates (doesn't hang) with a reasonable case.
         var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         var courts = new List<string> { "c1" };
 
         var act = () => GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
         act.Should().NotThrow("scheduler should terminate within the slot limit");
+    }
+
+    [Fact]
+    public void Schedule_LargeGroup_RestConstraintHolds()
+    {
+        // 6-team group with 2 courts — stress test for rest constraint
+        var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
+            ["a", "b", "c", "d", "e", "f"]);
+        var courts = new List<string> { "c1", "c2" };
+
+        GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
+
+        AssertRestSlotBeforePlaying(games);
+        AssertNoSameSlotConflicts(games);
+    }
+
+    private static void AssertRestSlotBeforePlaying(List<Game> games)
+    {
+        var scheduled = games.Where(g => g.StartTime.HasValue).ToList();
+
+        // Build a map of which teams are active in each time slot
+        var activityBySlot = new Dictionary<DateTime, HashSet<string>>();
+        foreach (var game in scheduled)
+        {
+            var time = game.StartTime!.Value;
+            if (!activityBySlot.ContainsKey(time))
+                activityBySlot[time] = [];
+            if (game.HomeTeamId is not null) activityBySlot[time].Add(game.HomeTeamId);
+            if (game.AwayTeamId is not null) activityBySlot[time].Add(game.AwayTeamId);
+            if (game.RefereeTeamId is not null) activityBySlot[time].Add(game.RefereeTeamId);
+        }
+
+        var orderedTimes = activityBySlot.Keys.OrderBy(t => t).ToList();
+
+        foreach (var game in scheduled)
+        {
+            var gameTime = game.StartTime!.Value;
+            var timeIndex = orderedTimes.IndexOf(gameTime);
+            if (timeIndex <= 0) continue;
+
+            var prevTime = orderedTimes[timeIndex - 1];
+            // Only check truly consecutive slots
+            if ((gameTime - prevTime).TotalMinutes != GameLength) continue;
+
+            var prevActive = activityBySlot[prevTime];
+
+            if (game.HomeTeamId is not null)
+            {
+                prevActive.Should().NotContain(game.HomeTeamId,
+                    $"team {game.HomeTeamId} plays at {gameTime} but was active at {prevTime}");
+            }
+
+            if (game.AwayTeamId is not null)
+            {
+                prevActive.Should().NotContain(game.AwayTeamId,
+                    $"team {game.AwayTeamId} plays at {gameTime} but was active at {prevTime}");
+            }
+        }
     }
 
     private static void AssertNoSameSlotConflicts(List<Game> games)
