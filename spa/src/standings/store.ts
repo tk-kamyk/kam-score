@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import apiClient from '@/api/client'
-import type { StandingDto, FinalStandingsResponse } from '@/standings/types'
+import type { StandingDto, FinalStandingDto } from '@/standings/types'
 
 export const useStandingsStore = defineStore('standings', () => {
   const standings = ref<Record<string, StandingDto[]>>({})
@@ -24,13 +24,13 @@ export const useStandingsStore = defineStore('standings', () => {
     return standings.value[`${phaseId}:${groupId}`] ?? []
   }
 
-  const finalStandings = ref<FinalStandingsResponse | null>(null)
+  const finalStandings = ref<FinalStandingDto[]>([])
   const finalStandingsLoading = ref(false)
 
   async function fetchFinalStandings(tournamentId: string) {
     finalStandingsLoading.value = true
     try {
-      const { data } = await apiClient.get<FinalStandingsResponse>(
+      const { data } = await apiClient.get<FinalStandingDto[]>(
         `/tournaments/${tournamentId}/final-standings`,
       )
       finalStandings.value = data

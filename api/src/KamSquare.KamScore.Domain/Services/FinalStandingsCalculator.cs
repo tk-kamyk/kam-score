@@ -6,52 +6,48 @@ namespace KamSquare.KamScore.Domain.Services;
 
 public static class FinalStandingsCalculator
 {
-    public record FinalStandingsResult(bool Provisional, List<FinalStanding> Standings);
-
-    public static FinalStandingsResult Calculate(
+    public static List<FinalStanding> Calculate(
         List<Phase> phases,
         List<Game> allGames,
         List<Team> allTeams)
     {
         if (phases.Count == 0)
-            return new FinalStandingsResult(false, []);
+            return [];
+
+        var orderedPhases = phases.OrderBy(p => p.Order).ToList();
+
+        if (orderedPhases.Any(p => p.Status != PhaseStatus.Completed))
+            return [];
 
         var realTeams = allTeams.Where(t => !t.IsPlaceholder).ToList();
         var teamNameLookup = realTeams.ToDictionary(t => t.Id, t => t.Name);
 
-        // Check if any games exist at all
         var completedGames = allGames.Where(g => g.Status == GameStatus.Completed).ToList();
         if (completedGames.Count == 0)
-            return new FinalStandingsResult(false, []);
-
-        var orderedPhases = phases.OrderBy(p => p.Order).ToList();
-        var provisional = orderedPhases.Any(p => p.Status != PhaseStatus.Completed);
+            return [];
 
         var hasLevels = orderedPhases.Any(p => p.Levels.Count > 0);
 
         if (hasLevels)
-            return CalculateWithLevels(orderedPhases, allGames, teamNameLookup, provisional);
+            return CalculateWithLevels(orderedPhases, allGames, teamNameLookup);
 
-        return CalculateFlat(orderedPhases, allGames, teamNameLookup, provisional);
+        return CalculateFlat(orderedPhases, allGames, teamNameLookup);
     }
 
-    private static FinalStandingsResult CalculateFlat(
+    private static List<FinalStanding> CalculateFlat(
         List<Phase> orderedPhases,
         List<Game> allGames,
-        Dictionary<string, string> teamNameLookup,
-        bool provisional)
+        Dictionary<string, string> teamNameLookup)
     {
         var groupsForPhase = orderedPhases.ToDictionary(p => p.Id, p => p.Groups.ToList());
         var globalPositioned = new HashSet<string>();
-        var standings = CalculateForTeamPool(orderedPhases, allGames, teamNameLookup, null, groupsForPhase, globalPositioned);
-        return new FinalStandingsResult(provisional, standings);
+        return CalculateForTeamPool(orderedPhases, allGames, teamNameLookup, null, groupsForPhase, globalPositioned);
     }
 
-    private static FinalStandingsResult CalculateWithLevels(
+    private static List<FinalStanding> CalculateWithLevels(
         List<Phase> orderedPhases,
         List<Game> allGames,
-        Dictionary<string, string> teamNameLookup,
-        bool provisional)
+        Dictionary<string, string> teamNameLookup)
     {
         var rootLeveledPhase = orderedPhases.First(p => p.Levels.Count > 0);
         var allStandings = new List<FinalStanding>();
@@ -65,7 +61,7 @@ public static class FinalStandingsCalculator
             allStandings.AddRange(levelStandings);
         }
 
-        return new FinalStandingsResult(provisional, allStandings);
+        return allStandings;
     }
 
     /// <summary>

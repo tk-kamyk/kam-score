@@ -5,7 +5,3 @@ public record FinalStandingDto(
     string TeamId,
     string TeamName,
     string? LevelName);
-
-public record FinalStandingsResponseDto(
-    bool Provisional,
-    List<FinalStandingDto> Standings);

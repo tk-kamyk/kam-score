@@ -92,11 +92,9 @@ public static class StandingsEndpoints
         var allGames = (await gamesTask).ToList();
         var allTeams = (await teamsTask).ToList();
 
-        var result = FinalStandingsCalculator.Calculate(structure.Phases, allGames, allTeams);
+        var standings = FinalStandingsCalculator.Calculate(structure.Phases, allGames, allTeams);
 
-        return Results.Ok(new FinalStandingsResponseDto(
-            result.Provisional,
-            result.Standings.Select(s => new FinalStandingDto(
-                s.Position, s.TeamId, s.TeamName, s.LevelName)).ToList()));
+        return Results.Ok(standings.Select(s => new FinalStandingDto(
+            s.Position, s.TeamId, s.TeamName, s.LevelName)).ToList());
     }
 }
