@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
@@ -13,6 +13,7 @@ import type { PhaseDto } from '@/structure/types'
 const props = defineProps<{
   tournamentId: string
   isOwner: boolean
+  active: boolean
 }>()
 
 const structureStore = useStructureStore()
@@ -25,9 +26,21 @@ const editingPhase = ref<PhaseDto | null>(null)
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
 
-onMounted(() => {
-  structureStore.fetchStructure(props.tournamentId)
-  teamStore.fetchTeams(props.tournamentId, true)
+onMounted(async () => {
+  await Promise.all([
+    structureStore.fetchStructure(props.tournamentId),
+    teamStore.fetchTeams(props.tournamentId),
+    teamStore.fetchPlaceholders(props.tournamentId),
+  ])
+})
+
+watch(() => props.active, async (isActive) => {
+  if (!isActive) return
+  await Promise.all([
+    structureStore.fetchStructure(props.tournamentId),
+    teamStore.fetchTeams(props.tournamentId),
+    teamStore.fetchPlaceholders(props.tournamentId),
+  ])
 })
 
 function openAddPhase() {
@@ -43,14 +56,14 @@ function openEditPhase(phase: PhaseDto) {
 async function handlePhaseSaved() {
   showPhaseForm.value = false
   await structureStore.fetchStructure(props.tournamentId)
-  await teamStore.fetchTeams(props.tournamentId, true)
+  await teamStore.fetchPlaceholders(props.tournamentId)
 }
 
 async function handleDeletePhase(phaseId: string) {
   try {
     await structureStore.deletePhase(props.tournamentId, phaseId)
     showSuccess('Phase deleted')
-    await teamStore.fetchTeams(props.tournamentId, true)
+    await teamStore.fetchPlaceholders(props.tournamentId)
   } catch (error) {
     showError(parseErrorDetail(error) ?? 'Failed to delete phase')
   }
@@ -80,7 +93,7 @@ async function handleDeletePhase(phaseId: string) {
         :tournament-id="tournamentId"
         :editing="isOwner"
         :expanded="expandedPhases.has(phase.id!)"
-        :teams="teamStore.teams"
+        :teams="teamStore.teamsWithPlaceholders"
         @toggle-phase="togglePhase(phase.id!)"
         @edit="openEditPhase"
         @delete="handleDeletePhase"

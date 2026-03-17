@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
@@ -17,6 +17,7 @@ import GameResultDialog from '@/game/GameResultDialog.vue'
 const props = defineProps<{
   tournamentId: string
   isOwner: boolean
+  active: boolean
 }>()
 
 const gameStore = useGameStore()
@@ -105,7 +106,7 @@ async function handleComplete() {
     await Promise.all([
       structureStore.fetchStructure(props.tournamentId),
       gameStore.fetchGames(props.tournamentId),
-      teamStore.fetchTeams(props.tournamentId, true),
+      teamStore.fetchPlaceholders(props.tournamentId),
     ])
     showCompleteDialog.value = false
     showSuccess('Phase completed')
@@ -133,7 +134,7 @@ async function handleReopen() {
     await Promise.all([
       structureStore.fetchStructure(props.tournamentId),
       gameStore.fetchGames(props.tournamentId),
-      teamStore.fetchTeams(props.tournamentId, true),
+      teamStore.fetchPlaceholders(props.tournamentId),
     ])
     showReopenDialog.value = false
     showSuccess('Phase reopened')
@@ -147,6 +148,14 @@ async function handleReopen() {
 }
 
 onMounted(async () => {
+  await Promise.all([
+    structureStore.fetchStructure(props.tournamentId),
+    gameStore.fetchGames(props.tournamentId),
+  ])
+})
+
+watch(() => props.active, async (isActive) => {
+  if (!isActive) return
   await Promise.all([
     structureStore.fetchStructure(props.tournamentId),
     gameStore.fetchGames(props.tournamentId),
