@@ -173,9 +173,9 @@ async function handleAutoAssign() {
       >
         {{ structureLockReason }}
       </v-alert>
-      <!-- Groups organized by level -->
-      <template v-if="hasLevels">
-        <div v-for="{ level, groups } in groupsByLevel" :key="level.id" class="level-section mb-4">
+      <!-- Levels side-by-side, each with its own groups grid -->
+      <div v-if="hasLevels" class="levels-row">
+        <div v-for="{ level, groups } in groupsByLevel" :key="level.id" class="level-section">
           <StructureLevelHeader
             :tournament-id="tournamentId"
             :phase-id="phase.id!"
@@ -197,7 +197,7 @@ async function handleAutoAssign() {
             />
           </div>
         </div>
-      </template>
+      </div>
 
       <!-- Flat groups grid (no levels) -->
       <div v-else-if="phase.groups && phase.groups.length > 0" class="groups-grid">
@@ -291,14 +291,19 @@ async function handleAutoAssign() {
 </template>
 
 <style scoped>
+.levels-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.level-section {
+  flex: 1 1 250px;
+}
+
 .groups-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 12px;
-}
-
-.level-section:not(:last-child) {
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--ks-border-subtle);
 }
 </style>
