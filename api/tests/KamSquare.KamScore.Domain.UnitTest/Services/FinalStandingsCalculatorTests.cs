@@ -674,6 +674,142 @@ public class FinalStandingsCalculatorTests
         result.Standings[5].Should().Be(new FinalStanding(6, "f", "Tigers", null));
     }
 
+    // --- Zero Progression (Final Phase) ---
+
+    [Fact]
+    public void TwoPhases_ZeroProgression_AllTeamsGetPositionsFromFinalPhase()
+    {
+        // Phase 1: 4 teams, 2 advance
+        var phase1 = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 1, groupWinners: 2);
+        phase1.Status = PhaseStatus.Completed;
+        var g1 = phase1.Groups[0];
+        g1.TeamIds.AddRange(["a", "b", "c", "d"]);
+
+        // Phase 2: 2 teams, zero progression (final phase)
+        var phase2 = Phase.Create("Final", PhaseFormat.RoundRobin, 2, 1, groupWinners: 0, totalTeamsProceeding: 0);
+        phase2.Status = PhaseStatus.Completed;
+        var g2 = phase2.Groups[0];
+        g2.TeamIds.AddRange(["a", "b"]);
+
+        var games = new List<Game>
+        {
+            CompletedGame(phase1.Id, g1.Id, "a", "b", 2, 1),
+            CompletedGame(phase1.Id, g1.Id, "a", "c", 2, 0),
+            CompletedGame(phase1.Id, g1.Id, "a", "d", 2, 0),
+            CompletedGame(phase1.Id, g1.Id, "b", "c", 2, 1),
+            CompletedGame(phase1.Id, g1.Id, "b", "d", 2, 0),
+            CompletedGame(phase1.Id, g1.Id, "c", "d", 2, 1),
+            CompletedGame(phase2.Id, g2.Id, "b", "a", 2, 0),
+        };
+
+        var teams = new List<Team>
+        {
+            RealTeam("a", "Eagles"), RealTeam("b", "Hawks"),
+            RealTeam("c", "Wolves"), RealTeam("d", "Bears")
+        };
+
+        var result = FinalStandingsCalculator.Calculate([phase1, phase2], games, teams);
+
+        result.Standings.Should().HaveCount(4);
+        // Phase 2 positions 1-2 (all teams since zero progression = none advance)
+        result.Standings[0].Should().Be(new FinalStanding(1, "b", "Hawks", null));
+        result.Standings[1].Should().Be(new FinalStanding(2, "a", "Eagles", null));
+        // Phase 1 non-advancing: c=3rd, d=4th
+        result.Standings[2].Should().Be(new FinalStanding(3, "c", "Wolves", null));
+        result.Standings[3].Should().Be(new FinalStanding(4, "d", "Bears", null));
+    }
+
+    [Fact]
+    public void ThreePhases_SubLevelOrdering_HigherSubLevelTeamsRankFirst()
+    {
+        // Phase 1: RR no levels, 8 teams, all advance
+        var phase1 = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 1,
+            groupWinners: 8);
+        phase1.Status = PhaseStatus.Completed;
+        var g1 = phase1.Groups[0];
+        g1.TeamIds.AddRange(["a", "b", "c", "d", "e", "f", "g", "h"]);
+
+        // Phase 2: RR with 2 levels, 1 group each, all advance (4 per level)
+        var phase2 = Phase.Create("Intermediate", PhaseFormat.RoundRobin, 2, 1,
+            groupWinners: 2, numberOfLevels: 2);
+        phase2.Status = PhaseStatus.Completed;
+        var g2L1 = phase2.Groups.First(g => g.LevelId == phase2.Levels[0].Id);
+        var g2L2 = phase2.Groups.First(g => g.LevelId == phase2.Levels[1].Id);
+        g2L1.TeamIds.AddRange(["a", "b", "c", "d"]); // Level 1
+        g2L2.TeamIds.AddRange(["e", "f", "g", "h"]); // Level 2
+
+        // Phase 3: RR with 4 levels (2→4 split), 1 group each, zero progression (final phase)
+        var phase3 = Phase.Create("Final", PhaseFormat.RoundRobin, 3, 1,
+            groupWinners: 0, totalTeamsProceeding: 0, numberOfLevels: 4);
+        phase3.Status = PhaseStatus.Completed;
+        var g3L1 = phase3.Groups.First(g => g.LevelId == phase3.Levels[0].Id);
+        var g3L2 = phase3.Groups.First(g => g.LevelId == phase3.Levels[1].Id);
+        var g3L3 = phase3.Groups.First(g => g.LevelId == phase3.Levels[2].Id);
+        var g3L4 = phase3.Groups.First(g => g.LevelId == phase3.Levels[3].Id);
+        // Phase2 Level1 → Phase3 Levels 1-2; Phase2 Level2 → Phase3 Levels 3-4
+        g3L1.TeamIds.AddRange(["a", "b"]);
+        g3L2.TeamIds.AddRange(["c", "d"]);
+        g3L3.TeamIds.AddRange(["e", "f"]);
+        g3L4.TeamIds.AddRange(["g", "h"]);
+
+        var games = new List<Game>
+        {
+            // Phase 1 RR: simplified — only adjacent pairs play since all 8 teams advance regardless
+            CompletedGame(phase1.Id, g1.Id, "a", "b", 2, 1),
+            CompletedGame(phase1.Id, g1.Id, "c", "d", 2, 1),
+            CompletedGame(phase1.Id, g1.Id, "e", "f", 2, 1),
+            CompletedGame(phase1.Id, g1.Id, "g", "h", 2, 1),
+            // Phase 2 RR: a > b, c > d in Level 1; e > f, g > h in Level 2
+            CompletedGame(phase2.Id, g2L1.Id, "a", "b", 2, 0),
+            CompletedGame(phase2.Id, g2L1.Id, "c", "d", 2, 0),
+            CompletedGame(phase2.Id, g2L1.Id, "a", "c", 2, 1),
+            CompletedGame(phase2.Id, g2L1.Id, "b", "d", 2, 1),
+            CompletedGame(phase2.Id, g2L1.Id, "a", "d", 2, 0),
+            CompletedGame(phase2.Id, g2L1.Id, "b", "c", 2, 1),
+            CompletedGame(phase2.Id, g2L2.Id, "e", "f", 2, 0),
+            CompletedGame(phase2.Id, g2L2.Id, "g", "h", 2, 0),
+            CompletedGame(phase2.Id, g2L2.Id, "e", "g", 2, 1),
+            CompletedGame(phase2.Id, g2L2.Id, "f", "h", 2, 1),
+            CompletedGame(phase2.Id, g2L2.Id, "e", "h", 2, 0),
+            CompletedGame(phase2.Id, g2L2.Id, "f", "g", 2, 1),
+            // Phase 3: a beats b in Level 1; c beats d in Level 2; e beats f in Level 3; g beats h in Level 4
+            CompletedGame(phase3.Id, g3L1.Id, "a", "b", 2, 0),
+            CompletedGame(phase3.Id, g3L2.Id, "c", "d", 2, 0),
+            CompletedGame(phase3.Id, g3L3.Id, "e", "f", 2, 0),
+            CompletedGame(phase3.Id, g3L4.Id, "g", "h", 2, 0),
+        };
+
+        var teams = new List<Team>
+        {
+            RealTeam("a", "T-a"), RealTeam("b", "T-b"),
+            RealTeam("c", "T-c"), RealTeam("d", "T-d"),
+            RealTeam("e", "T-e"), RealTeam("f", "T-f"),
+            RealTeam("g", "T-g"), RealTeam("h", "T-h"),
+        };
+
+        var result = FinalStandingsCalculator.Calculate([phase1, phase2, phase3], games, teams);
+
+        result.Standings.Should().HaveCount(8);
+
+        // Root Level 1 pool: Phase3 Levels 1-2
+        // Within Level 1: all Level 1 teams first (a winner, b loser), then Level 2 teams (c winner, d loser)
+        var level1 = result.Standings.Where(s => s.LevelName == "Level 1").ToList();
+        level1.Should().HaveCount(4);
+        level1[0].Should().Be(new FinalStanding(1, "a", "T-a", "Level 1"));
+        level1[1].Should().Be(new FinalStanding(2, "b", "T-b", "Level 1"));
+        level1[2].Should().Be(new FinalStanding(3, "c", "T-c", "Level 1"));
+        level1[3].Should().Be(new FinalStanding(4, "d", "T-d", "Level 1"));
+
+        // Root Level 2 pool: Phase3 Levels 3-4
+        // Within Level 3: e winner, f loser; then Level 4: g winner, h loser
+        var level2 = result.Standings.Where(s => s.LevelName == "Level 2").ToList();
+        level2.Should().HaveCount(4);
+        level2[0].Should().Be(new FinalStanding(1, "e", "T-e", "Level 2"));
+        level2[1].Should().Be(new FinalStanding(2, "f", "T-f", "Level 2"));
+        level2[2].Should().Be(new FinalStanding(3, "g", "T-g", "Level 2"));
+        level2[3].Should().Be(new FinalStanding(4, "h", "T-h", "Level 2"));
+    }
+
     // --- Edge Cases ---
 
     [Fact]

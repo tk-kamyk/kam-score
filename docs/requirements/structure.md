@@ -162,6 +162,7 @@
     4. If only `GroupWinners` is set, total qualifying = `GroupWinners` × number of groups
     5. If only `TotalTeamsProceeding` is set, the top N teams across all groups qualify
     6. If neither is set, no progression occurs
+    7. Setting `GroupWinners` and/or `TotalTeamsProceeding` to 0 explicitly marks the phase as final — no teams advance but the phase is recognized as having progression config for final standings calculation
 - All qualifying teams are then ranked together in a single seeding order using standings criteria — this produces Seed 1, Seed 2, ..., Seed N
 - Seeded teams are assigned to the next phase's groups via snake draft (same as existing auto-assign)
 

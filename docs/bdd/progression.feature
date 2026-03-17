@@ -74,6 +74,17 @@ Feature: Phase Advancement
     When the phase is completed
     Then no teams should advance to the next phase
 
+  Scenario: Zero progression means no teams advance but phase has progression config
+    Given a completed phase "Final Round" with GroupWinners 0 and TotalTeamsProceeding 0
+    When the phase is completed
+    Then no teams should advance to the next phase
+    And the phase is recognized as having progression config
+
+  Scenario: Zero GroupWinners with no TotalTeamsProceeding means no teams advance
+    Given a completed phase "Final Round" with GroupWinners 0 (TotalTeamsProceeding is null)
+    When the phase is completed
+    Then no teams should advance to the next phase
+
   # --- Seeding ---
 
   Scenario: All qualifying teams are ranked in a single seeding order

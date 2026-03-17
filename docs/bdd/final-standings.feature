@@ -105,6 +105,16 @@ Feature: Final Standings (Tournament-wide)
     Then only the 4 real teams appear in the standings
     And no placeholder team names appear
 
+  # --- Zero Progression (Final Phase) ---
+
+  Scenario: Phase with zero progression assigns positions to all teams
+    Given Phase 1 with 8 teams, GroupWinners=2, 2 groups
+    And Phase 2 with 4 teams, GroupWinners=0 (final phase)
+    And all games in both phases are completed
+    When I request the final standings
+    Then positions 1-4 come from Phase 2 standings
+    And positions 5-8 come from Phase 1 non-advancing teams
+
   # --- Edge Cases ---
 
   Scenario: No games completed returns empty standings
