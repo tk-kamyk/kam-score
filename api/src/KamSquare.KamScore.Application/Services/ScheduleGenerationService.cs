@@ -88,6 +88,16 @@ public class ScheduleGenerationService
             throw new ValidationException(
                 [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
 
+        if (phase.Format == PhaseFormat.DoubleEliminationVd)
+        {
+            var invalidGroups = phase.Groups
+                .Where(g => g.TeamIds.Count > 0 && g.TeamIds.Count != 8)
+                .ToList();
+            if (invalidGroups.Count > 0)
+                throw new ValidationException(
+                    [new ValidationFailure("Teams", "Double Elimination (VD) requires exactly 8 teams per group.")]);
+        }
+
         if (await _gameRepository.GamesExistForPhaseAsync(tournamentId, phaseId))
             throw new ValidationException(
                 [new ValidationFailure("Games", "Games already exist for this phase. Delete them first.")]);
@@ -109,6 +119,8 @@ public class ScheduleGenerationService
                 PhaseFormat.PlayoffWithPlacement => PlayoffWithPlacementGenerator.Generate(
                     tournamentId, phaseId, group.Id, group.TeamIds),
                 PhaseFormat.DoubleElimination => DoubleEliminationGenerator.Generate(
+                    tournamentId, phaseId, group.Id, group.TeamIds),
+                PhaseFormat.DoubleEliminationVd => DoubleEliminationVdGenerator.Generate(
                     tournamentId, phaseId, group.Id, group.TeamIds),
                 _ => throw new ValidationException(
                     [new ValidationFailure("Format", $"Unsupported phase format: {phase.Format}")])

@@ -745,6 +745,113 @@ public class StandingsCalculatorTests
     }
 
     // ================================================================
+    // Double Elimination VD Tests
+    // ================================================================
+
+    [Fact]
+    public void DoubleEliminationVd_FullyCompleted_CorrectPositions()
+    {
+        var teamIds = Enumerable.Range(1, 8).Select(i => $"t{i}").ToList();
+        var games = new List<Game>
+        {
+            // R1: QFs
+            CreateLabeledCompletedGame("t1", "t8", 2, 0, round: 1, "QF1"),
+            CreateLabeledCompletedGame("t4", "t5", 2, 0, round: 1, "QF2"),
+            CreateLabeledCompletedGame("t2", "t7", 2, 0, round: 1, "QF3"),
+            CreateLabeledCompletedGame("t3", "t6", 2, 0, round: 1, "QF4"),
+            // R2: Winners
+            CreateLabeledCompletedGame("t1", "t4", 2, 0, round: 2, "W1"),
+            CreateLabeledCompletedGame("t2", "t3", 2, 0, round: 2, "W2"),
+            // R3: Losers
+            CreateLabeledCompletedGame("t8", "t5", 2, 0, round: 3, "L1"),
+            CreateLabeledCompletedGame("t7", "t6", 2, 0, round: 3, "L2"),
+            // R4: Crossover (cross-bracket: LW2 vs WL1, LW1 vs WL2)
+            CreateLabeledCompletedGame("t3", "t8", 2, 0, round: 4, "X1"),
+            CreateLabeledCompletedGame("t4", "t7", 2, 0, round: 4, "X2"),
+            // R5: Grand SFs
+            CreateLabeledCompletedGame("t1", "t3", 2, 0, round: 5, "GSF1"),
+            CreateLabeledCompletedGame("t2", "t4", 2, 0, round: 5, "GSF2"),
+            // R6: 7th Place
+            CreateLabeledCompletedGame("t5", "t6", 2, 0, round: 6, "7th Place"),
+            // R7: Grand Final
+            CreateLabeledCompletedGame("t1", "t2", 2, 0, round: 7, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.CalculateDoubleEliminationVd(games, teamIds);
+
+        standings.First(s => s.TeamId == "t1").Position.Should().Be(1); // GF winner
+        standings.First(s => s.TeamId == "t2").Position.Should().Be(2); // GF loser
+        standings.First(s => s.TeamId == "t3").Position.Should().Be(3); // GSF loser
+        standings.First(s => s.TeamId == "t4").Position.Should().Be(3); // GSF loser (shared)
+        standings.First(s => s.TeamId == "t8").Position.Should().Be(5); // X loser
+        standings.First(s => s.TeamId == "t7").Position.Should().Be(5); // X loser (shared)
+        standings.First(s => s.TeamId == "t5").Position.Should().Be(7); // 7th Place winner
+        standings.First(s => s.TeamId == "t6").Position.Should().Be(8); // 7th Place loser
+    }
+
+    [Fact]
+    public void DoubleEliminationVd_NoGamesCompleted_AllAtWorstPosition()
+    {
+        var teamIds = Enumerable.Range(1, 8).Select(i => $"t{i}").ToList();
+
+        var standings = StandingsCalculator.CalculateDoubleEliminationVd([], teamIds);
+
+        standings.Should().HaveCount(8);
+        standings.Should().AllSatisfy(s => s.Position.Should().Be(8));
+    }
+
+    [Fact]
+    public void DoubleEliminationVd_GfWinnerFirst_GfLoserSecond()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("a", "b", 2, 1, round: 7, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.CalculateDoubleEliminationVd(games, teamIds);
+
+        standings.First(s => s.TeamId == "a").Position.Should().Be(1);
+        standings.First(s => s.TeamId == "b").Position.Should().Be(2);
+    }
+
+    [Fact]
+    public void DoubleEliminationVd_HasNoRoundRobinFields()
+    {
+        var teamIds = Enumerable.Range(1, 8).Select(i => $"t{i}").ToList();
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("t1", "t2", 2, 0, round: 7, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.CalculateDoubleEliminationVd(games, teamIds);
+
+        standings.Should().AllSatisfy(s =>
+        {
+            s.Points.Should().BeNull();
+            s.SetsWon.Should().BeNull();
+            s.SetsLost.Should().BeNull();
+            s.SetDifference.Should().BeNull();
+        });
+    }
+
+    [Fact]
+    public void DoubleEliminationVd_DispatchesCorrectly()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("a", "b", 2, 0, round: 7, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleEliminationVd, games, teamIds);
+
+        standings.Should().HaveCount(2);
+        standings.First(s => s.TeamId == "a").Position.Should().Be(1);
+        standings.First(s => s.TeamId == "b").Position.Should().Be(2);
+    }
+
+    // ================================================================
     // Calculate dispatch Tests
     // ================================================================
 

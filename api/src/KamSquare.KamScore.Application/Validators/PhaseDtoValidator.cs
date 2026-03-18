@@ -15,7 +15,7 @@ public class PhaseDtoValidator : AbstractValidator<PhaseDto>
         RuleFor(x => x.Format)
             .NotEmpty()
             .Must(format => Enum.TryParse<PhaseFormat>(format, ignoreCase: true, out _))
-            .WithMessage("Format must be one of: RoundRobin, PlayoffElimination, PlayoffWithPlacement, DoubleElimination.");
+            .WithMessage("Format must be one of: RoundRobin, PlayoffElimination, PlayoffWithPlacement, DoubleElimination, DoubleEliminationVd.");
 
         RuleFor(x => x.NumberOfGroups)
             .GreaterThanOrEqualTo(1)

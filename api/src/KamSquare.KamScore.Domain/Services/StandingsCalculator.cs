@@ -14,6 +14,7 @@ public static class StandingsCalculator
             PhaseFormat.PlayoffElimination => CalculatePlayoffElimination(games, teamIds),
             PhaseFormat.PlayoffWithPlacement => CalculatePlayoffWithPlacement(games, teamIds),
             PhaseFormat.DoubleElimination => CalculateDoubleElimination(games, teamIds),
+            PhaseFormat.DoubleEliminationVd => CalculateDoubleEliminationVd(games, teamIds),
             _ => []
         };
     }
@@ -288,6 +289,64 @@ public static class StandingsCalculator
                 var position = totalLbRounds - roundIndex + 2;
                 if (teamResults.TryGetValue(loserId, out var lbl))
                     teamResults[loserId] = (lbl.Wins, lbl.Losses, position);
+            }
+        }
+
+        return teamResults
+            .OrderBy(t => t.Value.Position)
+            .ThenByDescending(t => t.Value.Wins)
+            .Select(t => new Standing(
+                t.Key,
+                t.Value.Position,
+                t.Value.Wins + t.Value.Losses,
+                t.Value.Wins,
+                0,
+                t.Value.Losses,
+                null, null, null, null,
+                null, null, null))
+            .ToList();
+    }
+
+    public static List<Standing> CalculateDoubleEliminationVd(List<Game> games, List<string> teamIds)
+    {
+        var completedGames = GetCompletedGames(games);
+        var worstPosition = teamIds.Count;
+
+        var teamResults = teamIds.ToDictionary(id => id, _ => (Wins: 0, Losses: 0, Position: worstPosition));
+
+        foreach (var game in completedGames)
+        {
+            var result = ExtractWinnerAndLoser(game);
+            if (result is null) continue;
+            var (winnerId, loserId) = result.Value;
+
+            if (teamResults.TryGetValue(winnerId, out var ws))
+                teamResults[winnerId] = (ws.Wins + 1, ws.Losses, ws.Position);
+            if (teamResults.TryGetValue(loserId, out var ls))
+                teamResults[loserId] = (ls.Wins, ls.Losses + 1, ls.Position);
+
+            switch (game.Label)
+            {
+                case "Grand Final":
+                    if (teamResults.ContainsKey(winnerId))
+                        teamResults[winnerId] = (teamResults[winnerId].Wins, teamResults[winnerId].Losses, 1);
+                    if (teamResults.ContainsKey(loserId))
+                        teamResults[loserId] = (teamResults[loserId].Wins, teamResults[loserId].Losses, 2);
+                    break;
+                case "GSF1" or "GSF2":
+                    if (teamResults.ContainsKey(loserId))
+                        teamResults[loserId] = (teamResults[loserId].Wins, teamResults[loserId].Losses, 3);
+                    break;
+                case "X1" or "X2":
+                    if (teamResults.ContainsKey(loserId))
+                        teamResults[loserId] = (teamResults[loserId].Wins, teamResults[loserId].Losses, 5);
+                    break;
+                case "7th Place":
+                    if (teamResults.ContainsKey(winnerId))
+                        teamResults[winnerId] = (teamResults[winnerId].Wins, teamResults[winnerId].Losses, 7);
+                    if (teamResults.ContainsKey(loserId))
+                        teamResults[loserId] = (teamResults[loserId].Wins, teamResults[loserId].Losses, 8);
+                    break;
             }
         }
 

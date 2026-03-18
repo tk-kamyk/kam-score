@@ -274,7 +274,7 @@ public static class FinalStandingsCalculator
     {
         var all = groupStandings.SelectMany(gs => gs.Standings);
 
-        if (format is PhaseFormat.PlayoffElimination or PhaseFormat.PlayoffWithPlacement or PhaseFormat.DoubleElimination)
+        if (format is PhaseFormat.PlayoffElimination or PhaseFormat.PlayoffWithPlacement or PhaseFormat.DoubleElimination or PhaseFormat.DoubleEliminationVd)
         {
             return all
                 .OrderBy(s => s.Position)

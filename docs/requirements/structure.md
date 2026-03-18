@@ -48,6 +48,7 @@
     - **Round Robin**: all-play-all within each group. Uses circle method for pairings with home/away balance
     - **Playoff Elimination**: single-elimination bracket per group. First round uses real team IDs (seeded). Later rounds use placeholders (e.g., "Winner SF1", "Winner QF2")
     - **Playoff with Placement**: single-elimination bracket with full placement games for all final positions (1st through Nth). After each elimination round, losers form a consolation bracket (B) and winners form the main bracket (A). Consolation rounds are always scheduled before main bracket rounds at each level. Placement games (final position matches) are ordered worst-to-best position, with the Final always last. Example for 8 teams: QF → B-SF (QF losers) → A-SF (QF winners) → 7th → 5th → 3rd → Final
+    - **Double Elimination (VD)**: a volleyball-specific variant of double elimination for exactly 8 teams per group. Structure: 4 QFs (seeded 1v8, 4v5, 2v7, 3v6) → 2 QF Winners games → 2 QF Losers games → 2 Crossover games (cross-bracket: Loser W2 vs Winner L1, Loser W1 vs Winner L2) → 2 Grand SFs (same-half: Winner W1 vs Winner X1, Winner W2 vs Winner X2) → 7th Place game (two 0-2 teams) → Grand Final. Total: 14 games, 7 rounds. Positions: 1st/2nd from Grand Final, 3rd-4th shared (Grand SF losers), 5th-6th shared (Crossover losers), 7th/8th from 7th Place game. Validation: rejects groups with ≠ 8 teams
     - **Double Elimination**: teams must lose twice to be eliminated. Consists of a Winners Bracket (WB), Losers Bracket (LB), and a Grand Final. WB is standard single-elimination; losers drop to LB. LB alternates between rounds where WB losers enter (drop-down) and rounds where LB teams play each other. The Grand Final is a single game between the WB winner and LB winner (no reset match). Example for 8 teams: WB-QF (4 games) → WB-SF (2 games) → WB-Final (1 game); LB-R1 (2 games, QF losers) → LB-R2 (2 games, LB-R1 winners vs SF losers) → LB-R3 (1 game) → LB-R4 (1 game, vs WB-Final loser) → Grand Final
 - Playoffs and double elimination apply to each group individually; bracket size is determined by the number of teams in the group
 - Scheduling uses the tournament-level game length (minutes) for time slot duration and the phase-level start time as the baseline
@@ -119,6 +120,13 @@
 - Placement games are single-game rounds at the end of the bracket (generated worst-to-best, Final last)
 - The winner of the Final is 1st, loser is 2nd; winner of 3rd-place game is 3rd, loser is 4th; and so on
 - Positions are only assigned for completed placement games
+
+## Double Elimination (VD)
+- Grand Final winner = 1st, Grand Final loser = 2nd
+- Grand SF losers share 3rd position
+- Crossover losers share 5th position
+- 7th Place game winner = 7th, loser = 8th
+- Teams that have not yet been eliminated default to the worst position
 
 ## Double Elimination
 - Positions are determined by the Losers Bracket round in which a team was eliminated
