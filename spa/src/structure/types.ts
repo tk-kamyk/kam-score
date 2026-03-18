@@ -41,6 +41,7 @@ export const PHASE_FORMATS = [
   { value: 'PlayoffElimination', title: 'Playoff Elimination' },
   { value: 'PlayoffWithPlacement', title: 'Playoff with Placement' },
   { value: 'DoubleElimination', title: 'Double Elimination' },
+  { value: 'DoubleEliminationVd', title: 'Double Elimination (VD)' },
 ] as const
 
 export function formatPhaseFormat(format: string): string {
