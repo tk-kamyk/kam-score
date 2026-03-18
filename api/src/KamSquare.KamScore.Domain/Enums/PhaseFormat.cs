@@ -4,5 +4,6 @@ public enum PhaseFormat
 {
     RoundRobin,
     PlayoffElimination,
-    PlayoffWithPlacement
+    PlayoffWithPlacement,
+    DoubleElimination
 }

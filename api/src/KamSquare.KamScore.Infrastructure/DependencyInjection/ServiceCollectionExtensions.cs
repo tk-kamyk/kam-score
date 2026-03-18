@@ -52,11 +52,11 @@ public static class ServiceCollectionExtensions
                 };
                 return new CosmosClient(cosmosConnectionString, clientOptions);
             });
-            services.AddSingleton<ITournamentRepository, CosmosTournamentRepository>();
-            services.AddSingleton<ITeamRepository, CosmosTeamRepository>();
-            services.AddSingleton<ICourtRepository, CosmosCourtRepository>();
-            services.AddSingleton<ITournamentStructureRepository, CosmosTournamentStructureRepository>();
-            services.AddSingleton<IGameRepository, CosmosGameRepository>();
+            services.AddScoped<ITournamentRepository, CosmosTournamentRepository>();
+            services.AddScoped<ITeamRepository, CosmosTeamRepository>();
+            services.AddScoped<ICourtRepository, CosmosCourtRepository>();
+            services.AddScoped<ITournamentStructureRepository, CosmosTournamentStructureRepository>();
+            services.AddScoped<IGameRepository, CosmosGameRepository>();
         }
 
         // Services

@@ -185,6 +185,7 @@ public class LevelApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var tournament = CreateTestTournament();
         var structure = TournamentStructure.Create(tournament.Id);
         var phase = structure.AddPhase("Groups", PhaseFormat.RoundRobin, 2, numberOfLevels: 2);
+        phase.Activate();
         phase.Complete();
         var levelId = phase.Levels[0].Id;
         SetupTournamentAndStructure(tournament, structure);

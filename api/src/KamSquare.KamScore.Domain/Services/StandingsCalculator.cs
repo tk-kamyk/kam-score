@@ -13,6 +13,7 @@ public static class StandingsCalculator
             PhaseFormat.RoundRobin => CalculateRoundRobin(games, teamIds),
             PhaseFormat.PlayoffElimination => CalculatePlayoffElimination(games, teamIds),
             PhaseFormat.PlayoffWithPlacement => CalculatePlayoffWithPlacement(games, teamIds),
+            PhaseFormat.DoubleElimination => CalculateDoubleElimination(games, teamIds),
             _ => []
         };
     }
@@ -123,20 +124,9 @@ public static class StandingsCalculator
 
         foreach (var game in completedGames)
         {
-            var homeScore = game.HomeScore ?? 0;
-            var awayScore = game.AwayScore ?? 0;
-
-            string winnerId, loserId;
-            if (homeScore > awayScore)
-            {
-                winnerId = game.HomeTeamId!;
-                loserId = game.AwayTeamId!;
-            }
-            else
-            {
-                winnerId = game.AwayTeamId!;
-                loserId = game.HomeTeamId!;
-            }
+            var result = ExtractWinnerAndLoser(game);
+            if (result is null) continue;
+            var (winnerId, loserId) = result.Value;
 
             // Update win/loss counts
             if (teamResults.TryGetValue(winnerId, out var winnerStats))
@@ -199,19 +189,12 @@ public static class StandingsCalculator
 
         foreach (var game in completedGames)
         {
-            var homeScore = game.HomeScore ?? 0;
-            var awayScore = game.AwayScore ?? 0;
+            var result = ExtractWinnerAndLoser(game);
+            if (result is null) continue;
+            var (winnerId, loserId) = result.Value;
 
-            if (homeScore > awayScore)
-            {
-                if (teamWins.ContainsKey(game.HomeTeamId!)) teamWins[game.HomeTeamId!]++;
-                if (teamLosses.ContainsKey(game.AwayTeamId!)) teamLosses[game.AwayTeamId!]++;
-            }
-            else
-            {
-                if (teamWins.ContainsKey(game.AwayTeamId!)) teamWins[game.AwayTeamId!]++;
-                if (teamLosses.ContainsKey(game.HomeTeamId!)) teamLosses[game.HomeTeamId!]++;
-            }
+            if (teamWins.ContainsKey(winnerId)) teamWins[winnerId]++;
+            if (teamLosses.ContainsKey(loserId)) teamLosses[loserId]++;
         }
 
         // Assign positions from placement games (highest round = Final = 1st/2nd)
@@ -219,27 +202,15 @@ public static class StandingsCalculator
         foreach (var round in placementRounds)
         {
             var game = gamesByRound[round][0];
-            if (game.Status == GameStatus.Completed
+            var placementResult = game.Status == GameStatus.Completed
                 && game.HomeTeamId is not null
-                && game.AwayTeamId is not null)
+                && game.AwayTeamId is not null
+                ? ExtractWinnerAndLoser(game) : null;
+
+            if (placementResult is not null)
             {
-                var homeScore = game.HomeScore ?? 0;
-                var awayScore = game.AwayScore ?? 0;
-
-                string winnerId, loserId;
-                if (homeScore > awayScore)
-                {
-                    winnerId = game.HomeTeamId!;
-                    loserId = game.AwayTeamId!;
-                }
-                else
-                {
-                    winnerId = game.AwayTeamId!;
-                    loserId = game.HomeTeamId!;
-                }
-
-                teamPositions[winnerId] = nextPosition;
-                teamPositions[loserId] = nextPosition + 1;
+                teamPositions[placementResult.Value.WinnerId] = nextPosition;
+                teamPositions[placementResult.Value.LoserId] = nextPosition + 1;
             }
             nextPosition += 2;
         }
@@ -265,6 +236,73 @@ public static class StandingsCalculator
             })
             .OrderBy(s => s.Position)
             .ThenByDescending(s => s.Wins)
+            .ToList();
+    }
+
+    public static List<Standing> CalculateDoubleElimination(List<Game> games, List<string> teamIds)
+    {
+        var completedGames = GetCompletedGames(games);
+
+        // Identify LB games and Grand Final by label
+        var lbGames = completedGames.Where(g => g.Label is not null && g.Label.StartsWith("LB-")).ToList();
+        var grandFinal = completedGames.FirstOrDefault(g => g.Label == "Grand Final");
+
+        var maxLbRound = lbGames.Count > 0 ? lbGames.Max(g => g.Round) : 0;
+
+        var teamResults = new Dictionary<string, (int Wins, int Losses, int Position)>();
+        var worstPosition = teamIds.Count;
+
+        foreach (var teamId in teamIds)
+        {
+            teamResults[teamId] = (0, 0, worstPosition);
+        }
+
+        foreach (var game in completedGames)
+        {
+            var result = ExtractWinnerAndLoser(game);
+            if (result is null) continue;
+            var (winnerId, loserId) = result.Value;
+
+            if (teamResults.TryGetValue(winnerId, out var ws))
+                teamResults[winnerId] = (ws.Wins + 1, ws.Losses, ws.Position);
+            if (teamResults.TryGetValue(loserId, out var ls))
+                teamResults[loserId] = (ls.Wins, ls.Losses + 1, ls.Position);
+
+            // Grand Final: winner = 1st, loser = 2nd
+            if (game.Label == "Grand Final")
+            {
+                if (teamResults.TryGetValue(winnerId, out var gfw))
+                    teamResults[winnerId] = (gfw.Wins, gfw.Losses, 1);
+                if (teamResults.TryGetValue(loserId, out var gfl))
+                    teamResults[loserId] = (gfl.Wins, gfl.Losses, 2);
+                continue;
+            }
+
+            // LB losers: position based on LB round (earlier round = worse position)
+            if (game.Label is not null && game.Label.StartsWith("LB-"))
+            {
+                var lbRoundNumbers = lbGames.Select(g => g.Round).Distinct().OrderBy(r => r).ToList();
+                var roundIndex = lbRoundNumbers.IndexOf(game.Round);
+                var totalLbRounds = lbRoundNumbers.Count;
+
+                var position = totalLbRounds - roundIndex + 2;
+                if (teamResults.TryGetValue(loserId, out var lbl))
+                    teamResults[loserId] = (lbl.Wins, lbl.Losses, position);
+            }
+        }
+
+        return teamResults
+            .OrderBy(t => t.Value.Position)
+            .ThenByDescending(t => t.Value.Wins)
+            .Select(t => new Standing(
+                t.Key,
+                t.Value.Position,
+                t.Value.Wins + t.Value.Losses,
+                t.Value.Wins,
+                0,
+                t.Value.Losses,
+                null, null, null, null,
+                null, null, null))
             .ToList();
     }
 
@@ -434,6 +472,17 @@ public static class StandingsCalculator
         public int Points => 2 * Wins + Draws;
         public int SetDifference => SetsWon - SetsLost;
         public int PointDifference => PointsWon - PointsLost;
+    }
+
+    private static (string WinnerId, string LoserId)? ExtractWinnerAndLoser(Game game)
+    {
+        var homeScore = game.HomeScore ?? 0;
+        var awayScore = game.AwayScore ?? 0;
+        if (homeScore == awayScore) return null;
+
+        return homeScore > awayScore
+            ? (game.HomeTeamId!, game.AwayTeamId!)
+            : (game.AwayTeamId!, game.HomeTeamId!);
     }
 
     private record RoundRobinEntry(string TeamId, TeamStats Stats);

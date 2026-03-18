@@ -33,7 +33,7 @@ public class CosmosTournamentRepository : CosmosRepository<Tournament>, ITournam
 
     public async Task<IEnumerable<Tournament>> GetAllAsync()
     {
-        var query = new QueryDefinition("SELECT * FROM c");
+        var query = new QueryDefinition("SELECT TOP 1000 * FROM c");
         return await ExecuteQueryAsync<Tournament>(query);
     }
 
@@ -48,12 +48,17 @@ public class CosmosTournamentRepository : CosmosRepository<Tournament>, ITournam
 
     public async Task<Tournament> UpdateAsync(Tournament tournament)
     {
+        var requestOptions = tournament.ETag is not null
+            ? new ItemRequestOptions { IfMatchEtag = tournament.ETag }
+            : null;
         var response = await Container.ReplaceItemAsync(
             tournament,
             tournament.Id,
-            new PartitionKey(tournament.OwnerId));
-
-        return response.Resource;
+            new PartitionKey(tournament.OwnerId),
+            requestOptions);
+        var updated = response.Resource;
+        SetETag(updated, response.ETag);
+        return updated;
     }
 
     public async Task DeleteAsync(string id, string ownerId)

@@ -210,11 +210,11 @@ public class TournamentStructure : Entity
 
     public void AutoAssignTeams(string phaseId, List<Team> teams)
     {
-        var phase = GetPhase(phaseId);
-
-        var orderedTeamIds = phase.Order == 1
-            ? teams.OrderByDescending(t => t.Level).ThenBy(t => t.Name).Select(t => t.Id).ToList()
-            : teams.OrderBy(_ => Random.Shared.Next()).Select(t => t.Id).ToList();
+        var orderedTeamIds = teams
+            .OrderByDescending(t => t.Level)
+            .ThenBy(t => t.Name)
+            .Select(t => t.Id)
+            .ToList();
 
         AutoAssignTeams(phaseId, orderedTeamIds);
     }
@@ -280,13 +280,13 @@ public class TournamentStructure : Entity
         var remainder = teamIds.Count % levelCount;
 
         var offset = 0;
-        foreach (var level in levels)
+        for (var levelIndex = 0; levelIndex < levels.Count; levelIndex++)
         {
-            var count = teamsPerLevel + (offset < remainder ? 1 : 0);
+            var count = teamsPerLevel + (levelIndex < remainder ? 1 : 0);
             var chunk = teamIds.Skip(offset).Take(count).ToList();
             offset += count;
 
-            var levelGroups = phase.Groups.Where(g => g.LevelId == level.Id).ToList();
+            var levelGroups = phase.Groups.Where(g => g.LevelId == levels[levelIndex].Id).ToList();
             SnakeDraftIntoGroups(levelGroups, chunk);
         }
     }

@@ -108,6 +108,8 @@ public class ScheduleGenerationService
                     tournamentId, phaseId, group.Id, group.TeamIds),
                 PhaseFormat.PlayoffWithPlacement => PlayoffWithPlacementGenerator.Generate(
                     tournamentId, phaseId, group.Id, group.TeamIds),
+                PhaseFormat.DoubleElimination => DoubleEliminationGenerator.Generate(
+                    tournamentId, phaseId, group.Id, group.TeamIds),
                 _ => throw new ValidationException(
                     [new ValidationFailure("Format", $"Unsupported phase format: {phase.Format}")])
             };

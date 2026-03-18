@@ -71,7 +71,7 @@ public static class GroupEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var phase = structure.GetPhase(phaseId);
-        await phaseGuardService.EnsureEditableAsync(phase);
+        phaseGuardService.EnsureEditable(phase);
 
         if (structure.GroupNameExistsInPhase(phaseId, request.Name, groupId))
             throw new ValidationException(
