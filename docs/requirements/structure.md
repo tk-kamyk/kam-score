@@ -9,7 +9,7 @@
 - Phase defines a part of tournament
 - Phase is represented by:
     - name
-    - format of the games (round robin, play-off elimination, play-off with placement games)
+    - format of the games (round robin, play-off elimination, play-off with placement games, double elimination)
     - number of groups (specified on creation, auto-named A, B, C...)
     - group winners (optional) — how many teams per group qualify automatically to the next phase
     - total teams proceeding (optional) — total number of teams qualifying from this phase (a combined ranking is built: group winners on top, then remaining teams, cutoff applied at total)
@@ -48,7 +48,8 @@
     - **Round Robin**: all-play-all within each group. Uses circle method for pairings with home/away balance
     - **Playoff Elimination**: single-elimination bracket per group. First round uses real team IDs (seeded). Later rounds use placeholders (e.g., "Winner SF1", "Winner QF2")
     - **Playoff with Placement**: single-elimination bracket with full placement games for all final positions (1st through Nth). After each elimination round, losers form a consolation bracket (B) and winners form the main bracket (A). Consolation rounds are always scheduled before main bracket rounds at each level. Placement games (final position matches) are ordered worst-to-best position, with the Final always last. Example for 8 teams: QF → B-SF (QF losers) → A-SF (QF winners) → 7th → 5th → 3rd → Final
-- Playoffs apply to each group individually; bracket size is determined by the number of teams in the group
+    - **Double Elimination**: teams must lose twice to be eliminated. Consists of a Winners Bracket (WB), Losers Bracket (LB), and a Grand Final. WB is standard single-elimination; losers drop to LB. LB alternates between rounds where WB losers enter (drop-down) and rounds where LB teams play each other. The Grand Final is a single game between the WB winner and LB winner (no reset match). Example for 8 teams: WB-QF (4 games) → WB-SF (2 games) → WB-Final (1 game); LB-R1 (2 games, QF losers) → LB-R2 (2 games, LB-R1 winners vs SF losers) → LB-R3 (1 game) → LB-R4 (1 game, vs WB-Final loser) → Grand Final
+- Playoffs and double elimination apply to each group individually; bracket size is determined by the number of teams in the group
 - Scheduling uses the tournament-level game length (minutes) for time slot duration and the phase-level start time as the baseline
 
 # Schedule
@@ -119,6 +120,13 @@
 - The winner of the Final is 1st, loser is 2nd; winner of 3rd-place game is 3rd, loser is 4th; and so on
 - Positions are only assigned for completed placement games
 
+## Double Elimination
+- Positions are determined by the Losers Bracket round in which a team was eliminated
+- Grand Final winner = 1st, Grand Final loser = 2nd
+- Teams eliminated in the same LB round share the same position (similar to Playoff Elimination)
+- Earlier LB round losers get worse positions; later LB round losers get better positions
+- Teams that have not yet been eliminated default to the worst position
+
 ## Final Standings (Tournament-wide)
 - Final standings aggregate results across all phases to produce a single tournament-wide ranking
 - Placeholder teams are excluded — only real teams appear
@@ -137,7 +145,7 @@
 
 - When a playoff game result is recorded (or corrected), downstream games referencing it via placeholders are automatically updated with actual team IDs
 - "Winner {label}" placeholders resolve to the winning team; "Loser {label}" placeholders resolve to the losing team
-- Each playoff game has a Label (e.g., "SF1", "QF2", "Final", "B-SF1") stored on the game entity and set during generation
+- Each playoff game has a Label (e.g., "SF1", "QF2", "Final", "B-SF1", "WB-QF1", "LB-R1-1", "Grand Final") stored on the game entity and set during generation
 - If a result is a draw (HomeScore == AwayScore), no advancement occurs — the organizer must correct the result
 - Placeholders are kept intact after resolution (not cleared), allowing re-resolution when a result is corrected
 - Round-robin games have no label and no advancement

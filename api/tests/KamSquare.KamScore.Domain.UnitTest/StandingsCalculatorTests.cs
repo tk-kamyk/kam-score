@@ -642,6 +642,109 @@ public class StandingsCalculatorTests
     }
 
     // ================================================================
+    // Double Elimination Tests
+    // ================================================================
+
+    private static Game CreateLabeledCompletedGame(
+        string homeTeamId, string awayTeamId, int homeScore, int awayScore,
+        int round, string label)
+    {
+        var game = Game.Create(TournamentId, PhaseId, GroupId, round,
+            homeTeamId: homeTeamId, awayTeamId: awayTeamId, label: label);
+        game.RecordSimpleResult(homeScore, awayScore);
+        return game;
+    }
+
+    [Fact]
+    public void DoubleElimination_4Teams_FullyCompleted_CorrectPositions()
+    {
+        // WB: SF1(a vs d → a wins), SF2(b vs c → b wins), WB-F(a vs b → a wins)
+        // LB: LB-R1(loser d vs loser c → d wins), LB-R2(d vs loser b → d wins)
+        // GF: a vs d → a wins
+        var teamIds = new List<string> { "a", "b", "c", "d" };
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("a", "d", 2, 0, round: 1, "WB-SF1"),
+            CreateLabeledCompletedGame("b", "c", 2, 0, round: 1, "WB-SF2"),
+            CreateLabeledCompletedGame("a", "b", 2, 0, round: 2, "WB-Final"),
+            CreateLabeledCompletedGame("d", "c", 2, 0, round: 3, "LB-R1-1"),
+            CreateLabeledCompletedGame("d", "b", 2, 0, round: 4, "LB-R2-1"),
+            CreateLabeledCompletedGame("a", "d", 2, 0, round: 5, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+
+        standings.First(s => s.TeamId == "a").Position.Should().Be(1); // GF winner
+        standings.First(s => s.TeamId == "d").Position.Should().Be(2); // GF loser
+        standings.First(s => s.TeamId == "b").Position.Should().Be(3); // lost in LB-R2
+        standings.First(s => s.TeamId == "c").Position.Should().Be(4); // lost in LB-R1
+    }
+
+    [Fact]
+    public void DoubleElimination_NoGamesCompleted_AllAtWorstPosition()
+    {
+        var teamIds = new List<string> { "a", "b", "c", "d" };
+        var games = new List<Game>();
+
+        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+
+        standings.Should().HaveCount(4);
+        standings.Should().AllSatisfy(s => s.Position.Should().Be(4));
+    }
+
+    [Fact]
+    public void DoubleElimination_HasNoRoundRobinFields()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("a", "b", 2, 0, round: 1, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+
+        standings.Should().AllSatisfy(s =>
+        {
+            s.Points.Should().BeNull();
+            s.SetsWon.Should().BeNull();
+            s.SetsLost.Should().BeNull();
+            s.SetDifference.Should().BeNull();
+        });
+    }
+
+    [Fact]
+    public void DoubleElimination_GfWinnerIsFirst_GfLoserIsSecond()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("a", "b", 2, 1, round: 1, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+
+        standings.First(s => s.TeamId == "a").Position.Should().Be(1);
+        standings.First(s => s.TeamId == "b").Position.Should().Be(2);
+    }
+
+    [Fact]
+    public void DoubleElimination_DispatchesCorrectly()
+    {
+        var teamIds = new List<string> { "a", "b" };
+        var games = new List<Game>
+        {
+            CreateLabeledCompletedGame("a", "b", 2, 0, round: 1, "Grand Final"),
+        };
+
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleElimination, games, teamIds);
+
+        standings.Should().HaveCount(2);
+        standings.First(s => s.TeamId == "a").Position.Should().Be(1);
+        standings.First(s => s.TeamId == "b").Position.Should().Be(2);
+        standings.Should().AllSatisfy(s => s.Points.Should().BeNull());
+    }
+
+    // ================================================================
     // Calculate dispatch Tests
     // ================================================================
 

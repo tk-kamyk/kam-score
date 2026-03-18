@@ -39,7 +39,7 @@ public static class LevelEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var phase = structure.GetPhase(phaseId);
-        await phaseGuardService.EnsureEditableAsync(phase);
+        phaseGuardService.EnsureEditable(phase);
 
         if (structure.LevelNameExistsInPhase(phaseId, request.Name, levelId))
             throw new ValidationException(

@@ -1,4 +1,5 @@
 using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.Exceptions;
 
 namespace KamSquare.KamScore.Domain.Entities;
 
@@ -80,26 +81,36 @@ public class Phase
 
     public void Schedule()
     {
+        if (Status is not (PhaseStatus.New or PhaseStatus.InProgress))
+            throw new PhaseStateException(Name, "schedule", $"phase must be New or InProgress, but is {Status}");
         Status = PhaseStatus.Scheduled;
     }
 
     public void Activate()
     {
+        if (Status is not (PhaseStatus.New or PhaseStatus.Scheduled))
+            throw new PhaseStateException(Name, "activate", $"phase must be New or Scheduled, but is {Status}");
         Status = PhaseStatus.InProgress;
     }
 
     public void Complete()
     {
+        if (Status != PhaseStatus.InProgress)
+            throw new PhaseStateException(Name, "complete", $"phase must be InProgress, but is {Status}");
         Status = PhaseStatus.Completed;
     }
 
     public void Reopen()
     {
+        if (Status != PhaseStatus.Completed)
+            throw new PhaseStateException(Name, "reopen", $"phase must be Completed, but is {Status}");
         Status = PhaseStatus.InProgress;
     }
 
     public void Reset()
     {
+        if (Status is not (PhaseStatus.Scheduled or PhaseStatus.InProgress))
+            throw new PhaseStateException(Name, "reset", $"phase must be Scheduled or InProgress, but is {Status}");
         Status = PhaseStatus.New;
     }
 

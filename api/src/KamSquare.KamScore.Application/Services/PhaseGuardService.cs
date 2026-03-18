@@ -14,12 +14,10 @@ public class PhaseGuardService
         _gameRepository = gameRepository;
     }
 
-    public Task EnsureEditableAsync(Phase phase)
+    public void EnsureEditable(Phase phase)
     {
         if (phase.Status == PhaseStatus.Completed)
             throw new PhaseStateException(phase.Name, "edit", "phase is completed");
-
-        return Task.CompletedTask;
     }
 
     public async Task EnsureStructureEditableAsync(Phase phase, string tournamentId)
@@ -44,23 +42,19 @@ public class PhaseGuardService
                 "games have been generated. Delete the games first");
     }
 
-    public Task EnsureGamesDeletableAsync(Phase phase)
+    public void EnsureGamesDeletable(Phase phase)
     {
         if (phase.Status == PhaseStatus.Completed)
             throw new PhaseStateException(phase.Name, "delete games from",
                 "phase is completed. Reopen the phase first");
-
-        return Task.CompletedTask;
     }
 
-    public Task EnsureResultsCanBeRecordedAsync(Phase phase)
+    public void EnsureResultsCanBeRecorded(Phase phase)
     {
         if (phase.Status != PhaseStatus.InProgress)
             throw new PhaseStateException(phase.Name, "record results in",
                 phase.Status == PhaseStatus.Completed
                     ? "phase is completed. Reopen the phase first"
                     : "phase must be in progress");
-
-        return Task.CompletedTask;
     }
 }

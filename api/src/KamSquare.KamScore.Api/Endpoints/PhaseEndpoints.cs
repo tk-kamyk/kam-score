@@ -74,7 +74,7 @@ public static class PhaseEndpoints
             ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
 
         var phase = structure.GetPhase(phaseId);
-        await phaseGuardService.EnsureEditableAsync(phase);
+        phaseGuardService.EnsureEditable(phase);
 
         var format = Enum.Parse<PhaseFormat>(request.Format, ignoreCase: true);
         var startTime = mapper.Map<TimeOnly?>(request.StartTime);

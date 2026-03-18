@@ -40,6 +40,7 @@ export const PHASE_FORMATS = [
   { value: 'RoundRobin', title: 'Round Robin' },
   { value: 'PlayoffElimination', title: 'Playoff Elimination' },
   { value: 'PlayoffWithPlacement', title: 'Playoff with Placement' },
+  { value: 'DoubleElimination', title: 'Double Elimination' },
 ] as const
 
 export function formatPhaseFormat(format: string): string {
