@@ -1,15 +1,18 @@
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.ValueObjects;
 
-namespace KamSquare.KamScore.Domain.Services;
+namespace KamSquare.KamScore.Domain.Services.Formats;
 
-public static class PlayoffEliminationGenerator
+public class PlayoffEliminationStrategy : IPhaseFormatStrategy
 {
-    /// <summary>
-    /// Generates single-elimination bracket games for a group.
-    /// First round uses real team IDs (seeded). Later rounds use placeholders.
-    /// Higher seeds get byes when team count is not a power of 2.
-    /// </summary>
-    public static List<Game> Generate(
+    public bool SupportsRefereeAssignment => false;
+
+    public void ValidateTeams(List<Group> groups)
+    {
+        // No format-specific team count constraints for single elimination
+    }
+
+    public List<Game> GenerateGames(
         string tournamentId,
         string phaseId,
         string groupId,
@@ -33,17 +36,11 @@ public static class PlayoffEliminationGenerator
         var n = teamIds.Count;
         var bracketSize = BracketUtilities.NextPowerOfTwo(n);
         var totalRounds = (int)Math.Log2(bracketSize);
-        var byeCount = bracketSize - n;
 
-        // Build seeded bracket positions for first round
         var bracketOrder = BracketUtilities.BuildBracketOrder(bracketSize);
-
-        // Track game outcomes by bracket position for placeholder references
-        // Key: (round, matchIndex) -> game
         var gameMap = new Dictionary<(int round, int matchIndex), Game>();
         var roundNames = BracketUtilities.GetRoundNames(totalRounds);
 
-        // Generate first round
         var firstRoundMatchCount = bracketSize / 2;
         var gameIndex = 0;
 
@@ -52,15 +49,12 @@ public static class PlayoffEliminationGenerator
             var seed1Pos = bracketOrder[match * 2];
             var seed2Pos = bracketOrder[match * 2 + 1];
 
-            var team1 = seed1Pos < n ? teamIds[seed1Pos] : null; // BYE
-            var team2 = seed2Pos < n ? teamIds[seed2Pos] : null; // BYE
+            var team1 = seed1Pos < n ? teamIds[seed1Pos] : null;
+            var team2 = seed2Pos < n ? teamIds[seed2Pos] : null;
 
             if (team1 is null || team2 is null)
             {
-                // One team has a bye - they auto-advance, no game needed
                 var advancingTeamId = team1 ?? team2;
-
-                // Create a phantom entry in gameMap for the next round to reference
                 var phantomGame = Game.Create(tournamentId, phaseId, groupId, round: 1,
                     homeTeamId: advancingTeamId);
                 gameMap[(1, match)] = phantomGame;
@@ -75,7 +69,6 @@ public static class PlayoffEliminationGenerator
             gameMap[(1, match)] = game;
         }
 
-        // Generate subsequent rounds
         for (var round = 2; round <= totalRounds; round++)
         {
             var matchesInRound = bracketSize / (int)Math.Pow(2, round);
@@ -95,7 +88,6 @@ public static class PlayoffEliminationGenerator
                 string? homePlaceholder = null;
                 string? awayPlaceholder = null;
 
-                // If previous game was a bye (only has HomeTeamId, no AwayTeamId), team auto-advances
                 if (prevGame1 is not null && prevGame1.AwayTeamId is null && prevGame1.HomeTeamId is not null)
                     homeTeamId = prevGame1.HomeTeamId;
                 else
@@ -117,5 +109,46 @@ public static class PlayoffEliminationGenerator
         }
 
         return games;
+    }
+
+    public List<Standing> CalculateStandings(List<Game> games, List<string> teamIds)
+    {
+        var bracketSize = BracketUtilities.NextPowerOfTwo(teamIds.Count);
+        var completedGames = BracketStandingsHelper.GetCompletedGames(games);
+
+        var maxRound = completedGames.Count > 0 ? completedGames.Max(g => g.Round) : 0;
+        var teamResults = new Dictionary<string, (int Wins, int Losses, int Position)>();
+
+        var worstPosition = bracketSize / 2 + 1;
+        foreach (var teamId in teamIds)
+        {
+            teamResults[teamId] = (0, 0, worstPosition);
+        }
+
+        foreach (var game in completedGames)
+        {
+            var result = BracketStandingsHelper.ExtractWinnerAndLoser(game);
+            if (result is null) continue;
+            var (winnerId, loserId) = result.Value;
+
+            if (teamResults.TryGetValue(winnerId, out var winnerStats))
+                teamResults[winnerId] = (winnerStats.Wins + 1, winnerStats.Losses, winnerStats.Position);
+            if (teamResults.TryGetValue(loserId, out var loserStats))
+                teamResults[loserId] = (loserStats.Wins, loserStats.Losses + 1, loserStats.Position);
+
+            var loserPosition = bracketSize / (int)Math.Pow(2, game.Round) + 1;
+            if (teamResults.TryGetValue(loserId, out var ls))
+                teamResults[loserId] = (ls.Wins, ls.Losses, loserPosition);
+
+            if (game.Round == maxRound && teamResults.TryGetValue(winnerId, out var ws))
+                teamResults[winnerId] = (ws.Wins, ws.Losses, 1);
+        }
+
+        return BracketStandingsHelper.OrderBracketStandings(teamResults);
+    }
+
+    public List<Standing> RankCrossGroup(List<Standing> standings)
+    {
+        return BracketStandingsHelper.RankByPositionThenWins(standings);
     }
 }

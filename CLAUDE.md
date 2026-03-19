@@ -204,7 +204,8 @@ docker compose up              # Full stack (API + SPA)
 - Validation, format-checking, and business rules that operate on a single entity belong **in the entity class**, not in API helpers or endpoints. Example: tournament code validation (`IsCodeValid()`) lives on `Tournament`, not in an endpoint helper
 - **Endpoint handlers must NOT contain business rules** — including field classification (e.g., which fields are "structural"), conditional business logic, or domain calculations. Move these to entity methods or domain services. Endpoints should only: validate auth, map DTOs, delegate to domain/services, return HTTP responses
 - Use `[GeneratedRegex]` with `partial class` when entities need regex validation
-- Domain services (static classes in `Domain/Services/`) handle cross-entity logic that doesn't belong to a single entity (e.g., `StandingsCalculator`, `GameScheduler`)
+- Domain services (static classes in `Domain/Services/`) handle cross-entity logic that doesn't belong to a single entity (e.g., `GameScheduler`, `PhaseAdvancementCalculator`)
+- **Phase format strategy pattern**: All format-specific logic (game generation, standings calculation, validation, cross-group ranking) lives in `IPhaseFormatStrategy` implementations under `Domain/Services/Formats/`. New formats require only: (1) new `PhaseFormat` enum value, (2) new strategy class, (3) new case in `PhaseFormatStrategy.For()`. `StandingsCalculator` is a thin facade that delegates to strategies. `BracketUtilities` and `BracketStandingsHelper` provide shared bracket logic for strategies to reuse
 
 #### Control flow
 - **Prefer early returns (guard clauses)** over nested if/else blocks. Handle the simple/default case first and return, then continue with the main logic at the top indentation level

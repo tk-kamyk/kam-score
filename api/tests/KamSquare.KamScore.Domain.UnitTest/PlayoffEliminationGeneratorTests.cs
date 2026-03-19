@@ -1,6 +1,7 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.Services.Formats;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -10,17 +11,19 @@ public class PlayoffEliminationGeneratorTests
     private const string PhaseId = "p1";
     private const string GroupId = "g1";
 
+    private readonly IPhaseFormatStrategy _strategy = new PlayoffEliminationStrategy();
+
     [Fact]
     public void Generate_WithEmptyTeams_ShouldReturnEmpty()
     {
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, []);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, []);
         games.Should().BeEmpty();
     }
 
     [Fact]
     public void Generate_With1Team_ShouldReturnEmpty()
     {
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, ["a"]);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, ["a"]);
         games.Should().BeEmpty();
     }
 
@@ -28,7 +31,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_With2Teams_ShouldReturn1Game()
     {
         var teams = new List<string> { "a", "b" };
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().HaveCount(1);
         games[0].HomeTeamId.Should().Be("a");
@@ -42,7 +45,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_With4Teams_ShouldReturn3Games()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().HaveCount(3);
 
@@ -68,7 +71,7 @@ public class PlayoffEliminationGeneratorTests
     {
         // Seed 1 vs Seed 4, Seed 2 vs Seed 3
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var round1 = games.Where(g => g.Round == 1).ToList();
         var allTeamsInRound1 = round1
@@ -91,7 +94,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_With8Teams_ShouldReturn7Games()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().HaveCount(7); // 4 QF + 2 SF + 1 F
 
@@ -122,7 +125,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_With3Teams_ShouldReturn2Games_Seed1GetsBye()
     {
         var teams = new List<string> { "s1", "s2", "s3" };
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().HaveCount(2);
 
@@ -143,7 +146,7 @@ public class PlayoffEliminationGeneratorTests
     [Fact]
     public void Generate_SetsCorrectIds()
     {
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, ["a", "b", "c", "d"]);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, ["a", "b", "c", "d"]);
 
         games.Should().AllSatisfy(g =>
         {
@@ -182,7 +185,7 @@ public class PlayoffEliminationGeneratorTests
     [Fact]
     public void Generate_With2Teams_ShouldHaveFinalLabel()
     {
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, ["a", "b"]);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, ["a", "b"]);
 
         games[0].Label.Should().Be("Final");
     }
@@ -191,7 +194,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_With4Teams_SetsLabelsOnGames()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var semiFinals = games.Where(g => g.Round == 1).OrderBy(g => g.Label).ToList();
         semiFinals.Select(g => g.Label).Should().BeEquivalentTo(["SF1", "SF2"]);
@@ -204,7 +207,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_With8Teams_SetsLabelsOnGames()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var qf = games.Where(g => g.Round == 1).ToList();
         qf.Select(g => g.Label).Should().BeEquivalentTo(["QF1", "QF2", "QF3", "QF4"]);
@@ -220,7 +223,7 @@ public class PlayoffEliminationGeneratorTests
     public void Generate_LabelsMatchPlaceholderReferences()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = PlayoffEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         AssertLabelsMatchPlaceholderReferences(games);
     }

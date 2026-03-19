@@ -1,5 +1,6 @@
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.Services.Formats;
 using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Services;
@@ -167,12 +168,13 @@ public static class FinalStandingsCalculator
         PhaseFormat format,
         Dictionary<string, string> teamNameLookup)
     {
+        var strategy = PhaseFormatStrategy.For(format);
         return groups
             .Select(g =>
             {
                 var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
                 var realTeamIds = g.TeamIds.Where(id => teamNameLookup.ContainsKey(id)).ToList();
-                return (g.Id, StandingsCalculator.Calculate(format, groupGames, realTeamIds));
+                return (g.Id, strategy.CalculateStandings(groupGames, realTeamIds));
             })
             .ToList();
     }
@@ -272,22 +274,8 @@ public static class FinalStandingsCalculator
         List<(string GroupId, List<Standing> Standings)> groupStandings,
         PhaseFormat format)
     {
-        var all = groupStandings.SelectMany(gs => gs.Standings);
-
-        if (format is PhaseFormat.PlayoffElimination or PhaseFormat.PlayoffWithPlacement or PhaseFormat.DoubleElimination or PhaseFormat.DoubleEliminationVd)
-        {
-            return all
-                .OrderBy(s => s.Position)
-                .ThenByDescending(s => s.Wins)
-                .ToList();
-        }
-
-        return all
-            .OrderByDescending(s => s.Points ?? 0)
-            .ThenByDescending(s => s.SetDifference ?? 0)
-            .ThenByDescending(s => s.PointDifference ?? 0)
-            .ThenByDescending(s => s.Wins)
-            .ThenBy(s => s.Losses)
-            .ToList();
+        var all = groupStandings.SelectMany(gs => gs.Standings).ToList();
+        var strategy = PhaseFormatStrategy.For(format);
+        return strategy.RankCrossGroup(all);
     }
 }

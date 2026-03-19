@@ -3,7 +3,6 @@ using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.Services;
-using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -41,15 +40,11 @@ public static class StandingsEndpoints
         if (phase is null)
             throw new NotFoundException(nameof(Phase), phaseId);
 
-        var group = phase.Groups.FirstOrDefault(g => g.Id == groupId);
-        if (group is null)
-            throw new NotFoundException(nameof(Group), groupId);
-
         var games = (await gameRepository.GetByPhaseIdAsync(tournamentId, phaseId))
             .Where(g => g.GroupId == groupId)
             .ToList();
 
-        var standings = StandingsCalculator.Calculate(phase.Format, games, group.TeamIds);
+        var standings = phase.CalculateGroupStandings(groupId, games);
 
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
         var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);

@@ -1,6 +1,6 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
-using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.Services.Formats;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -10,24 +10,26 @@ public class DoubleEliminationGeneratorTests
     private const string PhaseId = "p1";
     private const string GroupId = "g1";
 
+    private readonly IPhaseFormatStrategy _strategy = new DoubleEliminationStrategy();
+
     [Fact]
     public void Generate_WithEmptyTeams_ShouldReturnEmpty()
     {
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, []);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, []);
         games.Should().BeEmpty();
     }
 
     [Fact]
     public void Generate_With1Team_ShouldReturnEmpty()
     {
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, ["a"]);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, ["a"]);
         games.Should().BeEmpty();
     }
 
     [Fact]
     public void Generate_With2Teams_ShouldReturnGrandFinalOnly()
     {
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, ["a", "b"]);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, ["a", "b"]);
 
         games.Should().HaveCount(1);
         games[0].HomeTeamId.Should().Be("a");
@@ -40,7 +42,7 @@ public class DoubleEliminationGeneratorTests
     {
         // 4 teams: WB (2 SF + 1 WB-F) + LB (1 LB-R1 + 1 LB-R2) + GF = 6 games
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().HaveCount(6);
     }
@@ -49,7 +51,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With4Teams_ShouldHaveWbGames()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var wbGames = games.Where(g => g.Label is not null && g.Label.StartsWith("WB-")).ToList();
         wbGames.Should().HaveCount(3); // 2 SF + 1 WB-Final
@@ -59,7 +61,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With4Teams_ShouldHaveLbGames()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var lbGames = games.Where(g => g.Label is not null && g.Label.StartsWith("LB-")).ToList();
         lbGames.Should().HaveCount(2); // LB-R1 (SF losers) + LB-R2 (LB-R1 winner vs WB-F loser)
@@ -69,7 +71,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With4Teams_ShouldHaveGrandFinal()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var gf = games.Where(g => g.Label == "Grand Final").ToList();
         gf.Should().HaveCount(1);
@@ -79,7 +81,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With4Teams_WbFirstRoundHasRealTeams()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var wbRound1 = games.Where(g => g.Round == 1).ToList();
         wbRound1.Should().HaveCount(2);
@@ -94,7 +96,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With4Teams_SeedingCorrect()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var wbRound1 = games.Where(g => g.Round == 1).ToList();
         var allTeamsR1 = wbRound1
@@ -117,7 +119,7 @@ public class DoubleEliminationGeneratorTests
     {
         // 8 teams: WB (4 QF + 2 SF + 1 WB-F) + LB (2 LB-R1 + 2 LB-R2 + 1 LB-R3 + 1 LB-R4) + GF = 14
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         // WB: 7 games, LB: 6 games, GF: 1 = 14 total
         games.Should().HaveCount(14);
@@ -127,7 +129,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With8Teams_WbHas7Games()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var wbGames = games.Where(g => g.Label is not null && g.Label.StartsWith("WB-")).ToList();
         wbGames.Should().HaveCount(7); // 4 QF + 2 SF + 1 WB-F
@@ -137,7 +139,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With8Teams_LbHas6Games()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var lbGames = games.Where(g => g.Label is not null && g.Label.StartsWith("LB-")).ToList();
         lbGames.Should().HaveCount(6); // R1: 2, R2: 2, R3: 1, R4: 1
@@ -147,7 +149,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With8Teams_GrandFinalIsLastRound()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var gf = games.Single(g => g.Label == "Grand Final");
         gf.Round.Should().Be(games.Max(g => g.Round));
@@ -157,7 +159,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With8Teams_RoundsAreInOrder()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         // Rounds should be sequential and non-decreasing in game order
         var rounds = games.Select(g => g.Round).ToList();
@@ -171,7 +173,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_SetsCorrectIds()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().AllSatisfy(g =>
         {
@@ -185,7 +187,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_AllPlaceholdersReferenceExistingLabels()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
 
@@ -200,7 +202,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With4Teams_AllPlaceholdersReferenceExistingLabels()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
 
@@ -215,7 +217,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With3Teams_Seed1GetsByeInWb()
     {
         var teams = new List<string> { "s1", "s2", "s3" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         // WB R1 should have 1 game (s2 vs s3 or s3 vs s2), seed 1 gets a bye
         var wbR1 = games.Where(g => g.Round == 1).ToList();
@@ -227,7 +229,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_GrandFinalReferencesWbWinnerAndLbWinner()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var gf = games.Single(g => g.Label == "Grand Final");
 
@@ -246,7 +248,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_LbGamesUsePlaceholdersForWbLosers()
     {
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var lbR1 = games.Where(g => g.Label is not null && g.Label.StartsWith("LB-R1")).ToList();
         lbR1.Should().HaveCount(1);
@@ -262,7 +264,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_With8Teams_InterleavesWbAndLbRounds()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         // Expected interleaved order for 8 teams:
         // R1: WB-QF (4 games)
@@ -310,7 +312,7 @@ public class DoubleEliminationGeneratorTests
     {
         // 4 teams: not enough rounds to interleave, WB finishes first
         var teams = new List<string> { "s1", "s2", "s3", "s4" };
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         // R1: WB-SF (2 games), R2: WB-Final (1 game), R3: LB-R1 (1 game), R4: LB-R2 (1 game), R5: GF
         var wbFinal = games.Single(g => g.Label == "WB-Final");
@@ -330,7 +332,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_AllGamesHaveUniqueLabels()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         var labels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToList();
         labels.Should().OnlyHaveUniqueItems();
@@ -340,7 +342,7 @@ public class DoubleEliminationGeneratorTests
     public void Generate_EveryGameHasALabel()
     {
         var teams = Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
-        var games = DoubleEliminationGenerator.Generate(TournamentId, PhaseId, GroupId, teams);
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
         games.Should().AllSatisfy(g => g.Label.Should().NotBeNull());
     }

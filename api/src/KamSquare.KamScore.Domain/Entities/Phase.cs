@@ -1,5 +1,7 @@
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Domain.Services.Formats;
+using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Entities;
 
@@ -74,6 +76,8 @@ public class Phase
 
     public bool HasProgressionConfig => GroupWinners is not null || TotalTeamsProceeding is not null;
 
+    public bool SupportsRefereeAssignment => PhaseFormatStrategy.For(Format).SupportsRefereeAssignment;
+
     public bool HasStructuralChanges(PhaseFormat newFormat, TimeOnly? newStartTime)
     {
         return Format != newFormat || StartTime != newStartTime;
@@ -112,6 +116,41 @@ public class Phase
         if (Status is not (PhaseStatus.Scheduled or PhaseStatus.InProgress))
             throw new PhaseStateException(Name, "reset", $"phase must be Scheduled or InProgress, but is {Status}");
         Status = PhaseStatus.New;
+    }
+
+    public List<Game> GenerateGames(string tournamentId)
+    {
+        var strategy = PhaseFormatStrategy.For(Format);
+        strategy.ValidateTeams(Groups);
+
+        var allGames = new List<Game>();
+        foreach (var group in Groups)
+        {
+            if (group.TeamIds.Count <= 1) continue;
+            allGames.AddRange(strategy.GenerateGames(tournamentId, Id, group.Id, group.TeamIds));
+        }
+
+        return allGames;
+    }
+
+    public List<Standing> CalculateGroupStandings(string groupId, List<Game> groupGames)
+    {
+        var group = Groups.FirstOrDefault(g => g.Id == groupId)
+            ?? throw new NotFoundException(nameof(Group), groupId);
+        var strategy = PhaseFormatStrategy.For(Format);
+        return strategy.CalculateStandings(groupGames, group.TeamIds);
+    }
+
+    public List<(string GroupId, List<Standing> Standings)> CalculateAllGroupStandings(List<Game> phaseGames)
+    {
+        var strategy = PhaseFormatStrategy.For(Format);
+        return Groups
+            .Select(g =>
+            {
+                var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
+                return (g.Id, strategy.CalculateStandings(groupGames, g.TeamIds));
+            })
+            .ToList();
     }
 
     private static string GetGroupName(int index)

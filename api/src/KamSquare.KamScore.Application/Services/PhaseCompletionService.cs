@@ -5,7 +5,6 @@ using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.Services;
-using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Application.Services;
 
@@ -48,7 +47,7 @@ public class PhaseCompletionService
 
         if (nextPhase is not null && hasProgressionConfig)
         {
-            var groupStandings = CalculateGroupStandings(phase, phaseGames);
+            var groupStandings = phase.CalculateAllGroupStandings(phaseGames);
 
             // Calculate qualifying teams and seeding
             var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
@@ -116,7 +115,7 @@ public class PhaseCompletionService
         if (phaseGames.Count == 0)
             return;
 
-        var groupStandings = CalculateGroupStandings(completedPhase, phaseGames);
+        var groupStandings = completedPhase.CalculateAllGroupStandings(phaseGames);
 
         var qualifyingIds = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(completedPhase, groupStandings);
         var seededIds = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, completedPhase);
@@ -166,17 +165,6 @@ public class PhaseCompletionService
             await _teamRepository.CreateBatchAsync(placeholders);
         }
     }
-
-    private static List<(string GroupId, List<Standing> Standings)> CalculateGroupStandings(
-        Phase phase, List<Game> phaseGames) =>
-        phase.Groups
-            .Select(g =>
-            {
-                var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                var standings = StandingsCalculator.Calculate(phase.Format, groupGames, g.TeamIds);
-                return (g.Id, standings);
-            })
-            .ToList();
 
     public async Task HandlePhaseDeletionAsync(
         TournamentStructure structure,

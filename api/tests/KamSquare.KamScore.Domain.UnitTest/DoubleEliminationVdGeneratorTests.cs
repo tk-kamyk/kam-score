@@ -1,5 +1,5 @@
 using FluentAssertions;
-using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.Services.Formats;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -9,28 +9,30 @@ public class DoubleEliminationVdGeneratorTests
     private const string PhaseId = "p1";
     private const string GroupId = "g1";
 
+    private readonly IPhaseFormatStrategy _strategy = new DoubleEliminationVdStrategy();
+
     private static List<string> EightTeams() =>
         Enumerable.Range(1, 8).Select(i => $"s{i}").ToList();
 
     [Fact]
     public void Generate_With8Teams_ShouldGenerate14Games()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
         games.Should().HaveCount(14);
     }
 
     [Fact]
     public void Generate_WithNon8Teams_ShouldThrow()
     {
-        var act4 = () => DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId,
+        var act4 = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId,
             ["s1", "s2", "s3", "s4"]);
         act4.Should().Throw<InvalidOperationException>();
 
-        var act7 = () => DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId,
+        var act7 = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId,
             Enumerable.Range(1, 7).Select(i => $"s{i}").ToList());
         act7.Should().Throw<InvalidOperationException>();
 
-        var act9 = () => DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId,
+        var act9 = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId,
             Enumerable.Range(1, 9).Select(i => $"s{i}").ToList());
         act9.Should().Throw<InvalidOperationException>();
     }
@@ -38,7 +40,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round1_Has4QfGamesWithRealTeams()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var qfGames = games.Where(g => g.Round == 1).ToList();
         qfGames.Should().HaveCount(4);
@@ -53,7 +55,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_QfSeeding_IsCorrect()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var qfGames = games.Where(g => g.Round == 1).OrderBy(g => g.Label).ToList();
 
@@ -81,7 +83,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round2_Has2WinnersGames()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var wGames = games.Where(g => g.Round == 2).ToList();
         wGames.Should().HaveCount(2);
@@ -98,7 +100,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round3_Has2LosersGames()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var lGames = games.Where(g => g.Round == 3).ToList();
         lGames.Should().HaveCount(2);
@@ -115,7 +117,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round4_Has2CrossoverGames_CrossBracket()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var xGames = games.Where(g => g.Round == 4).ToList();
         xGames.Should().HaveCount(2);
@@ -134,7 +136,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round5_Has2GrandSemiFinalsGames()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var gsfGames = games.Where(g => g.Round == 5).ToList();
         gsfGames.Should().HaveCount(2);
@@ -153,7 +155,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round6_Has7thPlaceGame()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var seventhGames = games.Where(g => g.Round == 6).ToList();
         seventhGames.Should().HaveCount(1);
@@ -167,7 +169,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_Round7_HasGrandFinal()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var gfGames = games.Where(g => g.Round == 7).ToList();
         gfGames.Should().HaveCount(1);
@@ -181,7 +183,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_AllGamesHaveUniqueLabels()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var labels = games.Select(g => g.Label!).ToList();
         labels.Should().OnlyHaveUniqueItems();
@@ -190,14 +192,14 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_EveryGameHasALabel()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
         games.Should().AllSatisfy(g => g.Label.Should().NotBeNull());
     }
 
     [Fact]
     public void Generate_AllPlaceholdersReferenceExistingLabels()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var allLabels = games.Select(g => g.Label!).ToHashSet();
 
@@ -211,7 +213,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_SetsCorrectIds()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         games.Should().AllSatisfy(g =>
         {
@@ -224,7 +226,7 @@ public class DoubleEliminationVdGeneratorTests
     [Fact]
     public void Generate_RoundsAreSequential()
     {
-        var games = DoubleEliminationVdGenerator.Generate(TournamentId, PhaseId, GroupId, EightTeams());
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, EightTeams());
 
         var rounds = games.Select(g => g.Round).ToList();
         for (var i = 1; i < rounds.Count; i++)
