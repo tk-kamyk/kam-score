@@ -9,6 +9,7 @@ const props = defineProps<{
   groupName: string
   games: GameDto[]
   expanded: boolean
+  singleGroup?: boolean
 }>()
 
 const hasLabels = computed(() => props.games.some(g => g.label))
@@ -43,7 +44,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
 
 <template>
   <div class="py-2 mx-0 mx-sm-6">
-    <div class="d-flex align-center text-title-medium font-weight-medium group-header" @click.stop="emit('toggle')">
+    <div v-if="!singleGroup" class="d-flex align-center text-title-medium font-weight-medium group-header" @click.stop="emit('toggle')">
       <v-icon
         :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
         size="small"
@@ -51,7 +52,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
       />
       Group {{ groupName }}
     </div>
-    <v-card v-if="expanded" class="my-6 data-table-card">
+    <v-card v-if="singleGroup || expanded" class="my-6 data-table-card">
       <v-table density="compact" class="styled-table">
         <thead>
           <tr>

@@ -50,6 +50,8 @@ function gamesByGroup(games: GameDto[]): Record<string, GameDto[]> {
   return map
 }
 
+const groupCount = computed(() => Object.keys(gamesByGroup(props.games)).length)
+
 function groupName(groupId: string): string {
   const group = props.phase.groups?.find(g => g.id === groupId)
   return group?.name ?? groupId
@@ -71,6 +73,7 @@ function groupName(groupId: string): string {
                 :group-name="groupName(groupId as string)"
                 :games="groupGames"
                 :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
+                :single-group="groupIds.length === 1"
                 @toggle="emit('toggle-group', groupId as string)"
                 @open-result="(game) => emit('open-result', game)"
               />
@@ -86,6 +89,7 @@ function groupName(groupId: string): string {
             :group-name="groupName(groupId as string)"
             :games="groupGames"
             :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
+            :single-group="groupCount === 1"
             @toggle="emit('toggle-group', groupId as string)"
             @open-result="(game) => emit('open-result', game)"
           />
