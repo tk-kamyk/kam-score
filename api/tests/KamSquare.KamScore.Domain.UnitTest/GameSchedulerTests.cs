@@ -1,6 +1,8 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.Services.Formats;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -31,7 +33,7 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_AllGamesGetCourtAndStartTime()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1", "c2" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
@@ -46,7 +48,7 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_NoTeamInTwoGamesAtSameTime()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1", "c2" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
@@ -58,7 +60,7 @@ public class GameSchedulerTests
     public void Schedule_NoActivityInSlotBeforePlaying()
     {
         // 4-team group with 1 court: teams must have a free slot before playing
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
@@ -70,7 +72,7 @@ public class GameSchedulerTests
     public void Schedule_NoActivityInSlotBeforePlaying_MultipleCourts()
     {
         // 4-team group with 2 courts: even with parallel games, rest constraint holds
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d"]);
         var courts = new List<string> { "c1", "c2" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
@@ -82,7 +84,7 @@ public class GameSchedulerTests
     public void Schedule_ThreeTeams_GamesHaveRestGaps()
     {
         // 3-team group: every team plays every game, so rest slots are needed between games
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c"]);
         var courts = new List<string> { "c1" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
@@ -125,8 +127,8 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_GroupsInterleaved()
     {
-        var gamesA = RoundRobinGenerator.Generate("t1", "p1", "gA", ["a1", "a2", "a3"]);
-        var gamesB = RoundRobinGenerator.Generate("t1", "p1", "gB", ["b1", "b2", "b3"]);
+        var gamesA = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "gA", ["a1", "a2", "a3"]);
+        var gamesB = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "gB", ["b1", "b2", "b3"]);
         var allGames = gamesA.Concat(gamesB).ToList();
         var courts = new List<string> { "c1", "c2" };
 
@@ -150,8 +152,8 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_GroupsFollowProvidedOrder()
     {
-        var gamesA = RoundRobinGenerator.Generate("t1", "p1", "gA", ["a1", "a2", "a3"]);
-        var gamesB = RoundRobinGenerator.Generate("t1", "p1", "gB", ["b1", "b2", "b3"]);
+        var gamesA = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "gA", ["a1", "a2", "a3"]);
+        var gamesB = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "gB", ["b1", "b2", "b3"]);
         var allGames = gamesA.Concat(gamesB).ToList();
         var courts = new List<string> { "c1", "c2" };
 
@@ -172,7 +174,7 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_SingleCourt_AllGamesSequential()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c"]);
         var courts = new List<string> { "c1" };
 
         GameScheduler.Schedule(games, courts, ["g1"], StartTime, GameLength);
@@ -189,7 +191,7 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_PlayoffRoundsInOrder()
     {
-        var games = PlayoffEliminationGenerator.Generate("t1", "p1", "g1",
+        var games = PhaseFormatStrategy.For(PhaseFormat.PlayoffElimination).GenerateGames("t1", "p1", "g1",
             ["s1", "s2", "s3", "s4"]);
         var courts = new List<string> { "c1", "c2" };
 
@@ -221,7 +223,7 @@ public class GameSchedulerTests
     [Fact]
     public void Schedule_UnschedulableGame_ThrowsInvalidOperationException()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         var courts = new List<string> { "c1" };
 
@@ -233,7 +235,7 @@ public class GameSchedulerTests
     public void Schedule_LargeGroup_RestConstraintHolds()
     {
         // 6-team group with 2 courts — stress test for rest constraint
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         var courts = new List<string> { "c1", "c2" };
 

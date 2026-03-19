@@ -34,7 +34,11 @@ public class ScheduleGenerationService
 
         await ValidateGenerationPrerequisitesAsync(tournament, phase, courts, tournamentId, phaseId);
 
-        var allGames = GenerateGamesForPhase(phase, tournamentId, phaseId);
+        var allGames = phase.GenerateGames(tournamentId);
+
+        if (allGames.Count == 0)
+            throw new ValidationException(
+                [new ValidationFailure("Games", "No games could be generated. Check team assignments.")]);
 
         var courtIds = courts.OrderBy(c => c.Name).Select(c => c.Id).ToList();
         var groupOrder = phase.Groups.Select(g => g.Id).ToList();
@@ -42,12 +46,11 @@ public class ScheduleGenerationService
             ?? DateTime.Today.Add(phase.StartTime!.Value.ToTimeSpan());
         GameScheduler.Schedule(allGames, courtIds, groupOrder, startDateTime, tournament.GameLength!.Value);
 
-        if (phase.Format == PhaseFormat.RoundRobin)
+        if (phase.SupportsRefereeAssignment)
             RefereeAssigner.Assign(allGames, tournament.GameLength!.Value);
 
         var savedGames = (await _gameRepository.CreateBatchAsync(allGames)).ToList();
 
-        // Transition phase status: Scheduled if waiting on previous phase, InProgress otherwise
         if (phase.Status == PhaseStatus.New)
         {
             var previousPhase = structure.GetPreviousPhase(phaseId);
@@ -90,51 +93,8 @@ public class ScheduleGenerationService
             throw new ValidationException(
                 [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
 
-        if (phase.Format == PhaseFormat.DoubleEliminationVd)
-        {
-            var invalidGroups = phase.Groups
-                .Where(g => g.TeamIds.Count > 0 && g.TeamIds.Count != 8)
-                .ToList();
-            if (invalidGroups.Count > 0)
-                throw new ValidationException(
-                    [new ValidationFailure("Teams", "Double Elimination (VD) requires exactly 8 teams per group.")]);
-        }
-
         if (await _gameRepository.GamesExistForPhaseAsync(tournamentId, phaseId))
             throw new ValidationException(
                 [new ValidationFailure("Games", "Games already exist for this phase. Delete them first.")]);
-    }
-
-    private static List<Game> GenerateGamesForPhase(Phase phase, string tournamentId, string phaseId)
-    {
-        var allGames = new List<Game>();
-        foreach (var group in phase.Groups)
-        {
-            if (group.TeamIds.Count <= 1) continue;
-
-            var games = phase.Format switch
-            {
-                PhaseFormat.RoundRobin => RoundRobinGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                PhaseFormat.PlayoffElimination => PlayoffEliminationGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                PhaseFormat.PlayoffWithPlacement => PlayoffWithPlacementGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                PhaseFormat.DoubleElimination => DoubleEliminationGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                PhaseFormat.DoubleEliminationVd => DoubleEliminationVdGenerator.Generate(
-                    tournamentId, phaseId, group.Id, group.TeamIds),
-                _ => throw new ValidationException(
-                    [new ValidationFailure("Format", $"Unsupported phase format: {phase.Format}")])
-            };
-
-            allGames.AddRange(games);
-        }
-
-        if (allGames.Count == 0)
-            throw new ValidationException(
-                [new ValidationFailure("Games", "No games could be generated. Check team assignments.")]);
-
-        return allGames;
     }
 }

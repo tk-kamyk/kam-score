@@ -1,6 +1,7 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.Services;
 using KamSquare.KamScore.Domain.ValueObjects;
 
@@ -44,7 +45,7 @@ public class StandingsCalculatorTests
     {
         var teamIds = new List<string> { "a", "b", "c" };
 
-        var standings = StandingsCalculator.CalculateRoundRobin([], teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,[], teamIds);
 
         standings.Should().HaveCount(3);
         standings.Should().AllSatisfy(s =>
@@ -69,7 +70,7 @@ public class StandingsCalculatorTests
         var teamIds = new List<string> { "a", "b" };
         var games = new List<Game> { CreateCompletedGame("a", "b", 2, 1) };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         var teamA = standings.First(s => s.TeamId == "a");
         var teamB = standings.First(s => s.TeamId == "b");
@@ -93,7 +94,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("a", "b", 0, 0, sets: [new SetResult(25, 25)])
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         var teamA = standings.First(s => s.TeamId == "a");
         var teamB = standings.First(s => s.TeamId == "b");
@@ -118,7 +119,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("hawks", "wolves", 2, 1),
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         standings[0].TeamId.Should().Be("eagles");
         standings[0].Points.Should().Be(4);
@@ -146,7 +147,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("c", "a", 2, 1),  // c: +1 → net 0, a: -1 → net +1
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         // All have 2 points. Set differences: a=+1, c=0, b=-1
         standings[0].TeamId.Should().Be("a");
@@ -173,7 +174,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("c", "d", 2, 1),  // c beats d
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         // a: 3W, 0L → 6pts, sets 6-1 → diff +5
         // b: 2W, 1L → 4pts, sets 5-2 → diff +3
@@ -210,7 +211,7 @@ public class StandingsCalculatorTests
             ]),
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         // All: 2 pts, set diff 0
         // Point diffs: a=+3 (121-118), b=0 (115-115), c=-3 (118-121)
@@ -248,7 +249,7 @@ public class StandingsCalculatorTests
             ]),
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         // All: 2 pts, set diff 0, point diff 0
         // Points scored: b=135, a=125, c=115
@@ -280,7 +281,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("c", "a", 2, 1),
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         standings.Should().HaveCount(3);
         standings.Should().AllSatisfy(s =>
@@ -302,7 +303,7 @@ public class StandingsCalculatorTests
             CreateScheduledGame("b", "c"),  // not completed
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         standings.First(s => s.TeamId == "a").GamesPlayed.Should().Be(1);
         standings.First(s => s.TeamId == "b").GamesPlayed.Should().Be(1);
@@ -315,7 +316,7 @@ public class StandingsCalculatorTests
         var teamIds = new List<string> { "a", "b" };
         var games = new List<Game> { CreateCompletedGame("a", "b", 2, 1) };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         var teamA = standings.First(s => s.TeamId == "a");
         teamA.SetsWon.Should().Be(2);
@@ -342,7 +343,7 @@ public class StandingsCalculatorTests
             ])
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         var teamA = standings.First(s => s.TeamId == "a");
         teamA.PointsWon.Should().Be(58);   // 25 + 18 + 15
@@ -361,7 +362,7 @@ public class StandingsCalculatorTests
         var teamIds = new List<string> { "a", "b" };
         var games = new List<Game> { CreateCompletedGame("a", "b", 2, 1) };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         var teamA = standings.First(s => s.TeamId == "a");
         teamA.PointsWon.Should().Be(0);
@@ -380,7 +381,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("b", "c", 2, 0),
         };
 
-        var standings = StandingsCalculator.CalculateRoundRobin(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.RoundRobin,games, teamIds);
 
         standings[0].Position.Should().Be(1);
         standings[1].Position.Should().Be(2);
@@ -403,7 +404,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("a", "c", 2, 1, round: 2),
         };
 
-        var standings = StandingsCalculator.CalculatePlayoffElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination,games, teamIds);
 
         // bracketSize=4, totalRounds=2
         // a wins final → position 1
@@ -429,7 +430,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("d", "e", 2, 0, round: 1),
         };
 
-        var standings = StandingsCalculator.CalculatePlayoffElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination,games, teamIds);
 
         // bracketSize=8, QF losers: position = 8/2 + 1 = 5
         var qfLosers = standings.Where(s => new[] { "h", "g", "f", "e" }.Contains(s.TeamId));
@@ -459,7 +460,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("a", "c", 2, 0, round: 3),
         };
 
-        var standings = StandingsCalculator.CalculatePlayoffElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination,games, teamIds);
 
         standings.First(s => s.TeamId == "a").Position.Should().Be(1);
         standings.First(s => s.TeamId == "c").Position.Should().Be(2); // loses final
@@ -484,7 +485,7 @@ public class StandingsCalculatorTests
         games[1] = Game.Create(TournamentId, PhaseId, GroupId, 1,
             homeTeamId: "c", awayTeamId: "d");
 
-        var standings = StandingsCalculator.CalculatePlayoffElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination,games, teamIds);
 
         standings.First(s => s.TeamId == "b").Position.Should().Be(3);
         // a won R1 but final not played → has 1 win, position = worst default
@@ -495,7 +496,7 @@ public class StandingsCalculatorTests
     {
         var teamIds = new List<string> { "a", "b", "c", "d" };
 
-        var standings = StandingsCalculator.CalculatePlayoffElimination([], teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination,[], teamIds);
 
         // bracketSize=4, worst = 4/2+1 = 3
         standings.Should().HaveCount(4);
@@ -512,7 +513,7 @@ public class StandingsCalculatorTests
         var teamIds = new List<string> { "a", "b" };
         var games = new List<Game> { CreateCompletedGame("a", "b", 2, 0, round: 1) };
 
-        var standings = StandingsCalculator.CalculatePlayoffElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffElimination,games, teamIds);
 
         standings.Should().AllSatisfy(s =>
         {
@@ -547,7 +548,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("a", "b", 2, 1, round: 3), // Final
         };
 
-        var standings = StandingsCalculator.CalculatePlayoffWithPlacement(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffWithPlacement,games, teamIds);
 
         standings.First(s => s.TeamId == "a").Position.Should().Be(1);
         standings.First(s => s.TeamId == "b").Position.Should().Be(2);
@@ -590,7 +591,7 @@ public class StandingsCalculatorTests
             CreateCompletedGame("a", "c", 2, 0, round: 7),
         };
 
-        var standings = StandingsCalculator.CalculatePlayoffWithPlacement(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffWithPlacement,games, teamIds);
 
         standings.First(s => s.TeamId == "a").Position.Should().Be(1);
         standings.First(s => s.TeamId == "c").Position.Should().Be(2);
@@ -614,7 +615,7 @@ public class StandingsCalculatorTests
             // R2 (3rd place) and R3 (Final) not played yet
         };
 
-        var standings = StandingsCalculator.CalculatePlayoffWithPlacement(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffWithPlacement,games, teamIds);
 
         // No single-game rounds are completed → no positions assigned from placement
         // All unranked teams should be at the default position
@@ -627,7 +628,7 @@ public class StandingsCalculatorTests
         var teamIds = new List<string> { "a", "b" };
         var games = new List<Game> { CreateCompletedGame("a", "b", 2, 0, round: 1) };
 
-        var standings = StandingsCalculator.CalculatePlayoffWithPlacement(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.PlayoffWithPlacement,games, teamIds);
 
         standings.Should().AllSatisfy(s =>
         {
@@ -672,7 +673,7 @@ public class StandingsCalculatorTests
             CreateLabeledCompletedGame("a", "d", 2, 0, round: 5, "Grand Final"),
         };
 
-        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleElimination,games, teamIds);
 
         standings.First(s => s.TeamId == "a").Position.Should().Be(1); // GF winner
         standings.First(s => s.TeamId == "d").Position.Should().Be(2); // GF loser
@@ -686,7 +687,7 @@ public class StandingsCalculatorTests
         var teamIds = new List<string> { "a", "b", "c", "d" };
         var games = new List<Game>();
 
-        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleElimination,games, teamIds);
 
         standings.Should().HaveCount(4);
         standings.Should().AllSatisfy(s => s.Position.Should().Be(4));
@@ -701,7 +702,7 @@ public class StandingsCalculatorTests
             CreateLabeledCompletedGame("a", "b", 2, 0, round: 1, "Grand Final"),
         };
 
-        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleElimination,games, teamIds);
 
         standings.Should().AllSatisfy(s =>
         {
@@ -721,7 +722,7 @@ public class StandingsCalculatorTests
             CreateLabeledCompletedGame("a", "b", 2, 1, round: 1, "Grand Final"),
         };
 
-        var standings = StandingsCalculator.CalculateDoubleElimination(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleElimination,games, teamIds);
 
         standings.First(s => s.TeamId == "a").Position.Should().Be(1);
         standings.First(s => s.TeamId == "b").Position.Should().Be(2);
@@ -777,7 +778,7 @@ public class StandingsCalculatorTests
             CreateLabeledCompletedGame("t1", "t2", 2, 0, round: 7, "Grand Final"),
         };
 
-        var standings = StandingsCalculator.CalculateDoubleEliminationVd(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleEliminationVd,games, teamIds);
 
         standings.First(s => s.TeamId == "t1").Position.Should().Be(1); // GF winner
         standings.First(s => s.TeamId == "t2").Position.Should().Be(2); // GF loser
@@ -794,7 +795,7 @@ public class StandingsCalculatorTests
     {
         var teamIds = Enumerable.Range(1, 8).Select(i => $"t{i}").ToList();
 
-        var standings = StandingsCalculator.CalculateDoubleEliminationVd([], teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleEliminationVd,[], teamIds);
 
         standings.Should().HaveCount(8);
         standings.Should().AllSatisfy(s => s.Position.Should().Be(8));
@@ -809,7 +810,7 @@ public class StandingsCalculatorTests
             CreateLabeledCompletedGame("a", "b", 2, 1, round: 7, "Grand Final"),
         };
 
-        var standings = StandingsCalculator.CalculateDoubleEliminationVd(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleEliminationVd,games, teamIds);
 
         standings.First(s => s.TeamId == "a").Position.Should().Be(1);
         standings.First(s => s.TeamId == "b").Position.Should().Be(2);
@@ -824,7 +825,7 @@ public class StandingsCalculatorTests
             CreateLabeledCompletedGame("t1", "t2", 2, 0, round: 7, "Grand Final"),
         };
 
-        var standings = StandingsCalculator.CalculateDoubleEliminationVd(games, teamIds);
+        var standings = StandingsCalculator.Calculate(PhaseFormat.DoubleEliminationVd,games, teamIds);
 
         standings.Should().AllSatisfy(s =>
         {
@@ -888,5 +889,57 @@ public class StandingsCalculatorTests
         standings.First(s => s.TeamId == "d").Position.Should().Be(3);
         standings.First(s => s.TeamId == "c").Position.Should().Be(4);
         standings.Should().AllSatisfy(s => s.Points.Should().BeNull("placement should not have points"));
+    }
+
+    // ================================================================
+    // Phase.CalculateAllGroupStandings Tests
+    // ================================================================
+
+    [Fact]
+    public void Phase_CalculateAllGroupStandings_ReturnsStandingsPerGroup()
+    {
+        var phase = Phase.Create("Pool", PhaseFormat.RoundRobin, 1, 2);
+        var groupA = phase.Groups[0];
+        var groupB = phase.Groups[1];
+
+        groupA.TeamIds = ["a", "b"];
+        groupB.TeamIds = ["c", "d"];
+
+        var games = new List<Game>
+        {
+            CreateCompletedGame("a", "b", 2, 0),
+            CreateGroupGame("c", "d", 2, 1, groupB.Id),
+        };
+
+        var result = phase.CalculateAllGroupStandings(games);
+
+        result.Should().HaveCount(2);
+        result[0].GroupId.Should().Be(groupA.Id);
+        result[0].Standings.Should().HaveCount(2);
+        result[0].Standings[0].TeamId.Should().Be("a");
+
+        result[1].GroupId.Should().Be(groupB.Id);
+        result[1].Standings.Should().HaveCount(2);
+        result[1].Standings[0].TeamId.Should().Be("c");
+    }
+
+    [Fact]
+    public void Phase_CalculateGroupStandings_ThrowsForUnknownGroup()
+    {
+        var phase = Phase.Create("Pool", PhaseFormat.RoundRobin, 1, 1);
+
+        var act = () => phase.CalculateGroupStandings("nonexistent", []);
+
+        act.Should().Throw<NotFoundException>();
+    }
+
+    private static Game CreateGroupGame(
+        string homeTeamId, string awayTeamId, int homeScore, int awayScore,
+        string groupId, int round = 1)
+    {
+        var game = Game.Create(TournamentId, PhaseId, groupId, round,
+            homeTeamId: homeTeamId, awayTeamId: awayTeamId);
+        game.RecordSimpleResult(homeScore, awayScore);
+        return game;
     }
 }

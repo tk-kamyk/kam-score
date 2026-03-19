@@ -80,15 +80,35 @@ Static classes in `Domain/Services/` that encapsulate cross-entity logic with no
 
 | Service | Responsibility |
 |---------|---------------|
-| `StandingsCalculator` | Calculates standings for round-robin, playoff elimination, and playoff with placement formats |
-| `GameScheduler` | Schedules games across courts/time slots with conflict avoidance, referee constraints, and court distribution |
-| `RoundRobinGenerator` | Generates all games for a round-robin group |
-| `PlayoffEliminationGenerator` | Generates bracket games for single-elimination playoffs |
-| `PlayoffWithPlacementGenerator` | Generates bracket games with placement matches (3rd place, etc.) |
+| `StandingsCalculator` | Thin facade that delegates to format-specific strategies via `PhaseFormatStrategy` |
+| `FinalStandingsCalculator` | Cross-phase final standings; delegates cross-group ranking to format strategies |
+| `GameScheduler` | Schedules games across courts/time slots with conflict avoidance and court distribution |
 | `PlaceholderTeamGenerator` | Creates placeholder teams for cross-phase progression |
 | `PlaceholderResolver` | Resolves/unresolves placeholder teams to real teams after phase completion |
 | `PhaseAdvancementCalculator` | Determines which teams qualify and their seeding |
-| `BracketUtilities` | Bracket math (next power of 2, advancement resolution) |
+| `BracketUtilities` | Bracket math (next power of 2, bracket ordering, advancement resolution) |
+| `RefereeAssigner` | Assigns referees to scheduled games based on team availability |
+
+### Phase Format Strategy Pattern
+
+All format-specific logic is centralized behind `IPhaseFormatStrategy` (in `Domain/Services/Formats/`):
+
+```
+IPhaseFormatStrategy
+├── GenerateGames()         — produces the games for a group
+├── CalculateStandings()    — computes standings from completed games
+├── RankCrossGroup()        — ranks standings across multiple groups
+├── SupportsRefereeAssignment — whether the format uses referee assignment
+└── ValidateTeams()         — format-specific team count validation
+```
+
+Implementations: `RoundRobinStrategy`, `PlayoffEliminationStrategy`, `PlayoffWithPlacementStrategy`, `DoubleEliminationStrategy`, `DoubleEliminationVdStrategy`.
+
+Factory: `PhaseFormatStrategy.For(PhaseFormat)` returns the correct strategy instance.
+
+Shared helpers: `BracketUtilities` (bracket math) and `BracketStandingsHelper` (winner/loser extraction, bracket standing construction) are used across bracket strategies.
+
+**Adding a new format** requires only: (1) new enum value in `PhaseFormat`, (2) new strategy class implementing `IPhaseFormatStrategy`, (3) new case in `PhaseFormatStrategy.For()`. No changes to consumers.
 
 ### Repository Query Design
 

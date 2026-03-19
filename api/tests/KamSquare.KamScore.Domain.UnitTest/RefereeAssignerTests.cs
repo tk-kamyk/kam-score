@@ -1,6 +1,8 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Services;
+using KamSquare.KamScore.Domain.Services.Formats;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -19,7 +21,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_UnscheduledGamesAreSkipped()
     {
-        var scheduled = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
+        var scheduled = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c"]);
         GameScheduler.Schedule(scheduled, ["c1"], ["g1"], StartTime, GameLength);
 
         // Add an unscheduled game (no StartTime)
@@ -35,7 +37,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_TwoTeams_NoRefereeAvailable()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b"]);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -47,7 +49,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_ThreeTeams_AllGamesHaveReferee()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c"]);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -60,7 +62,7 @@ public class RefereeAssignerTests
     {
         // With 4 teams and 1 court, adjacent slots use all teams so some can't get referees
         var teams = new List<string> { "a", "b", "c", "d" };
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", teams);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", teams);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -77,7 +79,7 @@ public class RefereeAssignerTests
     {
         // With 5 teams and 1 court, enough free teams for full referee coverage
         var teams = new List<string> { "a", "b", "c", "d", "e" };
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", teams);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", teams);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -90,7 +92,7 @@ public class RefereeAssignerTests
     public void Assign_SixTeams_SingleCourt_AllGamesHaveReferee()
     {
         var teams = new List<string> { "a", "b", "c", "d", "e", "f" };
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", teams);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", teams);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -102,7 +104,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_RefereeIsNeverPlayingInSameGame()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d", "e"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d", "e"]);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -118,7 +120,7 @@ public class RefereeAssignerTests
     public void Assign_RefereeNotBusyInSameSlot()
     {
         // Use 2 courts with enough teams so some slots have parallel games
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         GameScheduler.Schedule(games, ["c1", "c2"], ["g1"], StartTime, GameLength);
 
@@ -146,7 +148,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_NoConsecutiveRefereeing()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d", "e"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d", "e"]);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -172,7 +174,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_RefereeDoesNotPlayInNextSlot()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", ["a", "b", "c", "d", "e"]);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", ["a", "b", "c", "d", "e"]);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -184,7 +186,7 @@ public class RefereeAssignerTests
     public void Assign_FiveTeams_BalancedDistribution()
     {
         var teams = new List<string> { "a", "b", "c", "d", "e" };
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", teams);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", teams);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -202,7 +204,7 @@ public class RefereeAssignerTests
     public void Assign_SixTeams_BalancedDistribution()
     {
         var teams = new List<string> { "a", "b", "c", "d", "e", "f" };
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1", teams);
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1", teams);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
         RefereeAssigner.Assign(games, GameLength);
@@ -220,8 +222,8 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_MultiGroup_RefereesFromOwnGroup()
     {
-        var gamesA = RoundRobinGenerator.Generate("t1", "p1", "gA", ["a1", "a2", "a3"]);
-        var gamesB = RoundRobinGenerator.Generate("t1", "p1", "gB", ["b1", "b2", "b3"]);
+        var gamesA = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "gA", ["a1", "a2", "a3"]);
+        var gamesB = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "gB", ["b1", "b2", "b3"]);
         var allGames = gamesA.Concat(gamesB).ToList();
         GameScheduler.Schedule(allGames, ["c1", "c2"], ["gA", "gB"], StartTime, GameLength);
 
@@ -245,7 +247,7 @@ public class RefereeAssignerTests
     public void Assign_MultipleCourts_SomeGamesGetReferees()
     {
         // With multiple courts, fewer free teams per slot — but some should still get referees
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         GameScheduler.Schedule(games, ["c1", "c2"], ["g1"], StartTime, GameLength);
 
@@ -261,7 +263,7 @@ public class RefereeAssignerTests
     [Fact]
     public void Assign_SixTeams_RefereeDoesNotPlayInNextSlot()
     {
-        var games = RoundRobinGenerator.Generate("t1", "p1", "g1",
+        var games = PhaseFormatStrategy.For(PhaseFormat.RoundRobin).GenerateGames("t1", "p1", "g1",
             ["a", "b", "c", "d", "e", "f"]);
         GameScheduler.Schedule(games, ["c1"], ["g1"], StartTime, GameLength);
 
