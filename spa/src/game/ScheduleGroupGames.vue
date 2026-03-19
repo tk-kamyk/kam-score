@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { GameDto } from '@/game/types'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 
-defineProps<{
+const props = defineProps<{
   phaseId: string
   groupId: string
   groupName: string
   games: GameDto[]
   expanded: boolean
 }>()
+
+const hasLabels = computed(() => props.games.some(g => g.label))
 
 const emit = defineEmits<{
   toggle: []
@@ -52,6 +55,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
       <v-table density="compact" class="styled-table">
         <thead>
           <tr>
+            <th v-if="hasLabels">Game</th>
             <th>Time</th>
             <th>Court</th>
             <th>Home</th>
@@ -63,6 +67,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
         </thead>
         <tbody>
           <tr v-for="game in games" :key="game.id">
+            <td v-if="hasLabels">{{ game.label ?? '-' }}</td>
             <td>{{ formatTime(game.startTime) }}</td>
             <td>{{ game.courtName ?? '-' }}</td>
             <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'home') }">

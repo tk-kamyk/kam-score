@@ -1,10 +1,13 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { GameDto } from '@/game/types'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 
-defineProps<{
+const props = defineProps<{
   games: GameDto[]
 }>()
+
+const hasLabels = computed(() => props.games.some(g => g.label))
 
 const emit = defineEmits<{
   'open-result': [game: GameDto]
@@ -30,6 +33,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
     <v-table density="compact" class="styled-table">
       <thead>
         <tr>
+          <th v-if="hasLabels">Game</th>
           <th>Round</th>
           <th>Home</th>
           <th class="text-center">Result</th>
@@ -39,6 +43,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
       </thead>
       <tbody>
         <tr v-for="game in games" :key="game.id">
+          <td v-if="hasLabels">{{ game.label ?? '-' }}</td>
           <td>{{ game.round }}</td>
           <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'home') }">
             {{ displayTeam(game, 'home') }}

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import apiClient from '@/api/client'
 import type { GameDto } from '@/game/types'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
@@ -29,6 +29,8 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
   const placeholder = side === 'home' ? game.homeTeamPlaceholder : game.awayTeamPlaceholder
   return placeholder ?? '-'
 }
+
+const hasLabels = computed(() => games.value.some(g => g.label))
 
 function openResultDialog(game: GameDto) {
   selectedGame.value = game
@@ -62,6 +64,7 @@ onMounted(loadGames)
     <v-table v-if="games.length > 0" density="compact" class="court-games-table">
       <thead>
         <tr>
+          <th v-if="hasLabels">Game</th>
           <th>Time</th>
           <th>Home</th>
           <th class="text-center">Result</th>
@@ -72,6 +75,7 @@ onMounted(loadGames)
       </thead>
       <tbody>
         <tr v-for="game in games" :key="game.id">
+          <td v-if="hasLabels">{{ game.label ?? '-' }}</td>
           <td>{{ formatTime(game.startTime) }}</td>
           <td>{{ displayTeam(game, 'home') }}</td>
           <td class="text-center">
