@@ -41,7 +41,9 @@ public class ScheduleGenerationService
         var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime!.Value.ToTimeSpan())
             ?? DateTime.Today.Add(phase.StartTime!.Value.ToTimeSpan());
         GameScheduler.Schedule(allGames, courtIds, groupOrder, startDateTime, tournament.GameLength!.Value);
-        RefereeAssigner.Assign(allGames, tournament.GameLength!.Value);
+
+        if (phase.Format == PhaseFormat.RoundRobin)
+            RefereeAssigner.Assign(allGames, tournament.GameLength!.Value);
 
         var savedGames = (await _gameRepository.CreateBatchAsync(allGames)).ToList();
 
