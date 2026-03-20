@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type { GameDto } from '@/game/types'
-
-export interface RefereeCandidateDto {
-  teamId: string
-  teamName: string
-}
+import { useGameStore } from '@/game/store'
+import { useSnackbar } from '@/composables/useSnackbar'
+import { parseErrorDetail } from '@/api/errors'
+import type { GameDto, RefereeCandidateDto } from '@/game/types'
 
 const props = defineProps<{
   modelValue: boolean
@@ -17,6 +15,9 @@ const emit = defineEmits<{
   (e: 'update:modelValue', value: boolean): void
   (e: 'assigned'): void
 }>()
+
+const gameStore = useGameStore()
+const { showSuccess, showError } = useSnackbar()
 
 const candidates = ref<RefereeCandidateDto[]>([])
 const selectedTeamId = ref<string | null>(null)
@@ -36,12 +37,12 @@ watch(
 async function loadCandidates() {
   loading.value = true
   try {
-    // TODO: Replace with real API call in Gate 6
-    candidates.value = [
-      { teamId: 'mock-1', teamName: 'Team C' },
-      { teamId: 'mock-2', teamName: 'Team D' },
-      { teamId: 'mock-3', teamName: 'Loser QF1' },
-    ]
+    candidates.value = await gameStore.fetchRefereeCandidates(
+      props.tournamentId,
+      props.game.id!,
+    )
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to load referee candidates')
   } finally {
     loading.value = false
   }
@@ -55,9 +56,16 @@ async function submit() {
   if (!selectedTeamId.value) return
   submitting.value = true
   try {
-    // TODO: Replace with real API call in Gate 6
+    await gameStore.assignReferee(
+      props.tournamentId,
+      props.game.id!,
+      selectedTeamId.value,
+    )
+    showSuccess('Referee assigned')
     emit('assigned')
     close()
+  } catch (error) {
+    showError(parseErrorDetail(error) ?? 'Failed to assign referee')
   } finally {
     submitting.value = false
   }

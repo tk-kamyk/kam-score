@@ -36,3 +36,8 @@ export interface GameResultInput {
   homeScore?: number
   awayScore?: number
 }
+
+export interface RefereeCandidateDto {
+  teamId: string
+  teamName: string
+}
