@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import apiClient from '@/api/client'
-import type { GameDto, GameResultInput } from '@/game/types'
+import type { GameDto, GameResultInput, RefereeCandidateDto } from '@/game/types'
 
 export const useGameStore = defineStore('game', () => {
   const games = ref<GameDto[]>([])
@@ -57,6 +57,28 @@ export const useGameStore = defineStore('game', () => {
     await fetchGames(tournamentId)
   }
 
+  async function fetchRefereeCandidates(
+    tournamentId: string,
+    gameId: string,
+  ): Promise<RefereeCandidateDto[]> {
+    const { data } = await apiClient.get<RefereeCandidateDto[]>(
+      `/tournaments/${tournamentId}/games/${gameId}/referee-candidates`,
+    )
+    return data
+  }
+
+  async function assignReferee(
+    tournamentId: string,
+    gameId: string,
+    teamId: string,
+  ) {
+    await apiClient.put(
+      `/tournaments/${tournamentId}/games/${gameId}/referee`,
+      { teamId },
+    )
+    await fetchGames(tournamentId)
+  }
+
   return {
     games,
     loading,
@@ -64,5 +86,7 @@ export const useGameStore = defineStore('game', () => {
     generateSchedule,
     deleteGames,
     recordResult,
+    fetchRefereeCandidates,
+    assignReferee,
   }
 })
