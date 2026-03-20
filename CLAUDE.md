@@ -7,6 +7,8 @@ Do NOT skip gates. Do NOT start coding before Gate 4.
 I MUST REFUSE to proceed if a gate is incomplete. No exceptions. No "I'll come back to it."
 If the user asks to skip a gate, remind them of this rule and ask which gate output they want to produce first.
 
+**MANDATORY: Wait for user approval between gates.** After completing each gate, STOP and present the output to the user. Do NOT proceed to the next gate until the user explicitly confirms. This applies to every gate transition (1→2, 2→3, 3→4, etc.).
+
 ### Gate 1: Requirements
 - Read relevant `docs/requirements/*.md`
 - Ignore anything under a `TBC` header
