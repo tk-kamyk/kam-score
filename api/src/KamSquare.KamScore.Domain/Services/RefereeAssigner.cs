@@ -80,6 +80,20 @@ public static class RefereeAssigner
         }
     }
 
+    /// <summary>
+    /// Returns team IDs eligible to referee a specific game.
+    /// Candidates are from the same level (or all groups if no levels),
+    /// not playing/refereeing in the same slot, and not playing in the next slot.
+    /// </summary>
+    public static List<string> GetCandidates(
+        Game targetGame,
+        List<Game> allPhaseGames,
+        List<Group> phaseGroups,
+        int gameLengthMinutes)
+    {
+        throw new NotImplementedException();
+    }
+
     private static Dictionary<string, HashSet<string>> BuildGroupTeamRosters(List<Game> games)
     {
         var teamsByGroup = new Dictionary<string, HashSet<string>>();

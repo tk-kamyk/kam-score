@@ -272,6 +272,180 @@ public class RefereeAssignerTests
         AssertRefereeDoesNotPlayInNextSlot(games);
     }
 
+    // --- GetCandidates tests ---
+
+    [Fact]
+    public void GetCandidates_ReturnsTeamsFromSameLevelAcrossGroups()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", "level1", ["a1", "a2", "a3"]),
+            CreateGroup("gB", "level1", ["b1", "b2", "b3"]),
+            CreateGroup("gC", "level2", ["c1", "c2", "c3"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var otherGame = Game.Create("t1", "p1", "gB", 1, homeTeamId: "b1", awayTeamId: "b2");
+        otherGame.AssignSchedule("c2", StartTime.AddMinutes(GameLength * 2)); // different slot
+
+        var allGames = new List<Game> { targetGame, otherGame };
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, allGames, groups, GameLength);
+
+        // Should include a3 (same group, free), b1, b2, b3 (same level, free)
+        candidates.Should().Contain("a3");
+        candidates.Should().Contain("b1");
+        candidates.Should().Contain("b2");
+        candidates.Should().Contain("b3");
+        // Should NOT include c1, c2, c3 (different level)
+        candidates.Should().NotContain("c1");
+        candidates.Should().NotContain("c2");
+        candidates.Should().NotContain("c3");
+    }
+
+    [Fact]
+    public void GetCandidates_NoLevels_ReturnsTeamsFromAllGroups()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "a3"]),
+            CreateGroup("gB", null, ["b1", "b2", "b3"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var allGames = new List<Game> { targetGame };
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, allGames, groups, GameLength);
+
+        candidates.Should().Contain("a3");
+        candidates.Should().Contain("b1");
+        candidates.Should().Contain("b2");
+        candidates.Should().Contain("b3");
+    }
+
+    [Fact]
+    public void GetCandidates_ExcludesTeamsPlayingInSameSlot()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "a3"]),
+            CreateGroup("gB", null, ["b1", "b2", "b3"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var sameSlotGame = Game.Create("t1", "p1", "gB", 1, homeTeamId: "b1", awayTeamId: "b2");
+        sameSlotGame.AssignSchedule("c2", StartTime); // same time slot
+
+        var allGames = new List<Game> { targetGame, sameSlotGame };
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, allGames, groups, GameLength);
+
+        candidates.Should().NotContain("a1");
+        candidates.Should().NotContain("a2");
+        candidates.Should().NotContain("b1");
+        candidates.Should().NotContain("b2");
+        candidates.Should().Contain("a3");
+        candidates.Should().Contain("b3");
+    }
+
+    [Fact]
+    public void GetCandidates_ExcludesTeamsRefereeingInSameSlot()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "a3", "a4"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var sameSlotGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a3", awayTeamId: "a4",
+            refereeTeamId: "a3"); // a3 is marked as referee (wrong, but to simulate busy)
+        sameSlotGame.AssignSchedule("c2", StartTime);
+        sameSlotGame.RefereeTeamId = "a3"; // explicitly assigned referee in same slot
+
+        var allGames = new List<Game> { targetGame, sameSlotGame };
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, allGames, groups, GameLength);
+
+        // a3 is playing in same slot, a4 is playing in same slot
+        candidates.Should().NotContain("a3");
+        candidates.Should().NotContain("a4");
+    }
+
+    [Fact]
+    public void GetCandidates_ExcludesTeamsPlayingInNextSlot()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "a3", "a4"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var nextSlotGame = Game.Create("t1", "p1", "gA", 2, homeTeamId: "a3", awayTeamId: "a4");
+        nextSlotGame.AssignSchedule("c1", StartTime.AddMinutes(GameLength)); // next slot
+
+        var allGames = new List<Game> { targetGame, nextSlotGame };
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, allGames, groups, GameLength);
+
+        candidates.Should().NotContain("a1");
+        candidates.Should().NotContain("a2");
+        candidates.Should().NotContain("a3", "a3 plays in the next slot");
+        candidates.Should().NotContain("a4", "a4 plays in the next slot");
+    }
+
+    [Fact]
+    public void GetCandidates_ExcludesHomeAndAwayTeams()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "a3"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, [targetGame], groups, GameLength);
+
+        candidates.Should().NotContain("a1");
+        candidates.Should().NotContain("a2");
+        candidates.Should().Contain("a3");
+    }
+
+    [Fact]
+    public void GetCandidates_IncludesPlaceholderTeams()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "placeholder1"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, [targetGame], groups, GameLength);
+
+        candidates.Should().Contain("placeholder1");
+    }
+
+    private static Group CreateGroup(string id, string? levelId, List<string> teamIds)
+    {
+        var group = Group.Create("Group", levelId);
+        group.Id = id;
+        foreach (var teamId in teamIds)
+            group.AddTeam(teamId);
+        return group;
+    }
+
     private static void AssertRefereeDoesNotPlayInNextSlot(List<Game> games)
     {
         var scheduled = games.Where(g => g.StartTime.HasValue).ToList();

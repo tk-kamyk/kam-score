@@ -77,6 +77,11 @@ public class Game : Entity
         LastModified = DateTime.UtcNow;
     }
 
+    public void AssignReferee(string teamId)
+    {
+        throw new NotImplementedException();
+    }
+
     public string? GetWinnerId()
     {
         if (Status != GameStatus.Completed) return null;
