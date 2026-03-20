@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, ref, computed, watch, provide } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
@@ -22,6 +22,9 @@ const props = defineProps<{
 
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
+
+provide('tournamentId', props.tournamentId)
+provide('isOwner', props.isOwner)
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()

@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, inject } from 'vue'
 import type { GameDto } from '@/game/types'
+import { useGameStore } from '@/game/store'
+import { useRefereeDialog } from '@/composables/useRefereeDialog'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
+import RefereeAssignDialog from '@/game/RefereeAssignDialog.vue'
 
 const props = defineProps<{
   phaseId: string
@@ -11,6 +14,11 @@ const props = defineProps<{
   expanded: boolean
   singleGroup?: boolean
 }>()
+
+const tournamentId = inject<string>('tournamentId')!
+const isOwner = inject<boolean>('isOwner')!
+const gameStore = useGameStore()
+const { showRefereeDialog, refereeGame, openRefereeDialog } = useRefereeDialog()
 
 const hasLabels = computed(() => props.games.some(g => g.label))
 
@@ -80,7 +88,18 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
             <td :class="{ 'text-italic text-medium-emphasis': isPlaceholder(game, 'away') }">
               {{ displayTeam(game, 'away') }}
             </td>
-            <td>{{ game.refereeTeamName ?? '-' }}</td>
+            <td>
+              <template v-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
+              <v-btn
+                v-else-if="isOwner"
+                size="small"
+                variant="text"
+                icon="mdi-whistle"
+                aria-label="Assign referee"
+                @click="openRefereeDialog(game)"
+              />
+              <template v-else>-</template>
+            </td>
             <td class="text-right">
               <v-btn
                 v-if="game.status === 'Completed' && game.homeScore != null"
@@ -95,6 +114,13 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
         </tbody>
       </v-table>
     </v-card>
+    <RefereeAssignDialog
+      v-if="refereeGame"
+      v-model="showRefereeDialog"
+      :game="refereeGame"
+      :tournament-id="tournamentId"
+      @assigned="gameStore.fetchGames(tournamentId)"
+    />
   </div>
 </template>
 

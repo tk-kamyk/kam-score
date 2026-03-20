@@ -2,8 +2,10 @@
 import { onMounted, ref, computed } from 'vue'
 import apiClient from '@/api/client'
 import type { GameDto } from '@/game/types'
+import { useRefereeDialog } from '@/composables/useRefereeDialog'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
+import RefereeAssignDialog from '@/game/RefereeAssignDialog.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -16,6 +18,7 @@ const games = ref<GameDto[]>([])
 const loading = ref(false)
 const showResultDialog = ref(false)
 const selectedGame = ref<GameDto | null>(null)
+const { showRefereeDialog, refereeGame, openRefereeDialog } = useRefereeDialog()
 
 function formatTime(startTime?: string): string {
   if (!startTime) return '-'
@@ -82,7 +85,18 @@ onMounted(loadGames)
             <GameResultDisplay :game="game" @enter-result="openResultDialog(game)" />
           </td>
           <td>{{ displayTeam(game, 'away') }}</td>
-          <td>{{ game.refereeTeamName ?? '-' }}</td>
+          <td>
+              <template v-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
+              <v-btn
+                v-else-if="isOwner"
+                size="small"
+                variant="text"
+                icon="mdi-whistle"
+                aria-label="Assign referee"
+                @click="openRefereeDialog(game)"
+              />
+              <template v-else>-</template>
+            </td>
           <td class="text-right">
             <v-btn
               v-if="game.status === 'Completed' && game.homeScore != null"
@@ -108,6 +122,14 @@ onMounted(loadGames)
       :tournament-id="tournamentId"
       :is-owner="isOwner"
       @update:model-value="onResultDialogClose"
+    />
+
+    <RefereeAssignDialog
+      v-if="refereeGame"
+      v-model="showRefereeDialog"
+      :game="refereeGame"
+      :tournament-id="tournamentId"
+      @assigned="loadGames"
     />
   </div>
 </template>
