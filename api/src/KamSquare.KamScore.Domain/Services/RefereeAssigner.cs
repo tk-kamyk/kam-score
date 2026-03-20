@@ -91,7 +91,57 @@ public static class RefereeAssigner
         List<Group> phaseGroups,
         int gameLengthMinutes)
     {
-        throw new NotImplementedException();
+        if (targetGame.StartTime is null)
+            return [];
+
+        // Find the level of the target game's group
+        var targetGroup = phaseGroups.FirstOrDefault(g => g.Id == targetGame.GroupId);
+        var targetLevelId = targetGroup?.LevelId;
+
+        // Collect all teams from groups in the same level (or all groups if no levels)
+        var levelGroups = targetLevelId is not null
+            ? phaseGroups.Where(g => g.LevelId == targetLevelId)
+            : phaseGroups;
+
+        var allTeamIds = levelGroups.SelectMany(g => g.TeamIds).ToHashSet();
+
+        // Compute slot numbers
+        var scheduledGames = allPhaseGames.Where(g => g.StartTime.HasValue).ToList();
+        if (scheduledGames.Count == 0)
+            return [];
+
+        var baseTime = scheduledGames.Min(g => g.StartTime!.Value);
+        int SlotOf(DateTime time) => (int)Math.Round((time - baseTime).TotalMinutes / gameLengthMinutes);
+
+        var targetSlot = SlotOf(targetGame.StartTime.Value);
+        var nextSlot = targetSlot + 1;
+
+        // Build busy sets for target slot (playing + refereeing) and next slot (playing only)
+        var busyInTargetSlot = new HashSet<string>();
+        var playingInNextSlot = new HashSet<string>();
+
+        foreach (var game in scheduledGames)
+        {
+            var slot = SlotOf(game.StartTime!.Value);
+
+            if (slot == targetSlot)
+            {
+                if (game.HomeTeamId is not null) busyInTargetSlot.Add(game.HomeTeamId);
+                if (game.AwayTeamId is not null) busyInTargetSlot.Add(game.AwayTeamId);
+                if (game.RefereeTeamId is not null) busyInTargetSlot.Add(game.RefereeTeamId);
+            }
+
+            if (slot == nextSlot)
+            {
+                if (game.HomeTeamId is not null) playingInNextSlot.Add(game.HomeTeamId);
+                if (game.AwayTeamId is not null) playingInNextSlot.Add(game.AwayTeamId);
+            }
+        }
+
+        return allTeamIds
+            .Where(t => !busyInTargetSlot.Contains(t))
+            .Where(t => !playingInNextSlot.Contains(t))
+            .ToList();
     }
 
     private static Dictionary<string, HashSet<string>> BuildGroupTeamRosters(List<Game> games)

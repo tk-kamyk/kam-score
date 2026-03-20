@@ -77,9 +77,13 @@ public class Game : Entity
         LastModified = DateTime.UtcNow;
     }
 
-    public void AssignReferee(string teamId)
+    public void AssignReferee(string teamId, List<string> eligibleCandidates)
     {
-        throw new NotImplementedException();
+        if (!eligibleCandidates.Contains(teamId))
+            throw new ArgumentException($"Team '{teamId}' is not an eligible referee candidate.", nameof(teamId));
+
+        RefereeTeamId = teamId;
+        LastModified = DateTime.UtcNow;
     }
 
     public string? GetWinnerId()
