@@ -64,6 +64,18 @@
 - In round robin the team should have equal amount of home and away games if possible
 - For playoffs, rounds must be scheduled in order (quarterfinals before semifinals before finals)
 
+## Manual Referee Assignment
+
+- The tournament owner can manually assign a referee to any game that currently has no referee assigned
+- A button to assign a referee is shown in the Schedule tab and the Court view, only for the owner
+- Clicking the button opens a dialog listing candidate teams
+- Candidate teams are all teams from the same level within the phase (across all groups in that level). If the phase has no levels, all teams in the phase are candidates
+- Placeholder teams (e.g., "Loser QF1") are allowed as candidates
+- A team is eligible ("free") only if it is not playing and not refereeing in the game's time slot, and not playing in the next time slot
+- Owner-only action (JWT authentication required)
+- The API provides both a candidate list endpoint and an assignment endpoint
+- After assignment, the referee name is displayed in the schedule
+
 # Overview
 
 - The following overviews of the tournament structure should be provided:
