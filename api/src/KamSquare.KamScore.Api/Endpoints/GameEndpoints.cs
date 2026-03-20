@@ -24,6 +24,10 @@ public static class GameEndpoints
             .RequireAuthorization();
         group.MapGet("/games", GetGames);
         group.MapPut("/games/{gameId}/result", RecordResult);
+        group.MapPut("/games/{gameId}/referee", AssignReferee)
+            .RequireAuthorization();
+        group.MapGet("/games/{gameId}/referee-candidates", GetRefereeCandidates)
+            .RequireAuthorization();
         group.MapDelete("/structure/phases/{phaseId}/games", DeleteGames)
             .RequireAuthorization();
 
@@ -109,6 +113,33 @@ public static class GameEndpoints
         }
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> AssignReferee(
+        string tournamentId,
+        string gameId,
+        AssignRefereeDto dto,
+        ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
+        IGameRepository gameRepository,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
+        ICurrentUserService currentUser,
+        IMapper mapper)
+    {
+        throw new NotImplementedException();
+    }
+
+    private static async Task<IResult> GetRefereeCandidates(
+        string tournamentId,
+        string gameId,
+        ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
+        IGameRepository gameRepository,
+        ITeamRepository teamRepository,
+        ICurrentUserService currentUser)
+    {
+        throw new NotImplementedException();
     }
 
     private static async Task<IResult> RecordResult(

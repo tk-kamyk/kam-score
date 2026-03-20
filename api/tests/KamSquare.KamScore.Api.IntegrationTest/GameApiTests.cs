@@ -9,6 +9,8 @@ using KamSquare.KamScore.Domain.Enums;
 
 namespace KamSquare.KamScore.Api.IntegrationTest;
 
+public record RefereeCandidateDto(string TeamId, string TeamName);
+
 public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
 {
     private readonly KamScoreWebApplicationFactory _factory;
@@ -421,6 +423,139 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
             var isInvolved = g.HomeTeamId == "team1" || g.AwayTeamId == "team1" || g.RefereeTeamId == "team1";
             isInvolved.Should().BeTrue();
         });
+    }
+
+    // --- Referee Assignment Tests ---
+
+    [Fact]
+    public async Task AssignReferee_Owner_ShouldReturnOk()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        // Create a game without referee
+        var game = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        game.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, game.Id))
+            .Returns(game);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { game });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{game.Id}/referee",
+            new { teamId = "team3" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<GameDto>();
+        result!.RefereeTeamId.Should().Be("team3");
+    }
+
+    [Fact]
+    public async Task AssignReferee_NotOwner_ShouldReturn403()
+    {
+        var tournament = CreateTestTournament("alice");
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var client = _factory.CreateAuthenticatedClient("bob");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/fake-game/referee",
+            new { teamId = "team3" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task AssignReferee_InvalidCandidate_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        // team1 vs team2, team1 is playing so can't be referee
+        var game = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        game.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, game.Id))
+            .Returns(game);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { game });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{game.Id}/referee",
+            new { teamId = "team1" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GetRefereeCandidates_Owner_ShouldReturnCandidates()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        var game = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        game.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, game.Id))
+            .Returns(game);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { game });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.GetAsync(
+            $"/api/tournaments/{tournament.Id}/games/{game.Id}/referee-candidates");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var candidates = await response.Content.ReadFromJsonAsync<List<RefereeCandidateDto>>();
+        candidates.Should().NotBeNull();
+        candidates!.Should().Contain(c => c.TeamId == "team3");
+        candidates.Should().Contain(c => c.TeamId == "team4");
+        candidates.Should().NotContain(c => c.TeamId == "team1");
+        candidates.Should().NotContain(c => c.TeamId == "team2");
+    }
+
+    [Fact]
+    public async Task GetRefereeCandidates_NotOwner_ShouldReturn403()
+    {
+        var tournament = CreateTestTournament("alice");
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var client = _factory.CreateAuthenticatedClient("bob");
+        var response = await client.GetAsync(
+            $"/api/tournaments/{tournament.Id}/games/fake-game/referee-candidates");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]

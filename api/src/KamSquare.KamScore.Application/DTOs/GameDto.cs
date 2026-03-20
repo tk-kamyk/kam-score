@@ -26,3 +26,7 @@ public record GameDto(
     string? PhaseName = null,
     string? GroupName = null,
     string? LevelName = null);
+
+public record AssignRefereeDto(string TeamId);
+
+public record RefereeCandidateDto(string TeamId, string TeamName);
