@@ -127,7 +127,27 @@ public static class GameEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        throw new NotImplementedException();
+        var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        var game = await gameRepository.GetByIdAsync(tournamentId, gameId);
+        if (game is null)
+            throw new NotFoundException(nameof(Game), gameId);
+
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
+            ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(game.PhaseId);
+        var allPhaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, game.PhaseId)).ToList();
+
+        var candidates = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength!.Value);
+
+        game.AssignReferee(dto.TeamId, candidates);
+        var updatedGame = await gameRepository.UpdateAsync(game);
+
+        var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
+        var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
+
+        return Results.Ok(GameEnrichmentHelper.EnrichGamesWithNames([updatedGame], teams, courts, structure, mapper).First());
     }
 
     private static async Task<IResult> GetRefereeCandidates(
@@ -139,7 +159,29 @@ public static class GameEndpoints
         ITeamRepository teamRepository,
         ICurrentUserService currentUser)
     {
-        throw new NotImplementedException();
+        var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        var game = await gameRepository.GetByIdAsync(tournamentId, gameId);
+        if (game is null)
+            throw new NotFoundException(nameof(Game), gameId);
+
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
+            ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var phase = structure.GetPhase(game.PhaseId);
+        var allPhaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, game.PhaseId)).ToList();
+
+        var candidateIds = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength!.Value);
+
+        var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
+        var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
+
+        var candidates = candidateIds
+            .Where(id => teamLookup.ContainsKey(id))
+            .Select(id => new RefereeCandidateDto(id, teamLookup[id]))
+            .ToList();
+
+        return Results.Ok(candidates);
     }
 
     private static async Task<IResult> RecordResult(
