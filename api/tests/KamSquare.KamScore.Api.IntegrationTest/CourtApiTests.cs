@@ -200,4 +200,106 @@ public class CourtApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var doc = JsonDocument.Parse(content);
         doc.RootElement.GetProperty("errors").GetProperty("Name").GetArrayLength().Should().Be(1);
     }
+
+    // --- Generate Courts ---
+
+    [Fact]
+    public async Task GenerateCourts_Owner_ShouldReturnCreatedCourts()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(0);
+        A.CallTo(() => _factory.FakeCourtRepository.CreateBatchAsync(A<IEnumerable<Court>>.Ignored))
+            .ReturnsLazily((IEnumerable<Court> courts) => Task.FromResult(courts));
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/courts/generate",
+            new { Count = 3 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<List<CourtDto>>();
+        result.Should().HaveCount(3);
+        result![0].Name.Should().Be("C1");
+        result[1].Name.Should().Be("C2");
+        result[2].Name.Should().Be("C3");
+    }
+
+    [Fact]
+    public async Task GenerateCourts_Additive_ShouldNumberFromExistingCount()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(2);
+        A.CallTo(() => _factory.FakeCourtRepository.CreateBatchAsync(A<IEnumerable<Court>>.Ignored))
+            .ReturnsLazily((IEnumerable<Court> courts) => Task.FromResult(courts));
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/courts/generate",
+            new { Count = 3 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<List<CourtDto>>();
+        result.Should().HaveCount(3);
+        result![0].Name.Should().Be("C3");
+        result[1].Name.Should().Be("C4");
+        result[2].Name.Should().Be("C5");
+    }
+
+    [Fact]
+    public async Task GenerateCourts_CountZero_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/courts/generate",
+            new { Count = 0 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GenerateCourts_CountOver20_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/courts/generate",
+            new { Count = 21 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GenerateCourts_NonOwner_ShouldReturn403()
+    {
+        var tournament = CreateTestTournament("alice");
+        SetupTournament(tournament);
+        var client = _factory.CreateAuthenticatedClient("bob");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/courts/generate",
+            new { Count = 3 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GenerateCourts_Anonymous_ShouldReturn401()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/tournaments/some-id/courts/generate",
+            new { Count = 3 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }

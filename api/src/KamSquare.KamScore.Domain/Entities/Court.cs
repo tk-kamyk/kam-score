@@ -21,4 +21,14 @@ public class Court : Entity
         Name = name;
         LastModified = DateTime.UtcNow;
     }
+
+    public static List<Court> GenerateCourts(int count, int startIndex, string tournamentId)
+    {
+        var courts = new List<Court>(count);
+        for (var i = 0; i < count; i++)
+        {
+            courts.Add(Create($"C{startIndex + i}", tournamentId));
+        }
+        return courts;
+    }
 }

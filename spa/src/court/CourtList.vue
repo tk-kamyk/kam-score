@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCourtStore } from '@/court/store'
 import { useSnackbar } from '@/composables/useSnackbar'
@@ -110,14 +110,54 @@ async function handleDelete() {
     }
   }
 }
+
+const showGenerateDialog = ref(false)
+const courtCount = ref(4)
+
+const courtCountRules = [
+  (v: number) => (v >= 1 && v <= 20) || 'Count must be between 1 and 20.',
+]
+
+const courtPreview = computed(() => {
+  const start = courtStore.courts.length + 1
+  const count = courtCount.value
+  if (count < 1 || count > 20) return ''
+  const names = Array.from({ length: Math.min(count, 4) }, (_, i) => `C${start + i}`)
+  if (count > 4) names.push(`... C${start + count - 1}`)
+  return names.join(', ')
+})
+
+function openGenerate() {
+  courtCount.value = 4
+  clearErrors()
+  showGenerateDialog.value = true
+}
+
+async function handleGenerate() {
+  if (courtCount.value < 1 || courtCount.value > 20) return
+  try {
+    const generated = await courtStore.generateCourts(props.tournamentId, courtCount.value)
+    showGenerateDialog.value = false
+    showSuccess(`Generated ${generated.length} courts`)
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to generate courts')
+    }
+  }
+}
 </script>
 
 <template>
   <div>
     <SectionHeader title="Courts">
-      <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        Add Court
-      </v-btn>
+      <div>
+        <v-btn v-if="isOwner" variant="outlined" color="primary" prepend-icon="mdi-apps" class="mr-2" @click="openGenerate">
+          Generate Courts
+        </v-btn>
+        <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
+          Add Court
+        </v-btn>
+      </div>
     </SectionHeader>
 
     <v-progress-linear v-if="courtStore.loading" indeterminate color="primary" class="mb-4" />
@@ -209,6 +249,34 @@ async function handleDelete() {
           <v-spacer />
           <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
           <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Generate Courts Dialog -->
+    <v-dialog v-model="showGenerateDialog" max-width="450">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase dialog-title">Generate Courts</v-card-title>
+        <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
+          <v-text-field
+            v-model.number="courtCount"
+            label="Number of courts"
+            type="number"
+            :min="1"
+            :max="20"
+            :rules="courtCountRules"
+          />
+          <div v-if="courtPreview" class="text-body-2 text-medium-emphasis mt-1">
+            Will generate: {{ courtPreview }}
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showGenerateDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="elevated" @click="handleGenerate">Generate</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

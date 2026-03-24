@@ -7,6 +7,7 @@ public interface ICourtRepository
     Task<Court?> GetByIdAsync(string id, string tournamentId);
     Task<IEnumerable<Court>> GetByTournamentIdAsync(string tournamentId);
     Task<Court> CreateAsync(Court court);
+    Task<IEnumerable<Court>> CreateBatchAsync(IEnumerable<Court> courts);
     Task<Court> UpdateAsync(Court court);
     Task DeleteAsync(string id, string tournamentId);
     Task DeleteByTournamentIdAsync(string tournamentId);

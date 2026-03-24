@@ -18,6 +18,7 @@ public static class CourtEndpoints
 
         group.MapGet("/", GetCourts);
         group.MapPost("/", CreateCourt).RequireAuthorization();
+        group.MapPost("/generate", GenerateCourts).RequireAuthorization();
         group.MapPut("/{courtId}", UpdateCourt).RequireAuthorization();
         group.MapDelete("/{courtId}", DeleteCourt).RequireAuthorization();
 
@@ -109,5 +110,23 @@ public static class CourtEndpoints
         await courtRepository.DeleteAsync(courtId, tournamentId);
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> GenerateCourts(
+        string tournamentId,
+        GenerateCourtsDto request,
+        ICourtRepository courtRepository,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser,
+        IMapper mapper)
+    {
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        var existingCount = await courtRepository.CountByTournamentIdAsync(tournamentId);
+        var courts = Court.GenerateCourts(request.Count, existingCount + 1, tournamentId);
+        var created = await courtRepository.CreateBatchAsync(courts);
+        var dtos = mapper.Map<IEnumerable<CourtDto>>(created);
+
+        return Results.Created($"/api/tournaments/{tournamentId}/courts", dtos);
     }
 }
