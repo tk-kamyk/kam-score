@@ -62,4 +62,37 @@ public class CourtTests
 
         court.TournamentId.Should().Be("tournament-1");
     }
+
+    [Fact]
+    public void GenerateCourts_ShouldCreateCourtsWithCNames()
+    {
+        var courts = Court.GenerateCourts(3, 1, "tournament-1");
+
+        courts.Should().HaveCount(3);
+        courts[0].Name.Should().Be("C1");
+        courts[1].Name.Should().Be("C2");
+        courts[2].Name.Should().Be("C3");
+    }
+
+    [Fact]
+    public void GenerateCourts_ShouldUseStartIndexForNaming()
+    {
+        var courts = Court.GenerateCourts(2, 5, "tournament-1");
+
+        courts[0].Name.Should().Be("C5");
+        courts[1].Name.Should().Be("C6");
+    }
+
+    [Fact]
+    public void GenerateCourts_ShouldSetTournamentIdAndGenerateIds()
+    {
+        var courts = Court.GenerateCourts(3, 1, "tournament-1");
+
+        courts.Should().AllSatisfy(c =>
+        {
+            c.TournamentId.Should().Be("tournament-1");
+            c.Id.Should().NotBeNullOrEmpty();
+            Guid.TryParse(c.Id, out _).Should().BeTrue();
+        });
+    }
 }

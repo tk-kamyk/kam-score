@@ -37,6 +37,15 @@ export const useCourtStore = defineStore('court', () => {
     courts.value = courts.value.filter(c => c.id !== courtId)
   }
 
+  async function generateCourts(tournamentId: string, count: number): Promise<CourtDto[]> {
+    const { data } = await apiClient.post<CourtDto[]>(
+      `/tournaments/${tournamentId}/courts/generate`,
+      { count },
+    )
+    courts.value = [...courts.value, ...data]
+    return data
+  }
+
   return {
     courts,
     loading,
@@ -44,5 +53,6 @@ export const useCourtStore = defineStore('court', () => {
     createCourt,
     updateCourt,
     deleteCourt,
+    generateCourts,
   }
 })

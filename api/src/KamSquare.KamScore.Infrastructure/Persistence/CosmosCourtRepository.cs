@@ -41,6 +41,19 @@ public class CosmosCourtRepository : CosmosRepository<Court>, ICourtRepository
         return response.Resource;
     }
 
+    public async Task<IEnumerable<Court>> CreateBatchAsync(IEnumerable<Court> courts)
+    {
+        var tasks = courts.Select(async court =>
+        {
+            var response = await Container.CreateItemAsync(
+                court,
+                new PartitionKey(court.TournamentId));
+            return response.Resource;
+        });
+        var results = await Task.WhenAll(tasks);
+        return results.ToList();
+    }
+
     public async Task<Court> UpdateAsync(Court court)
     {
         var response = await Container.ReplaceItemAsync(
