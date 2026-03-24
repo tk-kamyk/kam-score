@@ -22,6 +22,8 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 
 ### Gate 3: Mocked UI (frontend features only — skip for pure backend work)
 - Build the Vue component with hardcoded/mock data
+- Add feature flag in `appsettings.Development.json` (enabled: `true`)
+- Wrap new UI behind `useFeatureFlags().isEnabled('FlagName')` guard
 - No API calls yet — use static data matching the BDD scenarios
 - Show the user for feedback
 
@@ -45,6 +47,12 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 ### Gate 7: Cleanup
 - If corrections were needed, add them to Code Standards below
 - If requirements changed, verify `docs/` are updated
+
+### Gate 8: Feature Flag Removal (optional)
+- Review feature flags added during this feature's development
+- Decision: remove flag (expose to all environments) or keep flagged
+- If removing: delete flag from appsettings, remove `v-if`/`isEnabled` guards in frontend
+- If keeping: document why in the requirements file
 
 ---
 
@@ -219,6 +227,7 @@ Config-based JWT — deliberate choice over Azure Entra ID for simplicity (1-3 t
 | Phases | `/api/tournaments/{id}/phases` | GET public, mutations JWT |
 | Games | `/api/tournaments/{id}/games` | GET public, mutations JWT |
 | Schedule | `/api/tournaments/{id}/schedule` | GET public, mutations JWT |
+| Feature Flags | `GET /api/feature-flags` | Public |
 | Health | `GET /api/health` | Public |
 
 ### Security Details
