@@ -10,6 +10,7 @@ const props = defineProps<{
   tournamentId: string
   phaseId: string
   group: GroupDto
+  hasLevels?: boolean
 }>()
 
 const structureStore = useStructureStore()
@@ -67,6 +68,7 @@ async function handleDelete() {
   <div class="d-inline">
     <v-btn icon="mdi-pencil" variant="text" size="x-small" :aria-label="'Rename group ' + group.name" @click="openRename" />
     <v-btn
+      v-if="!hasLevels"
       icon="mdi-delete"
       variant="text"
       size="x-small"

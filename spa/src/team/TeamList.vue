@@ -65,6 +65,10 @@ const phoneRules = [
   (v: string | null | undefined) => !v || /^\+?[\d\s\-()]{7,20}$/.test(v) || 'Phone must be a valid phone number.',
 ]
 
+const sortedTeams = computed(() =>
+  [...teamStore.teams].sort((a, b) => (b.level ?? 0) - (a.level ?? 0))
+)
+
 onMounted(() => {
   teamStore.fetchTeams(props.tournamentId)
 })
@@ -189,7 +193,7 @@ async function handleGenerate() {
           </tr>
         </thead>
         <tbody>
-          <template v-for="team in teamStore.teams" :key="team.id">
+          <template v-for="team in sortedTeams" :key="team.id">
             <tr class="team-row" @click="toggleExpand(team.id)">
               <td>
                 <v-icon
