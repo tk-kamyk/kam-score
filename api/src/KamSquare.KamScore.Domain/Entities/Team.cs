@@ -61,7 +61,7 @@ public class Team : Entity
         var teams = new List<Team>(count);
         for (var i = 0; i < count; i++)
         {
-            var level = count == 1 ? DefaultSingleTeamLevel : (int)Math.Round((double)i * MaxLevel / (count - 1));
+            var level = count == 1 ? DefaultSingleTeamLevel : MaxLevel - (int)Math.Round((double)i * MaxLevel / (count - 1));
             teams.Add(Create($"Seed {startIndex + i}", level, tournamentId));
         }
         return teams;

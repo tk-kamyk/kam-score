@@ -266,8 +266,8 @@ public class TeamApiTests : IClassFixture<KamScoreWebApplicationFactory>
         result[1].Name.Should().Be("Seed 2");
         result[2].Name.Should().Be("Seed 3");
         result[3].Name.Should().Be("Seed 4");
-        result[0].Level.Should().Be(0);
-        result[3].Level.Should().Be(100);
+        result[0].Level.Should().Be(100);
+        result[3].Level.Should().Be(0);
     }
 
     [Fact]

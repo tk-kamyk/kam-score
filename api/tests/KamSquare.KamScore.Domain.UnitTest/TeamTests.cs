@@ -103,10 +103,10 @@ public class TeamTests
     {
         var teams = Team.GenerateSeedTeams(4, 1, "tournament-1");
 
-        teams[0].Level.Should().Be(0);
-        teams[1].Level.Should().Be(33);
-        teams[2].Level.Should().Be(67);
-        teams[3].Level.Should().Be(100);
+        teams[0].Level.Should().Be(100);
+        teams[1].Level.Should().Be(67);
+        teams[2].Level.Should().Be(33);
+        teams[3].Level.Should().Be(0);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class TeamTests
     {
         var teams = Team.GenerateSeedTeams(2, 1, "tournament-1");
 
-        teams[0].Level.Should().Be(0);
-        teams[1].Level.Should().Be(100);
+        teams[0].Level.Should().Be(100);
+        teams[1].Level.Should().Be(0);
     }
 }

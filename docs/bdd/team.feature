@@ -109,7 +109,7 @@ Feature: Team Management
     When the user generates 4 seed teams
     Then the tournament has 4 teams
     And the teams are named "Seed 1", "Seed 2", "Seed 3", "Seed 4"
-    And the team levels are proportionally distributed: 0, 33, 67, 100
+    And the team levels are proportionally distributed: 100, 67, 33, 0
 
   Scenario: Generating seed teams is additive
     Given the user is authenticated
