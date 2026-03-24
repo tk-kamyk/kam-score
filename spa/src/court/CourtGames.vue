@@ -86,7 +86,15 @@ onMounted(loadGames)
           </td>
           <td>{{ displayTeam(game, 'away') }}</td>
           <td>
-              <template v-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
+              <v-btn
+                v-if="isOwner && game.refereeTeamName"
+                size="small"
+                variant="text"
+                aria-label="Reassign referee"
+                @click="openRefereeDialog(game)"
+              >
+                {{ game.refereeTeamName }}
+              </v-btn>
               <v-btn
                 v-else-if="isOwner"
                 size="small"
@@ -95,6 +103,7 @@ onMounted(loadGames)
                 aria-label="Assign referee"
                 @click="openRefereeDialog(game)"
               />
+              <template v-else-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
               <template v-else>-</template>
             </td>
           <td class="text-right">

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { parseErrorDetail } from '@/api/errors'
@@ -23,12 +23,13 @@ const candidates = ref<RefereeCandidateDto[]>([])
 const selectedTeamId = ref<string | null>(null)
 const loading = ref(false)
 const submitting = ref(false)
+const isReassignment = computed(() => !!props.game.refereeTeamId || !!props.game.refereeTeamPlaceholder)
 
 watch(
   () => props.modelValue,
   (open) => {
     if (open) {
-      selectedTeamId.value = null
+      selectedTeamId.value = props.game.refereeTeamId ?? null
       loadCandidates()
     }
   },
@@ -68,7 +69,7 @@ async function submit() {
       selectedTeamId.value,
       selected?.isPlaceholder,
     )
-    showSuccess('Referee assigned')
+    showSuccess(isReassignment.value ? 'Referee reassigned' : 'Referee assigned')
     emit('assigned')
     close()
   } catch (error) {
@@ -94,7 +95,7 @@ function gameSummary(): string {
   >
     <v-card class="pa-2">
       <v-card-title id="referee-assign-dialog-title" class="text-uppercase dialog-title">
-        Assign Referee
+        {{ isReassignment ? 'Reassign Referee' : 'Assign Referee' }}
       </v-card-title>
 
       <v-card-text>

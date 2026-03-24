@@ -627,6 +627,53 @@ public class RefereeAssignerTests
         candidates.Should().Contain("Winner SF1", "SF1 winner is free during SF2");
     }
 
+    // --- GetCandidates: Re-assignment Tests ---
+
+    [Fact]
+    public void GetCandidates_GameWithExistingReferee_IncludesCurrentRefereeInCandidates()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["a1", "a2", "a3", "a4"]),
+        };
+
+        var targetGame = Game.Create("t1", "p1", "gA", 1, homeTeamId: "a1", awayTeamId: "a2");
+        targetGame.AssignSchedule("c1", StartTime);
+        targetGame.RefereeTeamId = "a3"; // already has a referee
+
+        var candidates = RefereeAssigner.GetCandidates(targetGame, [targetGame], groups, GameLength);
+
+        candidates.Should().Contain("a3", "current referee should be available for re-selection");
+        candidates.Should().Contain("a4", "other free team should also be a candidate");
+        candidates.Should().NotContain("a1");
+        candidates.Should().NotContain("a2");
+    }
+
+    [Fact]
+    public void GetCandidates_GameWithExistingRefereePlaceholder_IncludesCurrentPlaceholderInCandidates()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4"]),
+        };
+
+        var sf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime);
+        var sf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "SF2");
+        sf2.AssignSchedule("c2", StartTime);
+
+        var final_ = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2", label: "Final");
+        final_.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+        final_.RefereeTeamPlaceholder = "Loser SF1"; // already has a placeholder referee
+
+        var allGames = new List<Game> { sf1, sf2, final_ };
+
+        var candidates = RefereeAssigner.GetCandidates(final_, allGames, groups, GameLength);
+
+        candidates.Should().Contain("Loser SF1", "current referee placeholder should be available for re-selection");
+    }
+
     private static Group CreateGroup(string id, string? levelId, List<string> teamIds)
     {
         var group = Group.Create("Group", levelId);

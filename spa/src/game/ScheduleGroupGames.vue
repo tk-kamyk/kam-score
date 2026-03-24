@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, inject } from 'vue'
+import { computed, inject, type Ref } from 'vue'
 import type { GameDto } from '@/game/types'
 import { useGameStore } from '@/game/store'
 import { useRefereeDialog } from '@/composables/useRefereeDialog'
@@ -16,7 +16,7 @@ const props = defineProps<{
 }>()
 
 const tournamentId = inject<string>('tournamentId')!
-const isOwner = inject<boolean>('isOwner')!
+const isOwner = inject<Ref<boolean>>('isOwner')!
 const gameStore = useGameStore()
 const { showRefereeDialog, refereeGame, openRefereeDialog } = useRefereeDialog()
 
@@ -89,7 +89,15 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
               {{ displayTeam(game, 'away') }}
             </td>
             <td>
-              <template v-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
+              <v-btn
+                v-if="isOwner && game.refereeTeamName"
+                size="small"
+                variant="text"
+                aria-label="Reassign referee"
+                @click="openRefereeDialog(game)"
+              >
+                {{ game.refereeTeamName }}
+              </v-btn>
               <v-btn
                 v-else-if="isOwner"
                 size="small"
@@ -98,6 +106,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
                 aria-label="Assign referee"
                 @click="openRefereeDialog(game)"
               />
+              <template v-else-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
               <template v-else>-</template>
             </td>
             <td class="text-right">

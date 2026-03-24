@@ -129,10 +129,15 @@ public static class RefereeAssigner
             {
                 if (game.HomeTeamId is not null) busyInTargetSlot.Add(game.HomeTeamId);
                 if (game.AwayTeamId is not null) busyInTargetSlot.Add(game.AwayTeamId);
-                if (game.RefereeTeamId is not null) busyInTargetSlot.Add(game.RefereeTeamId);
                 if (game.HomeTeamPlaceholder is not null) busyInTargetSlot.Add(game.HomeTeamPlaceholder);
                 if (game.AwayTeamPlaceholder is not null) busyInTargetSlot.Add(game.AwayTeamPlaceholder);
-                if (game.RefereeTeamPlaceholder is not null) busyInTargetSlot.Add(game.RefereeTeamPlaceholder);
+
+                // Skip referee of target game so current referee remains a candidate for re-assignment
+                if (game.Id != targetGame.Id)
+                {
+                    if (game.RefereeTeamId is not null) busyInTargetSlot.Add(game.RefereeTeamId);
+                    if (game.RefereeTeamPlaceholder is not null) busyInTargetSlot.Add(game.RefereeTeamPlaceholder);
+                }
             }
 
             if (slot == nextSlot)
