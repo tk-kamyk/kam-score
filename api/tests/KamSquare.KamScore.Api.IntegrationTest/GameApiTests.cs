@@ -9,8 +9,6 @@ using KamSquare.KamScore.Domain.Enums;
 
 namespace KamSquare.KamScore.Api.IntegrationTest;
 
-public record RefereeCandidateDto(string TeamId, string TeamName);
-
 public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
 {
     private readonly KamScoreWebApplicationFactory _factory;
@@ -556,6 +554,131 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
             $"/api/tournaments/{tournament.Id}/games/fake-game/referee-candidates");
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    // --- Placeholder Referee Tests ---
+
+    [Fact]
+    public async Task GetRefereeCandidates_EliminationPhase_ShouldIncludeBracketPlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreatePlayoffStructure(tournament.Id, PhaseFormat.PlayoffElimination, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        // QF-like games (round 1)
+        var sf1 = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2", label: "SF1");
+        sf1.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 10, 0, 0));
+
+        var sf2 = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team3", awayTeamId: "team4", label: "SF2");
+        sf2.AssignSchedule(courts[1].Id, new DateTime(2026, 6, 1, 10, 0, 0));
+
+        // Final (round 2) with placeholders
+        var final_ = Game.Create(tournament.Id, phase.Id, group.Id, 2,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2", label: "Final");
+        final_.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 10, 30, 0));
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, final_.Id))
+            .Returns(final_);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { sf1, sf2, final_ });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.GetAsync(
+            $"/api/tournaments/{tournament.Id}/games/{final_.Id}/referee-candidates");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var candidates = await response.Content.ReadFromJsonAsync<List<RefereeCandidateDto>>();
+        candidates.Should().NotBeNull();
+        candidates!.Should().Contain(c => c.TeamId == "Loser SF1" && c.IsPlaceholder);
+        candidates.Should().Contain(c => c.TeamId == "Loser SF2" && c.IsPlaceholder);
+        candidates.Should().NotContain(c => c.TeamId == "Winner SF1");
+        candidates.Should().NotContain(c => c.TeamId == "Winner SF2");
+    }
+
+    [Fact]
+    public async Task AssignReferee_Placeholder_ShouldStoreAsPlaceholder()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreatePlayoffStructure(tournament.Id, PhaseFormat.PlayoffElimination, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        var sf1 = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2", label: "SF1");
+        sf1.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 10, 0, 0));
+
+        var final_ = Game.Create(tournament.Id, phase.Id, group.Id, 2,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2", label: "Final");
+        final_.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 10, 30, 0));
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, final_.Id))
+            .Returns(final_);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { sf1, final_ });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{final_.Id}/referee",
+            new { placeholder = "Loser SF1" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<GameDto>();
+        result!.RefereeTeamPlaceholder.Should().Be("Loser SF1");
+        result.RefereeTeamId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task RecordResult_ShouldResolveRefereePlaceholder()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreatePlayoffStructure(tournament.Id, PhaseFormat.PlayoffElimination, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+        phase.Schedule();
+        phase.Activate();
+
+        var sf1 = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2", label: "SF1");
+        sf1.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 10, 0, 0));
+
+        var final_ = Game.Create(tournament.Id, phase.Id, group.Id, 2,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2", label: "Final");
+        final_.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 10, 30, 0));
+        final_.RefereeTeamPlaceholder = "Loser SF1";
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, sf1.Id))
+            .Returns(sf1);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { sf1, final_ });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{sf1.Id}/result",
+            new { homeScore = 2, awayScore = 1 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // team2 lost SF1, so "Loser SF1" should resolve to team2
+        final_.RefereeTeamId.Should().Be("team2");
+        final_.RefereeTeamPlaceholder.Should().Be("Loser SF1");
     }
 
     [Fact]

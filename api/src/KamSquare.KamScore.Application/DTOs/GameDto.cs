@@ -11,6 +11,7 @@ public record GameDto(
     string? HomeTeamPlaceholder,
     string? AwayTeamPlaceholder,
     string? RefereeTeamId,
+    string? RefereeTeamPlaceholder,
     string? CourtId,
     string? StartTime,
     string? Status,
@@ -27,6 +28,6 @@ public record GameDto(
     string? GroupName = null,
     string? LevelName = null);
 
-public record AssignRefereeDto(string TeamId);
+public record AssignRefereeDto(string? TeamId = null, string? Placeholder = null);
 
-public record RefereeCandidateDto(string TeamId, string TeamName);
+public record RefereeCandidateDto(string TeamId, string TeamName, bool IsPlaceholder = false);

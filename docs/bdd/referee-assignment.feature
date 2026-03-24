@@ -48,16 +48,64 @@ Feature: Manual Referee Assignment
     Then Team A should not be in the candidate list
     And Team B should not be in the candidate list
 
-  Scenario: Placeholder teams are included as candidates
-    Given a playoff phase with placeholder teams (e.g., "Loser QF1")
-    And a game has no referee assigned
-    And the placeholder team is free in the current and next time slot
-    When I request referee candidates for that game
-    Then the placeholder team should appear in the candidate list
+  # --- Elimination Bracket Placeholder Candidates ---
 
-  # --- Assignment ---
+  Scenario: Candidate list for SF game includes placeholders from QF round
+    Given a single-elimination phase with 8 teams (QF → SF → Final)
+    And games are generated and scheduled
+    And an SF game "Winner QF1 vs Winner QF2" has no referee
+    When I request referee candidates for that SF game
+    Then the candidate list should include "Loser QF1" and "Loser QF2"
+    And the candidate list should include "Winner QF3", "Loser QF3", "Winner QF4", "Loser QF4"
+    And each placeholder candidate should be marked as a placeholder
 
-  Scenario: Owner assigns a referee to a game without one
+  Scenario: Placeholder playing in the target game is excluded from candidates
+    Given an SF game where "Winner QF1" plays "Winner QF2"
+    When I request referee candidates for that SF game
+    Then "Winner QF1" should not be in the candidate list
+    And "Winner QF2" should not be in the candidate list
+
+  Scenario: Placeholder busy in the same time slot is excluded
+    Given an SF1 game at 11:00 with no referee
+    And an SF2 game at 11:00 where "Winner QF3" is playing
+    When I request referee candidates for SF1
+    Then "Winner QF3" should not be in the candidate list
+
+  Scenario: Placeholder playing in the next time slot is excluded
+    Given an SF1 game at 11:00 with no referee and game length of 30 minutes
+    And a Final game at 11:30 where "Winner SF1" is playing
+    When I request referee candidates for the SF1 game
+    Then "Winner SF1" should not be in the candidate list
+
+  Scenario: Candidate list for Final includes placeholders from all earlier rounds
+    Given a single-elimination phase with 8 teams (QF → SF → Final)
+    And games are generated and scheduled
+    And the Final game has no referee
+    When I request referee candidates for the Final
+    Then the candidate list should include placeholders from both QF and SF rounds
+
+  # --- Placeholder Assignment ---
+
+  Scenario: Owner assigns a placeholder as referee
+    Given an SF game with no referee assigned
+    And "Loser QF1" is a valid placeholder candidate
+    When I assign "Loser QF1" as referee for that SF game
+    Then the game should have "Loser QF1" as the referee placeholder
+    And the game should not have a referee team ID
+    And "Loser QF1" should be displayed as the referee in the schedule
+
+  # --- Placeholder Resolution ---
+
+  Scenario: Referee placeholder resolves when referenced game completes
+    Given an SF game with "Loser QF1" assigned as referee placeholder
+    And QF1 is played and Team A loses
+    When QF1 result is recorded
+    Then the SF game's referee team ID should be Team A
+    And the SF game's referee placeholder should remain "Loser QF1"
+
+  # --- Assignment (real teams) ---
+
+  Scenario: Owner assigns a real team as referee to a game without one
     Given a game with no referee assigned
     And Team C is a valid candidate
     When I assign Team C as referee for that game

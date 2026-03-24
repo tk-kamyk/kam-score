@@ -437,6 +437,196 @@ public class RefereeAssignerTests
         candidates.Should().Contain("placeholder1");
     }
 
+    // --- GetCandidates: Bracket Placeholder Tests ---
+
+    [Fact]
+    public void GetCandidates_EliminationSfGame_IncludesPlaceholdersFromQfRound()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"]),
+        };
+
+        // QF games (round 1) — all scheduled earlier
+        var qf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "QF1");
+        qf1.AssignSchedule("c1", StartTime);
+        var qf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "QF2");
+        qf2.AssignSchedule("c2", StartTime);
+        var qf3 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t5", awayTeamId: "t6", label: "QF3");
+        qf3.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+        var qf4 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t7", awayTeamId: "t8", label: "QF4");
+        qf4.AssignSchedule("c2", StartTime.AddMinutes(GameLength));
+
+        // SF1 game (round 2) — target game with placeholders
+        var sf1 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF1", awayTeamPlaceholder: "Winner QF2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime.AddMinutes(GameLength * 2));
+
+        var allGames = new List<Game> { qf1, qf2, qf3, qf4, sf1 };
+
+        var candidates = RefereeAssigner.GetCandidates(sf1, allGames, groups, GameLength);
+
+        // Should include losers from QF1 and QF2 (and winners/losers from QF3, QF4 which are in earlier slots)
+        candidates.Should().Contain("Loser QF1");
+        candidates.Should().Contain("Loser QF2");
+        candidates.Should().Contain("Winner QF3");
+        candidates.Should().Contain("Loser QF3");
+        candidates.Should().Contain("Winner QF4");
+        candidates.Should().Contain("Loser QF4");
+    }
+
+    [Fact]
+    public void GetCandidates_EliminationSfGame_ExcludesPlaceholdersPlayingInTargetGame()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4"]),
+        };
+
+        var qf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "QF1");
+        qf1.AssignSchedule("c1", StartTime);
+        var qf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "QF2");
+        qf2.AssignSchedule("c2", StartTime);
+
+        var sf1 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF1", awayTeamPlaceholder: "Winner QF2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+
+        var allGames = new List<Game> { qf1, qf2, sf1 };
+
+        var candidates = RefereeAssigner.GetCandidates(sf1, allGames, groups, GameLength);
+
+        candidates.Should().NotContain("Winner QF1", "playing as home in target game");
+        candidates.Should().NotContain("Winner QF2", "playing as away in target game");
+    }
+
+    [Fact]
+    public void GetCandidates_EliminationSfGame_ExcludesPlaceholderBusyInSameSlot()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"]),
+        };
+
+        var qf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "QF1");
+        qf1.AssignSchedule("c1", StartTime);
+        var qf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "QF2");
+        qf2.AssignSchedule("c2", StartTime);
+        var qf3 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t5", awayTeamId: "t6", label: "QF3");
+        qf3.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+        var qf4 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t7", awayTeamId: "t8", label: "QF4");
+        qf4.AssignSchedule("c2", StartTime.AddMinutes(GameLength));
+
+        // SF1 and SF2 in the same time slot
+        var sf1 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF1", awayTeamPlaceholder: "Winner QF2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime.AddMinutes(GameLength * 2));
+
+        var sf2 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF3", awayTeamPlaceholder: "Winner QF4", label: "SF2");
+        sf2.AssignSchedule("c2", StartTime.AddMinutes(GameLength * 2));
+
+        var allGames = new List<Game> { qf1, qf2, qf3, qf4, sf1, sf2 };
+
+        var candidates = RefereeAssigner.GetCandidates(sf1, allGames, groups, GameLength);
+
+        // Winner QF3 and Winner QF4 are playing in SF2 at the same time slot
+        candidates.Should().NotContain("Winner QF3", "playing in SF2 in the same slot");
+        candidates.Should().NotContain("Winner QF4", "playing in SF2 in the same slot");
+    }
+
+    [Fact]
+    public void GetCandidates_EliminationFinal_IncludesPlaceholdersFromAllEarlierRounds()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4"]),
+        };
+
+        var sf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime);
+        var sf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "SF2");
+        sf2.AssignSchedule("c2", StartTime);
+
+        var final_ = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2", label: "Final");
+        final_.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+
+        var allGames = new List<Game> { sf1, sf2, final_ };
+
+        var candidates = RefereeAssigner.GetCandidates(final_, allGames, groups, GameLength);
+
+        // Should include losers from SF round
+        candidates.Should().Contain("Loser SF1");
+        candidates.Should().Contain("Loser SF2");
+    }
+
+    [Fact]
+    public void GetCandidates_EliminationPlaceholderPlayingInNextSlot_IsExcluded()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"]),
+        };
+
+        var qf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "QF1");
+        qf1.AssignSchedule("c1", StartTime);
+        var qf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "QF2");
+        qf2.AssignSchedule("c2", StartTime);
+
+        // SF1 is in slot 1
+        var sf1 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF1", awayTeamPlaceholder: "Winner QF2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+
+        // Final is in slot 2 — "Winner SF1" plays here
+        var final_ = Game.Create("t1", "p1", "gA", 3,
+            homeTeamPlaceholder: "Winner SF1", awayTeamPlaceholder: "Winner SF2", label: "Final");
+        final_.AssignSchedule("c1", StartTime.AddMinutes(GameLength * 2));
+
+        var allGames = new List<Game> { qf1, qf2, sf1, final_ };
+
+        var candidates = RefereeAssigner.GetCandidates(sf1, allGames, groups, GameLength);
+
+        // "Winner SF1" plays in the next slot (Final), so excluded
+        candidates.Should().NotContain("Winner SF1", "plays in the next time slot");
+    }
+
+    [Fact]
+    public void GetCandidates_EliminationSf2_IncludesPlaceholdersFromSf1WhenInDifferentSlot()
+    {
+        var groups = new List<Group>
+        {
+            CreateGroup("gA", null, ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8"]),
+        };
+
+        var qf1 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t1", awayTeamId: "t2", label: "QF1");
+        qf1.AssignSchedule("c1", StartTime);
+        var qf2 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t3", awayTeamId: "t4", label: "QF2");
+        qf2.AssignSchedule("c2", StartTime);
+        var qf3 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t5", awayTeamId: "t6", label: "QF3");
+        qf3.AssignSchedule("c1", StartTime.AddMinutes(GameLength));
+        var qf4 = Game.Create("t1", "p1", "gA", 1, homeTeamId: "t7", awayTeamId: "t8", label: "QF4");
+        qf4.AssignSchedule("c2", StartTime.AddMinutes(GameLength));
+
+        // SF1 at slot 2, SF2 at slot 3 (different time slots, single court)
+        var sf1 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF1", awayTeamPlaceholder: "Winner QF2", label: "SF1");
+        sf1.AssignSchedule("c1", StartTime.AddMinutes(GameLength * 2));
+
+        var sf2 = Game.Create("t1", "p1", "gA", 2,
+            homeTeamPlaceholder: "Winner QF3", awayTeamPlaceholder: "Winner QF4", label: "SF2");
+        sf2.AssignSchedule("c1", StartTime.AddMinutes(GameLength * 3));
+
+        var allGames = new List<Game> { qf1, qf2, qf3, qf4, sf1, sf2 };
+
+        var candidates = RefereeAssigner.GetCandidates(sf2, allGames, groups, GameLength);
+
+        // SF2 should see SF1 placeholders since SF1 is in a different (earlier) slot
+        candidates.Should().Contain("Loser SF1", "SF1 loser is free during SF2");
+        candidates.Should().Contain("Winner SF1", "SF1 winner is free during SF2");
+    }
+
     private static Group CreateGroup(string id, string? levelId, List<string> teamIds)
     {
         var group = Group.Create("Group", levelId);

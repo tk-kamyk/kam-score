@@ -32,15 +32,20 @@ watch(
       loadCandidates()
     }
   },
+  { immediate: true },
 )
 
 async function loadCandidates() {
   loading.value = true
   try {
-    candidates.value = await gameStore.fetchRefereeCandidates(
+    const result = await gameStore.fetchRefereeCandidates(
       props.tournamentId,
       props.game.id!,
     )
+    candidates.value = [...result].sort((a, b) => {
+      if (a.isPlaceholder === b.isPlaceholder) return 0
+      return a.isPlaceholder ? -1 : 1
+    })
   } catch (error) {
     showError(parseErrorDetail(error) ?? 'Failed to load referee candidates')
   } finally {
@@ -56,10 +61,12 @@ async function submit() {
   if (!selectedTeamId.value) return
   submitting.value = true
   try {
+    const selected = candidates.value.find((c) => c.teamId === selectedTeamId.value)
     await gameStore.assignReferee(
       props.tournamentId,
       props.game.id!,
       selectedTeamId.value,
+      selected?.isPlaceholder,
     )
     showSuccess('Referee assigned')
     emit('assigned')

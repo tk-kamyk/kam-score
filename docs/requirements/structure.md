@@ -70,11 +70,12 @@
 - A button to assign a referee is shown in the Schedule tab and the Court view, only for the owner
 - Clicking the button opens a dialog listing candidate teams
 - Candidate teams are all teams from the same level within the phase (across all groups in that level). If the phase has no levels, all teams in the phase are candidates
-- Placeholder teams (e.g., "Loser QF1") are allowed as candidates
+- In elimination phases, the candidate list includes bracket placeholders from all earlier rounds in the same group (e.g., "Loser QF1", "Winner QF3"). The same eligibility rules apply to placeholders — a placeholder is excluded if it is playing or refereeing in the game's time slot, or playing in the next time slot
 - A team is eligible ("free") only if it is not playing and not refereeing in the game's time slot, and not playing in the next time slot
 - Owner-only action (JWT authentication required)
 - The API provides both a candidate list endpoint and an assignment endpoint
-- After assignment, the referee name is displayed in the schedule
+- After assignment, the referee name (or placeholder label) is displayed in the schedule
+- When a game result resolves bracket advancement (e.g., QF1 completes), any referee placeholder referencing that game (e.g., "Loser QF1") also resolves to the real team ID
 
 # Overview
 

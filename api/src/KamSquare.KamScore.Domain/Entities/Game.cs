@@ -15,6 +15,7 @@ public class Game : Entity
     public string? AwayTeamPlaceholder { get; set; }
     public string? Label { get; set; }
     public string? RefereeTeamId { get; set; }
+    public string? RefereeTeamPlaceholder { get; set; }
     public string? CourtId { get; set; }
     public DateTime? StartTime { get; set; }
     public GameStatus Status { get; set; } = GameStatus.Scheduled;
@@ -83,6 +84,17 @@ public class Game : Entity
             throw new ArgumentException($"Team '{teamId}' is not an eligible referee candidate.", nameof(teamId));
 
         RefereeTeamId = teamId;
+        RefereeTeamPlaceholder = null;
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void AssignRefereePlaceholder(string placeholder, List<string> eligibleCandidates)
+    {
+        if (!eligibleCandidates.Contains(placeholder))
+            throw new ArgumentException($"Placeholder '{placeholder}' is not an eligible referee candidate.", nameof(placeholder));
+
+        RefereeTeamPlaceholder = placeholder;
+        RefereeTeamId = null;
         LastModified = DateTime.UtcNow;
     }
 

@@ -71,10 +71,12 @@ export const useGameStore = defineStore('game', () => {
     tournamentId: string,
     gameId: string,
     teamId: string,
+    isPlaceholder?: boolean,
   ) {
+    const body = isPlaceholder ? { placeholder: teamId } : { teamId }
     await apiClient.put(
       `/tournaments/${tournamentId}/games/${gameId}/referee`,
-      { teamId },
+      body,
     )
     await fetchGames(tournamentId)
   }

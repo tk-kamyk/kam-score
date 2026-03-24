@@ -141,7 +141,10 @@ public static class GameEndpoints
 
         var candidates = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength!.Value);
 
-        game.AssignReferee(dto.TeamId, candidates);
+        if (dto.Placeholder is not null)
+            game.AssignRefereePlaceholder(dto.Placeholder, candidates);
+        else
+            game.AssignReferee(dto.TeamId!, candidates);
         var updatedGame = await gameRepository.UpdateAsync(game);
 
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
@@ -177,8 +180,9 @@ public static class GameEndpoints
         var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
 
         var candidates = candidateIds
-            .Where(id => teamLookup.ContainsKey(id))
-            .Select(id => new RefereeCandidateDto(id, teamLookup[id]))
+            .Select(id => teamLookup.TryGetValue(id, out var name)
+                ? new RefereeCandidateDto(id, name)
+                : new RefereeCandidateDto(id, id, IsPlaceholder: true))
             .ToList();
 
         return Results.Ok(candidates);
