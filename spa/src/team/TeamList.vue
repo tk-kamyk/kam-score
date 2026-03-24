@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
-import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import SectionHeader from '@/components/SectionHeader.vue'
 import TeamSchedule from '@/team/TeamSchedule.vue'
 import type { TeamDto } from '@/team/types'
@@ -21,7 +20,7 @@ const router = useRouter()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
-const { isEnabled } = useFeatureFlags()
+
 
 const expandedTeam = ref<string | null>((route.query.team as string) || null)
 
@@ -167,7 +166,7 @@ async function handleGenerate() {
   <div>
     <SectionHeader title="Teams">
       <div>
-        <v-btn v-if="isOwner && isEnabled('GenerateSeedTeams')" variant="outlined" color="primary" prepend-icon="mdi-account-multiple-plus" class="mr-2" @click="openGenerate">
+        <v-btn v-if="isOwner" variant="outlined" color="primary" prepend-icon="mdi-account-multiple-plus" class="mr-2" @click="openGenerate">
           Generate Teams
         </v-btn>
         <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
