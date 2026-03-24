@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { useAuthStore } from '@/auth/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import LoginDialog from '@/auth/LoginDialog.vue'
 
 const auth = useAuthStore()
 const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = useSnackbar()
+
+useFeatureFlags().fetch()
 </script>
 
 <template>
