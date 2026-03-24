@@ -124,12 +124,12 @@ Feature: Team Management
     When the user generates 1 seed team
     Then the tournament has 1 team named "Seed 1" with level 50
 
-  Scenario: Seed team count must be between 1 and 50
+  Scenario: Seed team count must be between 1 and 100
     Given the user is authenticated
     And the user owns tournament "Summer Cup"
     When the user attempts to generate 0 seed teams
     Then the request is rejected with 400 Bad Request
-    When the user attempts to generate 51 seed teams
+    When the user attempts to generate 101 seed teams
     Then the request is rejected with 400 Bad Request
 
   Scenario: Non-owner cannot generate seed teams

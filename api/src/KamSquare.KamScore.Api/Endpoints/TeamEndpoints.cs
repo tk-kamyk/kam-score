@@ -18,6 +18,7 @@ public static class TeamEndpoints
 
         group.MapGet("/", GetTeams);
         group.MapPost("/", CreateTeam).RequireAuthorization();
+        group.MapPost("/generate", GenerateSeedTeams).RequireAuthorization();
         group.MapPut("/{teamId}", UpdateTeam).RequireAuthorization();
         group.MapDelete("/{teamId}", DeleteTeam).RequireAuthorization();
 
@@ -129,6 +130,24 @@ public static class TeamEndpoints
         await teamRepository.DeleteAsync(teamId, tournamentId);
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> GenerateSeedTeams(
+        string tournamentId,
+        GenerateSeedTeamsDto request,
+        ITeamRepository teamRepository,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser,
+        IMapper mapper)
+    {
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        var existingCount = await teamRepository.CountByTournamentIdAsync(tournamentId);
+        var teams = Team.GenerateSeedTeams(request.Count, existingCount + 1, tournamentId);
+        var created = await teamRepository.CreateBatchAsync(teams);
+        var dtos = mapper.Map<IEnumerable<TeamDto>>(created);
+
+        return Results.Created($"/api/tournaments/{tournamentId}/teams", dtos);
     }
 
     private static TeamDto HideContactInfo(TeamDto dto)

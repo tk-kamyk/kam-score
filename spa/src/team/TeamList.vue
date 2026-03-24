@@ -131,13 +131,13 @@ const showGenerateDialog = ref(false)
 const seedCount = ref(8)
 
 const seedCountRules = [
-  (v: number) => (v >= 1 && v <= 50) || 'Count must be between 1 and 50.',
+  (v: number) => (v >= 1 && v <= 100) || 'Count must be between 1 and 100.',
 ]
 
 const seedPreview = computed(() => {
   const start = teamStore.teams.length + 1
   const count = seedCount.value
-  if (count < 1 || count > 50) return ''
+  if (count < 1 || count > 100) return ''
   const names = Array.from({ length: Math.min(count, 4) }, (_, i) => `Seed ${start + i}`)
   if (count > 4) names.push(`... Seed ${start + count - 1}`)
   return names.join(', ')
@@ -150,7 +150,7 @@ function openGenerate() {
 }
 
 async function handleGenerate() {
-  if (seedCount.value < 1 || seedCount.value > 50) return
+  if (seedCount.value < 1 || seedCount.value > 100) return
   try {
     const generated = await teamStore.generateSeedTeams(props.tournamentId, seedCount.value)
     showGenerateDialog.value = false
@@ -313,7 +313,7 @@ async function handleGenerate() {
             label="Number of teams"
             type="number"
             :min="1"
-            :max="50"
+            :max="100"
             :rules="seedCountRules"
           />
           <div v-if="seedPreview" class="text-body-2 text-medium-emphasis mt-1">
