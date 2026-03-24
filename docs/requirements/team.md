@@ -8,6 +8,18 @@
 - It should be possible to create, edit, and delete teams
 - It should be possible to see a list of teams participating in the tournament
 
+## Generate Seed Teams
+
+- An owner can generate N seed teams for a tournament in one action
+- Generated teams are real teams (not placeholders) with names "Seed 1", "Seed 2", etc.
+- Generation is additive: numbering starts from (existing real team count + 1)
+- Levels are distributed proportionally across the 0-100 scale:
+    - 1 team: level 50
+    - N teams: evenly spaced from 0 to 100 (e.g., 4 teams → 0, 33, 67, 100)
+- Count must be between 1 and 50
+- The organizer can later edit each team to replace the seed name, adjust the level, and add contact info
+- Only the tournament owner can generate seed teams (same auth as team creation)
+
 ## Team Schedule & Participation
 
 - Each team row in the list should be expandable (click to expand/collapse)

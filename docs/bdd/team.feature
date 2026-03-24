@@ -100,3 +100,51 @@ Feature: Team Management
     Given a tournament with team "Eagles" assigned to no games
     When a user expands the "Eagles" team row
     Then the message "No games scheduled for this team" is displayed
+
+  # --- Generate Seed Teams ---
+
+  Scenario: Owner generates seed teams for an empty tournament
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with no teams
+    When the user generates 4 seed teams
+    Then the tournament has 4 teams
+    And the teams are named "Seed 1", "Seed 2", "Seed 3", "Seed 4"
+    And the team levels are proportionally distributed: 0, 33, 67, 100
+
+  Scenario: Generating seed teams is additive
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with 2 existing teams
+    When the user generates 3 seed teams
+    Then the tournament has 5 teams total
+    And the new teams are named "Seed 3", "Seed 4", "Seed 5"
+
+  Scenario: Generating a single seed team assigns level 50
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup" with no teams
+    When the user generates 1 seed team
+    Then the tournament has 1 team named "Seed 1" with level 50
+
+  Scenario: Seed team count must be between 1 and 50
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup"
+    When the user attempts to generate 0 seed teams
+    Then the request is rejected with 400 Bad Request
+    When the user attempts to generate 51 seed teams
+    Then the request is rejected with 400 Bad Request
+
+  Scenario: Non-owner cannot generate seed teams
+    Given user "Alice" owns tournament "Summer Cup"
+    When user "Bob" attempts to generate seed teams for "Summer Cup"
+    Then the request is rejected with 403 Forbidden
+
+  Scenario: Anonymous visitor cannot generate seed teams
+    Given a tournament "Summer Cup" exists
+    When a visitor attempts to generate seed teams for "Summer Cup"
+    Then the request is rejected with 401 Unauthorized
+
+  Scenario: Generated seed teams are real teams, not placeholders
+    Given the user is authenticated
+    And the user owns tournament "Summer Cup"
+    When the user generates 2 seed teams
+    Then each generated team has isPlaceholder false
+    And each generated team can be edited like a normal team
