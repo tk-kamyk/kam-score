@@ -185,4 +185,64 @@ public class BracketAdvancementServiceTests
 
         modified.Should().BeEmpty();
     }
+
+    // --- Referee Placeholder Resolution ---
+
+    [Fact]
+    public void ResolveAdvancement_LoserRefereePlaceholder_ResolvesToRealTeam()
+    {
+        var qf1 = Game.Create("t1", "p1", "g1", 1,
+            homeTeamId: "eagles", awayTeamId: "hawks", label: "QF1");
+        qf1.RecordSimpleResult(2, 1); // eagles win, hawks lose
+
+        var sf1 = Game.Create("t1", "p1", "g1", 2,
+            homeTeamPlaceholder: "Winner QF1",
+            awayTeamPlaceholder: "Winner QF2",
+            label: "SF1");
+        sf1.RefereeTeamPlaceholder = "Loser QF1";
+
+        var modified = BracketUtilities.ResolveAdvancement(qf1, [qf1, sf1]);
+
+        sf1.RefereeTeamId.Should().Be("hawks");
+        sf1.RefereeTeamPlaceholder.Should().Be("Loser QF1", "placeholder label should be preserved");
+        modified.Should().Contain(sf1);
+    }
+
+    [Fact]
+    public void ResolveAdvancement_WinnerRefereePlaceholder_ResolvesToRealTeam()
+    {
+        var qf3 = Game.Create("t1", "p1", "g1", 1,
+            homeTeamId: "wolves", awayTeamId: "bears", label: "QF3");
+        qf3.RecordSimpleResult(2, 0); // wolves win
+
+        var sf1 = Game.Create("t1", "p1", "g1", 2,
+            homeTeamPlaceholder: "Winner QF1",
+            awayTeamPlaceholder: "Winner QF2",
+            label: "SF1");
+        sf1.RefereeTeamPlaceholder = "Winner QF3";
+
+        var modified = BracketUtilities.ResolveAdvancement(qf3, [qf3, sf1]);
+
+        sf1.RefereeTeamId.Should().Be("wolves");
+        sf1.RefereeTeamPlaceholder.Should().Be("Winner QF3");
+        modified.Should().Contain(sf1);
+    }
+
+    [Fact]
+    public void ResolveAdvancement_NoRefereePlaceholder_DoesNotSetRefereeTeamId()
+    {
+        var sf1 = Game.Create("t1", "p1", "g1", 1,
+            homeTeamId: "eagles", awayTeamId: "hawks", label: "SF1");
+        sf1.RecordSimpleResult(2, 1);
+
+        var final_ = Game.Create("t1", "p1", "g1", 2,
+            homeTeamPlaceholder: "Winner SF1",
+            awayTeamPlaceholder: "Winner SF2",
+            label: "Final");
+        // No RefereeTeamPlaceholder set
+
+        BracketUtilities.ResolveAdvancement(sf1, [sf1, final_]);
+
+        final_.RefereeTeamId.Should().BeNull();
+    }
 }

@@ -117,6 +117,7 @@ public static class RefereeAssigner
         var nextSlot = targetSlot + 1;
 
         // Build busy sets for target slot (playing + refereeing) and next slot (playing only)
+        // These track both real team IDs and placeholder strings
         var busyInTargetSlot = new HashSet<string>();
         var playingInNextSlot = new HashSet<string>();
 
@@ -129,19 +130,51 @@ public static class RefereeAssigner
                 if (game.HomeTeamId is not null) busyInTargetSlot.Add(game.HomeTeamId);
                 if (game.AwayTeamId is not null) busyInTargetSlot.Add(game.AwayTeamId);
                 if (game.RefereeTeamId is not null) busyInTargetSlot.Add(game.RefereeTeamId);
+                if (game.HomeTeamPlaceholder is not null) busyInTargetSlot.Add(game.HomeTeamPlaceholder);
+                if (game.AwayTeamPlaceholder is not null) busyInTargetSlot.Add(game.AwayTeamPlaceholder);
+                if (game.RefereeTeamPlaceholder is not null) busyInTargetSlot.Add(game.RefereeTeamPlaceholder);
             }
 
             if (slot == nextSlot)
             {
                 if (game.HomeTeamId is not null) playingInNextSlot.Add(game.HomeTeamId);
                 if (game.AwayTeamId is not null) playingInNextSlot.Add(game.AwayTeamId);
+                if (game.HomeTeamPlaceholder is not null) playingInNextSlot.Add(game.HomeTeamPlaceholder);
+                if (game.AwayTeamPlaceholder is not null) playingInNextSlot.Add(game.AwayTeamPlaceholder);
             }
         }
 
-        return allTeamIds
+        var realCandidates = allTeamIds
             .Where(t => !busyInTargetSlot.Contains(t))
-            .Where(t => !playingInNextSlot.Contains(t))
-            .ToList();
+            .Where(t => !playingInNextSlot.Contains(t));
+
+        // Collect bracket placeholders from earlier-round games in the same group
+        var placeholderCandidates = BuildBracketPlaceholders(targetGame, allPhaseGames)
+            .Where(p => !busyInTargetSlot.Contains(p))
+            .Where(p => !playingInNextSlot.Contains(p));
+
+        return realCandidates.Concat(placeholderCandidates).ToList();
+    }
+
+    /// <summary>
+    /// Extracts "Winner {label}" and "Loser {label}" placeholders from all other
+    /// labeled games in the same group. The busy/playing exclusion rules handle
+    /// filtering out any that aren't actually available.
+    /// </summary>
+    private static HashSet<string> BuildBracketPlaceholders(Game targetGame, List<Game> allPhaseGames)
+    {
+        var placeholders = new HashSet<string>();
+
+        var earlierGames = allPhaseGames
+            .Where(g => g.GroupId == targetGame.GroupId && g.Round <= targetGame.Round && g.Id != targetGame.Id && g.Label is not null);
+
+        foreach (var game in earlierGames)
+        {
+            placeholders.Add($"Winner {game.Label}");
+            placeholders.Add($"Loser {game.Label}");
+        }
+
+        return placeholders;
     }
 
     private static Dictionary<string, HashSet<string>> BuildGroupTeamRosters(List<Game> games)

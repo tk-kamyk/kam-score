@@ -56,6 +56,18 @@ public static class BracketUtilities
                 changed = true;
             }
 
+            if (game.RefereeTeamPlaceholder == winnerPlaceholder && winnerId is not null)
+            {
+                game.RefereeTeamId = winnerId;
+                changed = true;
+            }
+
+            if (game.RefereeTeamPlaceholder == loserPlaceholder && loserId is not null)
+            {
+                game.RefereeTeamId = loserId;
+                changed = true;
+            }
+
             if (changed)
             {
                 game.LastModified = DateTime.UtcNow;
