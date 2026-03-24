@@ -52,6 +52,22 @@ export const useTeamStore = defineStore('team', () => {
     teams.value = teams.value.filter(t => t.id !== teamId)
   }
 
+  async function generateSeedTeams(tournamentId: string, count: number): Promise<TeamDto[]> {
+    // TODO: Replace with real API call in Gate 6
+    const startIndex = teams.value.length + 1
+    const generated: TeamDto[] = []
+    for (let i = 0; i < count; i++) {
+      const level = count === 1 ? 50 : Math.round((i * 100) / (count - 1))
+      generated.push({
+        id: crypto.randomUUID(),
+        name: `Seed ${startIndex + i}`,
+        level,
+      })
+    }
+    teams.value = [...teams.value, ...generated]
+    return generated
+  }
+
   return {
     teams,
     placeholders,
@@ -62,5 +78,6 @@ export const useTeamStore = defineStore('team', () => {
     createTeam,
     updateTeam,
     deleteTeam,
+    generateSeedTeams,
   }
 })

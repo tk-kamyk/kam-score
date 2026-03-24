@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import SectionHeader from '@/components/SectionHeader.vue'
 import TeamSchedule from '@/team/TeamSchedule.vue'
 import type { TeamDto } from '@/team/types'
@@ -20,6 +21,7 @@ const router = useRouter()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
+const { isEnabled } = useFeatureFlags()
 
 const expandedTeam = ref<string | null>((route.query.team as string) || null)
 
@@ -124,14 +126,54 @@ async function handleDelete() {
     }
   }
 }
+
+const showGenerateDialog = ref(false)
+const seedCount = ref(8)
+
+const seedCountRules = [
+  (v: number) => (v >= 1 && v <= 50) || 'Count must be between 1 and 50.',
+]
+
+const seedPreview = computed(() => {
+  const start = teamStore.teams.length + 1
+  const count = seedCount.value
+  if (count < 1 || count > 50) return ''
+  const names = Array.from({ length: Math.min(count, 4) }, (_, i) => `Seed ${start + i}`)
+  if (count > 4) names.push(`... Seed ${start + count - 1}`)
+  return names.join(', ')
+})
+
+function openGenerate() {
+  seedCount.value = 8
+  clearErrors()
+  showGenerateDialog.value = true
+}
+
+async function handleGenerate() {
+  if (seedCount.value < 1 || seedCount.value > 50) return
+  try {
+    const generated = await teamStore.generateSeedTeams(props.tournamentId, seedCount.value)
+    showGenerateDialog.value = false
+    showSuccess(`Generated ${generated.length} seed teams`)
+  } catch (error) {
+    if (!handleError(error)) {
+      showError('Failed to generate seed teams')
+    }
+  }
+}
 </script>
 
 <template>
   <div>
     <SectionHeader title="Teams">
-      <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
-        Add Team
-      </v-btn>
+      <div>
+        <v-btn v-if="isOwner && isEnabled('GenerateSeedTeams')" variant="outlined" color="primary" prepend-icon="mdi-account-multiple-plus" class="mr-2" @click="openGenerate">
+          Generate Teams
+        </v-btn>
+        <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
+          Add Team
+        </v-btn>
+      </div>
     </SectionHeader>
 
     <v-progress-linear v-if="teamStore.loading" indeterminate color="primary" class="mb-4" />
@@ -254,6 +296,34 @@ async function handleDelete() {
           <v-spacer />
           <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
           <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!-- Generate Seed Teams Dialog -->
+    <v-dialog v-model="showGenerateDialog" max-width="450">
+      <v-card class="pa-2">
+        <v-card-title class="text-uppercase dialog-title">Generate Seed Teams</v-card-title>
+        <v-card-text>
+          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+            {{ generalError }}
+          </v-alert>
+          <v-text-field
+            v-model.number="seedCount"
+            label="Number of teams"
+            type="number"
+            :min="1"
+            :max="50"
+            :rules="seedCountRules"
+          />
+          <div v-if="seedPreview" class="text-body-2 text-medium-emphasis mt-1">
+            Will generate: {{ seedPreview }}
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="showGenerateDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="elevated" @click="handleGenerate">Generate</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
