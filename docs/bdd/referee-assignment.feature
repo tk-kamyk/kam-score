@@ -1,7 +1,7 @@
 Feature: Manual Referee Assignment
   As a tournament owner
-  I want to manually assign a referee to a game that has no referee
-  So that every game has a designated referee even when auto-assignment leaves gaps
+  I want to manually assign or re-assign a referee to a game
+  So that every game has a designated referee and I can correct mistakes
 
   Background:
     Given I am an authenticated tournament owner
@@ -114,6 +114,26 @@ Feature: Manual Referee Assignment
 
   Scenario: Assigning an ineligible team is rejected
     Given a game with no referee assigned
+    And Team X is playing in the same time slot
+    When I try to assign Team X as referee for that game
+    Then I should receive a 400 error
+
+  # --- Re-assignment ---
+
+  Scenario: Owner re-assigns a referee to a game that already has one
+    Given a game with Team C assigned as referee
+    And Team D is a valid candidate
+    When I assign Team D as referee for that game
+    Then the game should have Team D as the referee
+    And Team C should no longer be the referee
+
+  Scenario: Current referee appears in candidate list for re-assignment
+    Given a game with Team C assigned as referee
+    When I request referee candidates for that game
+    Then Team C should be in the candidate list
+
+  Scenario: Re-assigning an ineligible team is rejected
+    Given a game with Team C assigned as referee
     And Team X is playing in the same time slot
     When I try to assign Team X as referee for that game
     Then I should receive a 400 error

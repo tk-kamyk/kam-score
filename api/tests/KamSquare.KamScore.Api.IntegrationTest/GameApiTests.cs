@@ -556,6 +556,76 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    // --- Referee Re-assignment Tests ---
+
+    [Fact]
+    public async Task AssignReferee_GameAlreadyHasReferee_ShouldReassign()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        // Create a game with team3 already assigned as referee
+        var game = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        game.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+        game.RefereeTeamId = "team3";
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, game.Id))
+            .Returns(game);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { game });
+        A.CallTo(() => _factory.FakeGameRepository.UpdateAsync(A<Game>.Ignored))
+            .ReturnsLazily((Game g) => Task.FromResult(g));
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/games/{game.Id}/referee",
+            new { teamId = "team4" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<GameDto>();
+        result!.RefereeTeamId.Should().Be("team4");
+    }
+
+    [Fact]
+    public async Task GetRefereeCandidates_GameWithExistingReferee_ShouldIncludeCurrentReferee()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateRoundRobinStructure(tournament.Id, 4);
+        var courts = CreateCourts(tournament.Id);
+        var teams = CreateTeams(tournament.Id, 4);
+        SetupFakes(tournament, structure, courts, teams);
+
+        var phase = structure.Phases[0];
+        var group = phase.Groups[0];
+
+        var game = Game.Create(tournament.Id, phase.Id, group.Id, 1,
+            homeTeamId: "team1", awayTeamId: "team2");
+        game.AssignSchedule(courts[0].Id, new DateTime(2026, 6, 1, 9, 0, 0));
+        game.RefereeTeamId = "team3";
+
+        A.CallTo(() => _factory.FakeGameRepository.GetByIdAsync(tournament.Id, game.Id))
+            .Returns(game);
+        A.CallTo(() => _factory.FakeGameRepository.GetByPhaseIdAsync(tournament.Id, phase.Id))
+            .Returns(new List<Game> { game });
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var response = await client.GetAsync(
+            $"/api/tournaments/{tournament.Id}/games/{game.Id}/referee-candidates");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var candidates = await response.Content.ReadFromJsonAsync<List<RefereeCandidateDto>>();
+        candidates.Should().NotBeNull();
+        candidates!.Should().Contain(c => c.TeamId == "team3", "current referee should be in candidate list for re-assignment");
+        candidates.Should().Contain(c => c.TeamId == "team4");
+    }
+
     // --- Placeholder Referee Tests ---
 
     [Fact]

@@ -24,7 +24,7 @@ const gameStore = useGameStore()
 const structureStore = useStructureStore()
 
 provide('tournamentId', props.tournamentId)
-provide('isOwner', props.isOwner)
+provide('isOwner', computed(() => props.isOwner))
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
