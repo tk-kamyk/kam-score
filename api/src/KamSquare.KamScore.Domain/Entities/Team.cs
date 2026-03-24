@@ -2,6 +2,8 @@ namespace KamSquare.KamScore.Domain.Entities;
 
 public class Team : Entity
 {
+    private const int MaxLevel = 100;
+    private const int DefaultSingleTeamLevel = 50;
     public string Name { get; set; } = null!;
     public int Level { get; set; }
     public string? Email { get; set; }
@@ -52,5 +54,16 @@ public class Team : Entity
         Email = email;
         Phone = phone;
         LastModified = DateTime.UtcNow;
+    }
+
+    public static List<Team> GenerateSeedTeams(int count, int startIndex, string tournamentId)
+    {
+        var teams = new List<Team>(count);
+        for (var i = 0; i < count; i++)
+        {
+            var level = count == 1 ? DefaultSingleTeamLevel : (int)Math.Round((double)i * MaxLevel / (count - 1));
+            teams.Add(Create($"Seed {startIndex + i}", level, tournamentId));
+        }
+        return teams;
     }
 }

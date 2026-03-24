@@ -241,4 +241,146 @@ public class TeamApiTests : IClassFixture<KamScoreWebApplicationFactory>
         var doc = JsonDocument.Parse(content);
         doc.RootElement.GetProperty("errors").GetProperty("Name").GetArrayLength().Should().Be(1);
     }
+
+    // --- Generate Seed Teams ---
+
+    [Fact]
+    public async Task GenerateSeedTeams_Owner_ShouldReturnCreatedTeams()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        A.CallTo(() => _factory.FakeTeamRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(0);
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> teams) => Task.FromResult(teams));
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/teams/generate",
+            new { Count = 4 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<List<TeamDto>>();
+        result.Should().HaveCount(4);
+        result![0].Name.Should().Be("Seed 1");
+        result[1].Name.Should().Be("Seed 2");
+        result[2].Name.Should().Be("Seed 3");
+        result[3].Name.Should().Be("Seed 4");
+        result[0].Level.Should().Be(0);
+        result[3].Level.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_Additive_ShouldNumberFromExistingCount()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        A.CallTo(() => _factory.FakeTeamRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(2);
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> teams) => Task.FromResult(teams));
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/teams/generate",
+            new { Count = 3 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<List<TeamDto>>();
+        result.Should().HaveCount(3);
+        result![0].Name.Should().Be("Seed 3");
+        result[1].Name.Should().Be("Seed 4");
+        result[2].Name.Should().Be("Seed 5");
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_CountZero_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/teams/generate",
+            new { Count = 0 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_CountOver100_ShouldReturn400()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/teams/generate",
+            new { Count = 101 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_NonOwner_ShouldReturn403()
+    {
+        var tournament = CreateTestTournament("alice");
+        SetupTournament(tournament);
+        var client = _factory.CreateAuthenticatedClient("bob");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/teams/generate",
+            new { Count = 4 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_Anonymous_ShouldReturn401()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.PostAsJsonAsync(
+            "/api/tournaments/some-id/teams/generate",
+            new { Count = 4 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_ShouldCreateRealTeamsNotPlaceholders()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        A.CallTo(() => _factory.FakeTeamRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(0);
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> teams) => Task.FromResult(teams));
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/teams/generate",
+            new { Count = 2 });
+
+        var result = await response.Content.ReadFromJsonAsync<List<TeamDto>>();
+        result.Should().AllSatisfy(t =>
+        {
+            t.IsPlaceholder.Should().BeFalse();
+            t.SourcePhaseId.Should().BeNull();
+        });
+    }
+
+    [Fact]
+    public async Task GenerateSeedTeams_NonExistentTournament_ShouldReturn404()
+    {
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync("nonexistent"))
+            .Returns((Tournament?)null);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/tournaments/nonexistent/teams/generate",
+            new { Count = 4 });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }
