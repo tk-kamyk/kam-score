@@ -194,6 +194,8 @@ async function handleAutoAssign() {
               :all-groups="phase.groups ?? []"
               :phase-order="phase.order ?? 1"
               :previous-phase-id="previousPhaseId"
+              :single-group="groups.length === 1"
+              :has-levels="true"
             />
           </div>
         </div>
@@ -222,6 +224,7 @@ async function handleAutoAssign() {
 
     <template v-if="editing" #actions>
       <v-btn
+        v-if="!hasLevels"
         color="primary"
         variant="elevated"
         prepend-icon="mdi-plus"
