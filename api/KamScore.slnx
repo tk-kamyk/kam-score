@@ -5,7 +5,7 @@
     <Project Path="src/KamSquare.KamScore.Domain/KamSquare.KamScore.Domain.csproj" />
     <Project Path="src/KamSquare.KamScore.Infrastructure/KamSquare.KamScore.Infrastructure.csproj" />
   </Folder>
-  <Folder Name="/tests/">
+<Folder Name="/tests/">
     <Project Path="tests/KamSquare.KamScore.Api.IntegrationTest/KamSquare.KamScore.Api.IntegrationTest.csproj" />
     <Project Path="tests/KamSquare.KamScore.Application.UnitTest/KamSquare.KamScore.Application.UnitTest.csproj" />
     <Project Path="tests/KamSquare.KamScore.Domain.UnitTest/KamSquare.KamScore.Domain.UnitTest.csproj" />
