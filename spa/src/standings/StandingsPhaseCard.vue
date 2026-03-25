@@ -50,7 +50,7 @@ const selectedGroupGames = computed(() => {
       </v-chip>
     </template>
 
-    <v-card-text class="px-8 pb-8">
+    <v-card-text class="px-lg-8 pb-lg-8">
       <div v-if="phase.groups && phase.groups.length > 0" class="mb-4">
         <v-chip-group
           :model-value="selectedGroupId"

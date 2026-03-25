@@ -162,7 +162,7 @@ async function handleAutoAssign() {
       </div>
     </template>
 
-    <v-card-text>
+    <v-card-text class="px-lg-8 pb-lg-8">
       <v-alert
         v-if="editing && isActivated"
         type="warning"

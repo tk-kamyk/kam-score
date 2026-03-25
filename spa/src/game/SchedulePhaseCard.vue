@@ -60,7 +60,7 @@ function groupName(groupId: string): string {
 
 <template>
   <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
-    <v-card-text class="py-0">
+    <v-card-text class="px-lg-8 pb-lg-8">
       <template v-if="games.length > 0">
         <template v-if="hasLevels">
           <div v-for="{ level, groupIds } in groupsByLevel" :key="level.id" class="level-section">
