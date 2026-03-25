@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
@@ -14,6 +14,12 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 
 const showCreateDialog = ref(false)
+
+const sortedTournaments = computed(() =>
+  [...tournamentStore.tournaments].sort((a, b) =>
+    new Date(b.lastModified ?? 0).getTime() - new Date(a.lastModified ?? 0).getTime()
+  )
+)
 
 onMounted(() => {
   tournamentStore.fetchTournaments()
@@ -55,11 +61,10 @@ function navigateToTournament(id: string) {
 
     <v-row>
       <v-col
-        v-for="tournament in tournamentStore.tournaments"
+        v-for="tournament in sortedTournaments"
         :key="tournament.id"
         cols="12"
         md="6"
-        lg="4"
       >
         <v-card
           class="tournament-card h-100 pa-2"

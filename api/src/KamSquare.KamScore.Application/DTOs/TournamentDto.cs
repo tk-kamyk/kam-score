@@ -9,5 +9,6 @@ public record TournamentDto(
     GameConditionsDto? GameConditions,
     string? TournamentCode,
     string? OwnerId,
+    DateTime? LastModified = null,
     int? TeamCount = null,
     int? CourtCount = null);
