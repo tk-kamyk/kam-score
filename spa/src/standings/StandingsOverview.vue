@@ -20,8 +20,8 @@ const props = defineProps<{
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const standingsStore = useStandingsStore()
-const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
-const { selectedGroups, selectGroup: selectGroupBase, deselectGroup } = useGroupSelection()
+const { expanded: expandedPhases, toggle: togglePhaseBase, syncFromRoute: syncExpanded } = useExpandedQueryParam('phase')
+const { selectedGroups, selectGroup: selectGroupBase, deselectGroup, syncFromRoute: syncGroups } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
 function togglePhase(phaseId: string) {
@@ -61,6 +61,8 @@ watch(showResultDialog, (open) => {
 
 watch(() => props.active, async (isActive) => {
   if (!isActive) return
+  syncExpanded()
+  syncGroups()
   await Promise.all([
     structureStore.fetchStructure(props.tournamentId),
     gameStore.fetchGames(props.tournamentId),

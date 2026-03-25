@@ -29,8 +29,8 @@ provide('isOwner', computed(() => props.isOwner))
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
-const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
-const { selectedGroups, selectGroup, deselectGroup } = useGroupSelection()
+const { expanded: expandedPhases, toggle: togglePhaseBase, syncFromRoute: syncExpanded } = useExpandedQueryParam('phase')
+const { selectedGroups, selectGroup, deselectGroup, syncFromRoute: syncGroups } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
 function togglePhase(phaseId: string) {
@@ -182,6 +182,8 @@ onMounted(async () => {
 
 watch(() => props.active, async (isActive) => {
   if (!isActive) return
+  syncExpanded()
+  syncGroups()
   await Promise.all([
     structureStore.fetchStructure(props.tournamentId),
     gameStore.fetchGames(props.tournamentId),
