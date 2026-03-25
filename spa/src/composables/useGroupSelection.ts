@@ -35,5 +35,9 @@ export function useGroupSelection(queryKey = 'group') {
     selectedGroups.value = newMap
   }
 
-  return { selectedGroups, selectGroup, deselectGroup }
+  function syncFromRoute() {
+    selectedGroups.value = parseGroupSelections(route.query[queryKey])
+  }
+
+  return { selectedGroups, selectGroup, deselectGroup, syncFromRoute }
 }

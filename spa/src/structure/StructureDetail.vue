@@ -19,7 +19,7 @@ const props = defineProps<{
 const structureStore = useStructureStore()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
-const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
+const { expanded: expandedPhases, toggle: togglePhase, syncFromRoute } = useExpandedQueryParam('phase')
 
 const showPhaseForm = ref(false)
 const editingPhase = ref<PhaseDto | null>(null)
@@ -36,6 +36,7 @@ onMounted(async () => {
 
 watch(() => props.active, async (isActive) => {
   if (!isActive) return
+  syncFromRoute()
   await Promise.all([
     structureStore.fetchStructure(props.tournamentId),
     teamStore.fetchTeams(props.tournamentId),

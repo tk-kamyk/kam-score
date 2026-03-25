@@ -28,5 +28,9 @@ export function useExpandedQueryParam(queryKey: string) {
     expanded.value = newSet
   }
 
-  return { expanded, toggle }
+  function syncFromRoute() {
+    expanded.value = parseQuerySet(route.query[queryKey])
+  }
+
+  return { expanded, toggle, syncFromRoute }
 }
