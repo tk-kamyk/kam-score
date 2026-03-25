@@ -7,6 +7,7 @@ import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
 import { parseErrorDetail } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
+import { useGroupSelection } from '@/composables/useGroupSelection'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import type { GameDto } from '@/game/types'
 import type { PhaseDto } from '@/structure/types'
@@ -28,12 +29,20 @@ provide('isOwner', computed(() => props.isOwner))
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
-const { expanded: expandedPhases, toggle: togglePhase } = useExpandedQueryParam('phase')
-const { expanded: expandedGroups, toggle: toggleGroupKey } = useExpandedQueryParam('group')
+const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
+const { selectedGroups, selectGroup } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
-function toggleGroup(phaseId: string, groupId: string) {
-  toggleGroupKey(`${phaseId}:${groupId}`)
+function togglePhase(phaseId: string) {
+  togglePhaseBase(phaseId)
+
+  // Auto-select first group for newly expanded phase
+  if (expandedPhases.value.has(phaseId) && !selectedGroups.value.has(phaseId)) {
+    const phase = phases.value.find(p => p.id === phaseId)
+    if (phase?.groups?.[0]?.id) {
+      selectGroup(phaseId, phase.groups[0].id)
+    }
+  }
 }
 
 const generating = ref<string | null>(null)
@@ -155,6 +164,16 @@ onMounted(async () => {
     structureStore.fetchStructure(props.tournamentId),
     gameStore.fetchGames(props.tournamentId),
   ])
+
+  // Auto-select first group for expanded phases
+  for (const phaseId of expandedPhases.value) {
+    if (!selectedGroups.value.has(phaseId)) {
+      const phase = phases.value.find(p => p.id === phaseId)
+      if (phase?.groups?.[0]?.id) {
+        selectGroup(phaseId, phase.groups[0].id)
+      }
+    }
+  }
 })
 
 watch(() => props.active, async (isActive) => {
@@ -183,13 +202,13 @@ watch(() => props.active, async (isActive) => {
         :phase="phase"
         :games="phaseGames(phase.id!)"
         :expanded="expandedPhases.has(phase.id!)"
-        :expanded-groups="expandedGroups"
+        :selected-group-id="selectedGroups.get(phase.id!) ?? null"
         :is-owner="isOwner"
         :generating="generating === phase.id"
         :completing="completing === phase.id"
         :reopening="reopening === phase.id"
         @toggle-phase="togglePhase(phase.id!)"
-        @toggle-group="(groupId) => toggleGroup(phase.id!, groupId)"
+        @select-group="(groupId) => selectGroup(phase.id!, groupId)"
         @generate="handleGenerate(phase.id!)"
         @delete="confirmDelete(phase)"
         @complete="confirmComplete(phase)"

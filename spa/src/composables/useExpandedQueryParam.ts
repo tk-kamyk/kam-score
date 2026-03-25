@@ -1,5 +1,6 @@
 import { ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { scheduleQueryUpdate } from '@/composables/queryBatch'
 
 function parseQuerySet(param: unknown): Set<string> {
   if (!param || typeof param !== 'string') return new Set()
@@ -13,13 +14,8 @@ export function useExpandedQueryParam(queryKey: string) {
   const expanded = ref(parseQuerySet(route.query[queryKey]))
 
   watch(expanded, (value) => {
-    const query = { ...route.query }
-    if (value.size > 0) {
-      query[queryKey] = [...value].join(',')
-    } else {
-      delete query[queryKey]
-    }
-    router.replace({ query })
+    const serialized = value.size > 0 ? [...value].join(',') : undefined
+    scheduleQueryUpdate(router, queryKey, serialized)
   }, { deep: true })
 
   function toggle(id: string) {

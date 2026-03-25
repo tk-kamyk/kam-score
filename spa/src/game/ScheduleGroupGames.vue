@@ -11,19 +11,16 @@ const props = defineProps<{
   groupId: string
   groupName: string
   games: GameDto[]
-  expanded: boolean
-  singleGroup?: boolean
 }>()
+
+const hasLabels = computed(() => props.games.some(g => g.label))
 
 const tournamentId = inject<string>('tournamentId')!
 const isOwner = inject<Ref<boolean>>('isOwner')!
 const gameStore = useGameStore()
 const { showRefereeDialog, refereeGame, openRefereeDialog } = useRefereeDialog()
 
-const hasLabels = computed(() => props.games.some(g => g.label))
-
 const emit = defineEmits<{
-  toggle: []
   'open-result': [game: GameDto]
 }>()
 
@@ -52,15 +49,7 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
 
 <template>
   <div class="py-2 mx-0 mx-sm-6">
-    <div v-if="!singleGroup" class="d-flex align-center text-title-medium font-weight-medium group-header" @click.stop="emit('toggle')">
-      <v-icon
-        :icon="expanded ? 'mdi-chevron-down' : 'mdi-chevron-right'"
-        size="small"
-        class="mr-1"
-      />
-      Group {{ groupName }}
-    </div>
-    <v-card v-if="singleGroup || expanded" class="my-6 data-table-card">
+    <v-card class="my-6 data-table-card">
       <v-table density="compact" class="styled-table">
         <thead>
           <tr>
@@ -144,9 +133,5 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
 
 .styled-table tbody tr:hover {
   background-color: var(--ks-border-subtle);
-}
-
-.group-header {
-  cursor: pointer;
 }
 </style>

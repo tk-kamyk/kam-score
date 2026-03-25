@@ -4,6 +4,7 @@ import type { PhaseDto } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import type { StandingDto } from '@/standings/types'
 import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
+import PhaseGroupTabs from '@/components/PhaseGroupTabs.vue'
 import StandingsGroup from '@/standings/StandingsGroup.vue'
 import StandingsGames from '@/standings/StandingsGames.vue'
 
@@ -20,16 +21,6 @@ const emit = defineEmits<{
   'select-group': [groupId: string]
   'open-result': [game: GameDto]
 }>()
-
-const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
-
-const groupsByLevel = computed(() => {
-  if (!hasLevels.value) return []
-  return (props.phase.levels ?? []).map(level => ({
-    level,
-    groups: (props.phase.groups ?? []).filter(g => g.levelId === level.id),
-  }))
-})
 
 const selectedGroupGames = computed(() => {
   if (!props.selectedGroupId) return []
@@ -51,43 +42,12 @@ const selectedGroupGames = computed(() => {
     </template>
 
     <v-card-text class="px-lg-8 pb-lg-8">
-      <div v-if="phase.groups && phase.groups.length > 0" class="mb-4">
-        <v-chip-group
-          :model-value="selectedGroupId"
-          @update:model-value="(val: unknown) => { if (typeof val === 'string') emit('select-group', val) }"
-          selected-class="text-primary"
-          mandatory
-          aria-label="Select group"
-        >
-          <div v-if="hasLevels" class="d-flex flex-wrap w-100 ga-8">
-            <div v-for="{ level, groups } in groupsByLevel" :key="level.id" class="d-flex flex-column flex-grow-1 align-center">
-              <h4 v-if="groups.length > 1" class="level-chip-label text-subtitle-2 font-weight-bold w-100 text-center mb-1">{{ level.name }}</h4>
-              <div>
-                <v-chip
-                  v-for="group in groups"
-                  :key="group.id"
-                  :value="group.id"
-                  variant="outlined"
-                  filter
-                >
-                  {{ groups.length === 1 ? level.name : 'Group ' + group.name }}
-                </v-chip>
-              </div>
-            </div>
-          </div>
-          <template v-else>
-            <v-chip
-              v-for="group in phase.groups"
-              :key="group.id"
-              :value="group.id"
-              variant="outlined"
-              filter
-            >
-              Group {{ group.name }}
-            </v-chip>
-          </template>
-        </v-chip-group>
-      </div>
+      <PhaseGroupTabs
+        :groups="phase.groups ?? []"
+        :levels="phase.levels ?? []"
+        :selected-group-id="selectedGroupId"
+        @select-group="(groupId) => emit('select-group', groupId)"
+      />
 
       <template v-if="selectedGroupId">
         <div class="mb-8">
@@ -119,13 +79,3 @@ const selectedGroupGames = computed(() => {
     </v-card-text>
   </CollapsiblePhaseCard>
 </template>
-
-<style scoped>
-.level-chip-label {
-  flex-basis: 100%;
-}
-
-.level-chip-label:not(:first-child) {
-  margin-top: 8px;
-}
-</style>
