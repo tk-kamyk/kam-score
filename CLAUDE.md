@@ -152,7 +152,6 @@ Static classes in `Domain/Services/` — cross-entity logic, no external depende
 | Service | Responsibility |
 |---------|---------------|
 | `StandingsCalculator` | Thin facade delegating to format-specific strategies via `PhaseFormatStrategy` |
-| `FinalStandingsCalculator` | Cross-phase final standings; delegates cross-group ranking to format strategies |
 | `GameScheduler` | Schedules games across courts/time slots with conflict avoidance |
 | `PlaceholderTeamGenerator` | Creates placeholder teams for cross-phase progression |
 | `PlaceholderResolver` | Resolves/unresolves placeholder teams after phase completion |

@@ -1,7 +1,7 @@
-Feature: Final Standings (Tournament-wide)
+Feature: Final Standings (Last Phase)
   As a tournament viewer
-  I want to see the overall tournament standings across all phases
-  So that I can see where each team finished in the tournament
+  I want to see the standings of the last phase of the tournament
+  So that I can see where each team finished
 
   Background:
     Given a tournament with a structure, phases, groups, and assigned teams
@@ -28,39 +28,20 @@ Feature: Final Standings (Tournament-wide)
 
   # --- Multi-Phase ---
 
-  Scenario: Multi-phase tournament ranks eliminated teams after advancing teams
+  Scenario: Multi-phase tournament shows only last phase teams
     Given Phase 1 (round-robin) with 8 teams across 2 groups, GroupWinners=2
     And Phase 2 (playoff) with 4 advancing teams
     And all games in both phases are completed and both phases are completed
     When I request the final standings
-    Then positions 1-4 come from Phase 2 standings
-    And positions 5-8 come from Phase 1 non-advancing teams ranked by cross-group standings
-
-  Scenario: Three-phase tournament with progressive elimination
-    Given Phase 1 with 8 teams, 4 advance to Phase 2
-    And Phase 2 with 4 teams, 2 advance to Phase 3
-    And Phase 3 with 2 teams (final)
-    And all games in all phases are completed and all phases are completed
-    When I request the final standings
-    Then positions 1-2 come from Phase 3
-    And positions 3-4 come from Phase 2 non-advancing teams
-    And positions 5-8 come from Phase 1 non-advancing teams
-
-  Scenario: Non-advancing teams are ranked by cross-group standings within their phase
-    Given Phase 1 with 2 groups of 4 teams each, GroupWinners=1
-    And in group "A": "Eagles" (1st), "Hawks" (2nd), "Wolves" (3rd), "Bears" (4th)
-    And in group "B": "Lions" (1st), "Tigers" (2nd), "Panthers" (3rd), "Falcons" (4th)
-    And Phase 2 with "Eagles" and "Lions" advancing
-    And all games are completed and all phases are completed
-    When I request the final standings
-    Then positions 3-8 are assigned to the 6 non-advancing teams
-    And they are ordered by cross-group comparison (points, set difference, point difference)
+    Then only the 4 teams from Phase 2 appear in the standings
+    And positions are 1-4 based on Phase 2 standings
+    And the 4 teams eliminated in Phase 1 do not appear
 
   # --- Levels ---
 
-  Scenario: Tournament with levels produces per-level final standings
-    Given Phase 1 with 2 levels ("Gold", "Silver"), 2 groups per level, 4 teams per group
-    And Phase 2 with 2 levels, GroupWinners=1 from Phase 1
+  Scenario: Last phase with levels produces per-level standings
+    Given Phase 1 with 2 groups, no levels
+    And Phase 2 with 2 levels ("Gold", "Silver"), 1 group per level
     And all games are completed and all phases are completed
     When I request the final standings
     Then the response contains separate standings for "Gold" and "Silver"
@@ -68,63 +49,46 @@ Feature: Final Standings (Tournament-wide)
     And Gold standings only include teams from Gold-level groups
     And Silver standings only include teams from Silver-level groups
 
-  Scenario: Tournament without levels produces flat standings
-    Given a multi-phase tournament with no levels defined
+  Scenario: Last phase without levels produces flat standings
+    Given a multi-phase tournament where the last phase has no levels
     And all games are completed and all phases are completed
     When I request the final standings
     Then the response contains a single flat list with no level names
-    And positions are 1 through N for all teams
+    And positions are 1 through N for all teams in the last phase
 
-  # --- Not All Phases Completed ---
+  # --- Not Completed ---
 
-  Scenario: Not all phases completed returns empty standings
+  Scenario: Last phase not completed returns empty standings
     Given Phase 1 (completed) with 8 teams, 4 advance to Phase 2
     And Phase 2 is in progress with some games completed
     When I request the final standings
     Then the response is an empty list
 
-  Scenario: Only first phase in progress returns empty standings
-    Given Phase 1 is in progress with some games completed
-    And Phase 2 has no games yet
+  Scenario: No phases exist returns empty standings
+    Given a tournament with no phases
     When I request the final standings
     Then the response is an empty list
 
   # --- Placeholder Exclusion ---
 
   Scenario: Placeholder teams are excluded from final standings
-    Given Phase 1 with 4 real teams and Phase 2 with 2 placeholder teams
-    And all phases are completed
+    Given Phase 2 (last phase) with 2 real teams and 2 placeholder teams
+    And the phase is completed
     When I request the final standings
-    Then only the 4 real teams appear in the standings
+    Then only the 2 real teams appear in the standings
     And no placeholder team names appear
-
-  # --- Zero Progression (Final Phase) ---
-
-  Scenario: Phase with zero progression assigns positions to all teams
-    Given Phase 1 with 8 teams, GroupWinners=2, 2 groups
-    And Phase 2 with 4 teams, GroupWinners=0 (final phase)
-    And all games in both phases are completed and both phases are completed
-    When I request the final standings
-    Then positions 1-4 come from Phase 2 standings
-    And positions 5-8 come from Phase 1 non-advancing teams
 
   # --- Edge Cases ---
 
-  Scenario: No games completed returns empty standings
-    Given a tournament with phases but no completed games
+  Scenario: No games completed in last phase returns empty standings
+    Given the last phase is completed but has no completed games
     When I request the final standings
     Then the response is an empty list
-
-  Scenario: Phase without progression config is the last phase
-    Given Phase 1 with no GroupWinners and no TotalTeamsProceeding
-    And all Phase 1 games are completed and the phase is completed
-    When I request the final standings
-    Then all teams are ranked from Phase 1 standings
 
   # --- API Access ---
 
   Scenario: Anonymous user can view final standings
-    Given a tournament with completed games and all phases completed
+    Given a tournament with the last phase completed
     When an anonymous user requests the final standings
     Then the standings should be returned successfully
 
