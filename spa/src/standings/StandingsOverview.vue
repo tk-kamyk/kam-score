@@ -21,14 +21,14 @@ const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const standingsStore = useStandingsStore()
 const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
-const { selectedGroups, selectGroup: selectGroupBase } = useGroupSelection()
+const { selectedGroups, selectGroup: selectGroupBase, deselectGroup } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
 function togglePhase(phaseId: string) {
   togglePhaseBase(phaseId)
 
-  // Fetch standings for newly expanded phase
   if (expandedPhases.value.has(phaseId)) {
+    // Fetch standings for newly expanded phase
     if (!selectedGroups.value.has(phaseId)) {
       const phase = phases.value.find(p => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
@@ -38,6 +38,8 @@ function togglePhase(phaseId: string) {
       const groupId = selectedGroups.value.get(phaseId)!
       standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
     }
+  } else {
+    deselectGroup(phaseId)
   }
 }
 
