@@ -30,18 +30,22 @@ const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
 const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
-const { selectedGroups, selectGroup } = useGroupSelection()
+const { selectedGroups, selectGroup, deselectGroup } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
 function togglePhase(phaseId: string) {
   togglePhaseBase(phaseId)
 
-  // Auto-select first group for newly expanded phase
-  if (expandedPhases.value.has(phaseId) && !selectedGroups.value.has(phaseId)) {
-    const phase = phases.value.find(p => p.id === phaseId)
-    if (phase?.groups?.[0]?.id) {
-      selectGroup(phaseId, phase.groups[0].id)
+  if (expandedPhases.value.has(phaseId)) {
+    // Auto-select first group for newly expanded phase
+    if (!selectedGroups.value.has(phaseId)) {
+      const phase = phases.value.find(p => p.id === phaseId)
+      if (phase?.groups?.[0]?.id) {
+        selectGroup(phaseId, phase.groups[0].id)
+      }
     }
+  } else {
+    deselectGroup(phaseId)
   }
 }
 

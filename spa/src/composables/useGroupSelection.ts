@@ -29,5 +29,11 @@ export function useGroupSelection(queryKey = 'group') {
     selectedGroups.value = newMap
   }
 
-  return { selectedGroups, selectGroup }
+  function deselectGroup(phaseId: string) {
+    const newMap = new Map(selectedGroups.value)
+    newMap.delete(phaseId)
+    selectedGroups.value = newMap
+  }
+
+  return { selectedGroups, selectGroup, deselectGroup }
 }
