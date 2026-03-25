@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useStandingsStore } from '@/standings/store'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
+import { useGroupSelection } from '@/composables/useGroupSelection'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import type { GameDto } from '@/game/types'
 import SectionHeader from '@/components/SectionHeader.vue'
@@ -17,35 +17,12 @@ const props = defineProps<{
   active: boolean
 }>()
 
-const route = useRoute()
-const router = useRouter()
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const standingsStore = useStandingsStore()
 const { expanded: expandedPhases, toggle: togglePhaseBase } = useExpandedQueryParam('phase')
+const { selectedGroups, selectGroup: selectGroupBase } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
-
-function parseGroupSelections(param: unknown): Map<string, string> {
-  if (!param || typeof param !== 'string') return new Map()
-  const map = new Map<string, string>()
-  for (const entry of param.split(',').filter(Boolean)) {
-    const [phaseId, groupId] = entry.split(':')
-    if (phaseId && groupId) map.set(phaseId, groupId)
-  }
-  return map
-}
-
-const selectedGroups = ref(parseGroupSelections(route.query.group))
-
-watch(selectedGroups, (groups) => {
-  const query = { ...route.query }
-  if (groups.size > 0) {
-    query.group = [...groups.entries()].map(([p, g]) => `${p}:${g}`).join(',')
-  } else {
-    delete query.group
-  }
-  router.replace({ query })
-}, { deep: true })
 
 function togglePhase(phaseId: string) {
   togglePhaseBase(phaseId)
@@ -65,9 +42,7 @@ function togglePhase(phaseId: string) {
 }
 
 function selectGroup(phaseId: string, groupId: string) {
-  const newMap = new Map(selectedGroups.value)
-  newMap.set(phaseId, groupId)
-  selectedGroups.value = newMap
+  selectGroupBase(phaseId, groupId)
   standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
 }
 

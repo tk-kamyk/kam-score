@@ -3,13 +3,14 @@ import { computed } from 'vue'
 import type { PhaseDto } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
+import PhaseGroupTabs from '@/components/PhaseGroupTabs.vue'
 import ScheduleGroupGames from '@/game/ScheduleGroupGames.vue'
 
 const props = defineProps<{
   phase: PhaseDto
   games: GameDto[]
   expanded: boolean
-  expandedGroups: Set<string>
+  selectedGroupId: string | null
   isOwner: boolean
   generating: boolean
   completing: boolean
@@ -18,7 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'toggle-phase': []
-  'toggle-group': [groupId: string]
+  'select-group': [groupId: string]
   generate: []
   delete: []
   complete: []
@@ -30,70 +31,37 @@ const allGamesCompleted = computed(() =>
   props.games.length > 0 && props.games.every(g => g.status === 'Completed'),
 )
 
-const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
-
-const groupsByLevel = computed(() => {
-  if (!hasLevels.value) return []
-  return (props.phase.levels ?? []).map(level => ({
-    level,
-    groupIds: (props.phase.groups ?? []).filter(g => g.levelId === level.id).map(g => g.id!),
-  }))
+const selectedGroupGames = computed(() => {
+  if (!props.selectedGroupId) return []
+  return props.games.filter(g => g.groupId === props.selectedGroupId)
 })
 
-function gamesByGroup(games: GameDto[]): Record<string, GameDto[]> {
-  const map: Record<string, GameDto[]> = {}
-  for (const game of games) {
-    const key = game.groupId ?? ''
-    if (!map[key]) map[key] = []
-    map[key].push(game)
-  }
-  return map
-}
-
-const groupCount = computed(() => Object.keys(gamesByGroup(props.games)).length)
-
-function groupName(groupId: string): string {
-  const group = props.phase.groups?.find(g => g.id === groupId)
-  return group?.name ?? groupId
-}
+const selectedGroupName = computed(() => {
+  if (!props.selectedGroupId) return ''
+  const group = props.phase.groups?.find(g => g.id === props.selectedGroupId)
+  return group?.name ?? ''
+})
 </script>
 
 <template>
   <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
     <v-card-text class="px-lg-8 pb-lg-8">
       <template v-if="games.length > 0">
-        <template v-if="hasLevels">
-          <div v-for="{ level, groupIds } in groupsByLevel" :key="level.id" class="level-section">
-            <h3 class="text-subtitle-1 font-weight-bold mb-1 mt-2">{{ level.name }}</h3>
-            <template v-for="(groupGames, groupId) in gamesByGroup(games)" :key="groupId">
-              <ScheduleGroupGames
-                v-if="groupIds.includes(groupId as string)"
-                :phase-id="phase.id!"
-                :group-id="groupId as string"
-                :group-name="groupName(groupId as string)"
-                :games="groupGames"
-                :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
-                :single-group="groupIds.length === 1"
-                @toggle="emit('toggle-group', groupId as string)"
-                @open-result="(game) => emit('open-result', game)"
-              />
-            </template>
-          </div>
-        </template>
-        <template v-else>
-          <ScheduleGroupGames
-            v-for="(groupGames, groupId) in gamesByGroup(games)"
-            :key="groupId"
-            :phase-id="phase.id!"
-            :group-id="groupId as string"
-            :group-name="groupName(groupId as string)"
-            :games="groupGames"
-            :expanded="expandedGroups.has(`${phase.id}:${groupId}`)"
-            :single-group="groupCount === 1"
-            @toggle="emit('toggle-group', groupId as string)"
-            @open-result="(game) => emit('open-result', game)"
-          />
-        </template>
+        <PhaseGroupTabs
+          :groups="phase.groups ?? []"
+          :levels="phase.levels ?? []"
+          :selected-group-id="selectedGroupId"
+          @select-group="(groupId) => emit('select-group', groupId)"
+        />
+
+        <ScheduleGroupGames
+          v-if="selectedGroupId"
+          :phase-id="phase.id!"
+          :group-id="selectedGroupId"
+          :group-name="selectedGroupName"
+          :games="selectedGroupGames"
+          @open-result="(game) => emit('open-result', game)"
+        />
       </template>
 
       <v-alert
@@ -152,10 +120,3 @@ function groupName(groupId: string): string {
     </template>
   </CollapsiblePhaseCard>
 </template>
-
-<style scoped>
-.level-section:not(:last-child) {
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--ks-border-subtle);
-}
-</style>
