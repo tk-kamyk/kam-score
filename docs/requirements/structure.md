@@ -149,16 +149,12 @@
 - Teams that have not yet been eliminated default to the worst position
 
 ## Final Standings (Tournament-wide)
-- Final standings aggregate results across all phases to produce a single tournament-wide ranking
+- Final standings show the standings of the **last phase** (highest order) only
+- Only available when the last phase has status `Completed` — returns empty list otherwise
 - Placeholder teams are excluded — only real teams appear
-- The last phase (highest order) assigns positions 1 through N from its group standings
-- For each earlier phase with progression config, teams that did **not** advance get positions starting after the advancing teams, ranked by their cross-group standings within that phase
-    - Example: 8 teams in Phase 1, 4 advance to Phase 2 → Phase 2 standings give positions 1-4, Phase 1 non-advancing teams get positions 5-8
-- When levels are used, final standings are calculated independently per level — each level has its own 1-N ranking
-- Final standings are available as soon as any phase has completed games (provisional mode):
-    - Completed phases contribute finalized positions for eliminated teams
-    - The current (in-progress or last) phase contributes current positions for active teams
-    - When not all phases are complete, standings are marked as "provisional"
+- Within the last phase, standings are calculated per group using the phase format's strategy, then ranked across groups
+- When the last phase has levels, standings are calculated independently per level — each level has its own 1-N ranking
+- Teams from earlier phases that did not advance to the last phase are **not** included
 - Final standings are read-only and publicly accessible (anonymous access)
 - The response includes: position, team ID, team name, and optionally level name
 

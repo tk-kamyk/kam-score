@@ -96,7 +96,7 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
     }
 
     [Fact]
-    public async Task GetFinalStandings_TwoPhases_EliminatedTeamsGetLowerPositions()
+    public async Task GetFinalStandings_MultiPhase_ReturnsOnlyLastPhaseTeams()
     {
         var tournament = CreateTestTournament();
         var structure = TournamentStructure.Create(tournament.Id);
@@ -131,33 +131,31 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
 
         var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
-        result.Should().HaveCount(4);
+        result.Should().HaveCount(2);
         result![0].TeamName.Should().Be("Hawks");
         result[0].Position.Should().Be(1);
         result[1].TeamName.Should().Be("Eagles");
         result[1].Position.Should().Be(2);
-        result[2].TeamName.Should().Be("Wolves");
-        result[2].Position.Should().Be(3);
-        result[3].TeamName.Should().Be("Bears");
-        result[3].Position.Should().Be(4);
     }
 
     [Fact]
-    public async Task GetFinalStandings_ReturnsEmpty_WhenPhaseNotCompleted()
+    public async Task GetFinalStandings_LastPhaseNotCompleted_ReturnsEmpty()
     {
         var tournament = CreateTestTournament();
         var structure = TournamentStructure.Create(tournament.Id);
 
-        var phase = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 1);
-        phase.Status = PhaseStatus.InProgress;
-        var groupId = phase.Groups[0].Id;
-        phase.Groups[0].TeamIds.AddRange(["team1", "team2"]);
+        var phase1 = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 1);
+        phase1.Status = PhaseStatus.Completed;
+
+        var phase2 = structure.AddPhase("Final", PhaseFormat.RoundRobin, 1);
+        phase2.Status = PhaseStatus.InProgress;
+        phase2.Groups[0].TeamIds.AddRange(["team1", "team2"]);
 
         var teams = CreateTeams(tournament.Id, "Eagles", "Hawks");
 
         var games = new List<Game>
         {
-            CompletedGame(tournament.Id, phase.Id, groupId, "team1", "team2", 2, 0),
+            CompletedGame(tournament.Id, phase2.Id, phase2.Groups[0].Id, "team1", "team2", 2, 0),
         };
 
         SetupFakes(tournament, structure, teams, games);
@@ -171,15 +169,12 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
     }
 
     [Fact]
-    public async Task GetFinalStandings_NoGames_ReturnsEmptyStandings()
+    public async Task GetFinalStandings_NoPhases_ReturnsEmpty()
     {
         var tournament = CreateTestTournament();
         var structure = TournamentStructure.Create(tournament.Id);
-        structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 1);
 
-        var teams = CreateTeams(tournament.Id, "Eagles", "Hawks");
-
-        SetupFakes(tournament, structure, teams, []);
+        SetupFakes(tournament, structure, [], []);
 
         var client = _factory.CreateClient();
         var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
@@ -220,6 +215,81 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
         var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
         result.Should().HaveCount(2);
         result.Should().NotContain(s => s.TeamName.Contains("Seed"));
+    }
+
+    [Fact]
+    public async Task GetFinalStandings_MultipleGroups_CrossGroupRanking()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2);
+        phase.Status = PhaseStatus.Completed;
+
+        phase.Groups[0].TeamIds.AddRange(["team1", "team2"]);
+        phase.Groups[1].TeamIds.AddRange(["team3", "team4"]);
+
+        var teams = CreateTeams(tournament.Id, "Eagles", "Hawks", "Wolves", "Bears");
+
+        var games = new List<Game>
+        {
+            CompletedGame(tournament.Id, phase.Id, phase.Groups[0].Id, "team1", "team2", 2, 0),
+            CompletedGame(tournament.Id, phase.Id, phase.Groups[1].Id, "team3", "team4", 2, 1),
+        };
+
+        SetupFakes(tournament, structure, teams, games);
+
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
+
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().HaveCount(4);
+        result![0].Position.Should().Be(1);
+        result![3].Position.Should().Be(4);
+        result.Should().OnlyContain(s => s.LevelName == null);
+    }
+
+    [Fact]
+    public async Task GetFinalStandings_WithLevels_ReturnsPerLevelStandings()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Playoffs", PhaseFormat.RoundRobin, 1,
+            numberOfLevels: 2);
+        phase.Status = PhaseStatus.Completed;
+
+        var goldGroup = phase.Groups.First(g => g.LevelId == phase.Levels[0].Id);
+        goldGroup.TeamIds.AddRange(["team1", "team2"]);
+
+        var silverGroup = phase.Groups.First(g => g.LevelId == phase.Levels[1].Id);
+        silverGroup.TeamIds.AddRange(["team3", "team4"]);
+
+        var teams = CreateTeams(tournament.Id, "Eagles", "Hawks", "Wolves", "Bears");
+
+        var games = new List<Game>
+        {
+            CompletedGame(tournament.Id, phase.Id, goldGroup.Id, "team1", "team2", 2, 0),
+            CompletedGame(tournament.Id, phase.Id, silverGroup.Id, "team3", "team4", 2, 1),
+        };
+
+        SetupFakes(tournament, structure, teams, games);
+
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
+
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().HaveCount(4);
+
+        var level1 = result!.Where(s => s.LevelName == "Level 1").ToList();
+        level1.Should().HaveCount(2);
+        level1[0].Position.Should().Be(1);
+        level1[0].TeamName.Should().Be("Eagles");
+        level1[1].Position.Should().Be(2);
+
+        var level2 = result.Where(s => s.LevelName == "Level 2").ToList();
+        level2.Should().HaveCount(2);
+        level2[0].Position.Should().Be(1);
+        level2[0].TeamName.Should().Be("Wolves");
+        level2[1].Position.Should().Be(2);
     }
 
     [Fact]
