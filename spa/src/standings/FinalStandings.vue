@@ -32,7 +32,7 @@ const hasData = computed(() => props.data.length > 0)
 
     <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
 
-    <div v-if="hasData" class="d-flex flex-column flex-sm-row flex-wrap ga-4">
+    <div v-if="hasData" class="d-flex flex-column flex-md-row flex-wrap ga-8">
       <div v-for="level in levels" :key="level.name ?? 'flat'" class="level-col">
         <h4 v-if="level.name" class="text-title-small mb-2 mt-0">{{ level.name }}</h4>
 
@@ -72,7 +72,7 @@ const hasData = computed(() => props.data.length > 0)
 
 .level-col {
   flex: 1 1 0;
-  min-width: 0;
+  min-width: 40%;
 }
 
 .position-col {
