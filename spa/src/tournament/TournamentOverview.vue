@@ -39,7 +39,7 @@ watch(activeTab, (tab) => {
 
 const tournament = computed(() => tournamentStore.currentTournament)
 const isOwner = computed(() =>
-  auth.isAuthenticated && tournament.value?.ownerId === auth.username
+  auth.isAuthenticated && (tournament.value?.ownerId === auth.username || auth.isAdmin)
 )
 
 const tabLabels: Record<string, string> = {

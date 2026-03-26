@@ -31,6 +31,18 @@ public class AuthApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task Login_ValidCredentials_ShouldReturnRole()
+    {
+        var request = new LoginRequestDto("admin", "admin123");
+
+        var response = await _client.PostAsJsonAsync("/api/auth/login", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<LoginResponseDto>();
+        result!.Role.Should().Be("User");
+    }
+
+    [Fact]
     public async Task Login_InvalidCredentials_ShouldReturn401()
     {
         var request = new LoginRequestDto("admin", "wrongpassword");

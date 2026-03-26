@@ -10,6 +10,7 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
 {
     public const string AuthenticationScheme = "TestScheme";
     public const string TestUserIdHeader = "X-Test-UserId";
+    public const string TestRoleHeader = "X-Test-Role";
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -30,11 +31,20 @@ public class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim(ClaimTypes.Name, userId)
         };
+
+        if (Request.Headers.TryGetValue(TestRoleHeader, out var roleValues))
+        {
+            var role = roleValues.FirstOrDefault();
+            if (!string.IsNullOrEmpty(role))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
 
         var identity = new ClaimsIdentity(claims, AuthenticationScheme);
         var principal = new ClaimsPrincipal(identity);

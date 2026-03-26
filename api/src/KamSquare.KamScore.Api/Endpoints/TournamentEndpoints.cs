@@ -36,7 +36,7 @@ public static class TournamentEndpoints
         var dtos = allTournaments.Select(tournament =>
         {
             var dto = mapper.Map<TournamentDto>(tournament);
-            if (!currentUser.IsAuthenticated || !tournament.IsOwnedBy(currentUser.UserId!))
+            if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
             {
                 dto = HideTournamentCode(dto);
             }
@@ -72,7 +72,7 @@ public static class TournamentEndpoints
 
         var dto = mapper.Map<TournamentDto>(tournament);
 
-        if (!currentUser.IsAuthenticated || !tournament.IsOwnedBy(currentUser.UserId!))
+        if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
         {
             dto = HideTournamentCode(dto);
         }

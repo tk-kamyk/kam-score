@@ -24,6 +24,6 @@ public static class AuthEndpoints
             return Results.Unauthorized();
         }
 
-        return Results.Ok(new LoginResponseDto(result.Token, result.Username, result.DisplayName));
+        return Results.Ok(new LoginResponseDto(result.Token, result.Username, result.DisplayName, result.Role));
     }
 }

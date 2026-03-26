@@ -18,4 +18,7 @@ public class CurrentUserService : ICurrentUserService
 
     public bool IsAuthenticated =>
         _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated == true;
+
+    public bool IsAdmin =>
+        _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.Role) == "Admin";
 }

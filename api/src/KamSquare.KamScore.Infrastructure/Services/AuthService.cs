@@ -33,7 +33,7 @@ public class AuthService : IAuthService
         }
 
         var token = GenerateToken(user);
-        return new AuthResult(token, user.Username, user.DisplayName);
+        return new AuthResult(token, user.Username, user.DisplayName, user.Role);
     }
 
     private string GenerateToken(UserEntry user)
@@ -44,7 +44,8 @@ public class AuthService : IAuthService
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Username),
-            new Claim(ClaimTypes.Name, user.DisplayName)
+            new Claim(ClaimTypes.Name, user.DisplayName),
+            new Claim(ClaimTypes.Role, user.Role)
         };
 
         var token = new JwtSecurityToken(

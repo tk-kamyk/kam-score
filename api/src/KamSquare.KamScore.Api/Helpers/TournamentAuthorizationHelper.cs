@@ -8,6 +8,12 @@ namespace KamSquare.KamScore.Api.Helpers;
 
 public static class TournamentAuthorizationHelper
 {
+    public static bool HasAdminAccess(Tournament tournament, ICurrentUserService currentUser)
+    {
+        return currentUser.IsAuthenticated &&
+            (tournament.IsOwnedBy(currentUser.UserId!) || currentUser.IsAdmin);
+    }
+
     public static async Task<Tournament> GetOwnedTournamentAsync(
         this ITournamentRepository repository,
         ICurrentUserService currentUser,
@@ -16,7 +22,7 @@ public static class TournamentAuthorizationHelper
         var tournament = await repository.GetByIdAsync(tournamentId);
         if (tournament is null)
             throw new NotFoundException(nameof(Tournament), tournamentId);
-        if (!tournament.IsOwnedBy(currentUser.UserId!))
+        if (!HasAdminAccess(tournament, currentUser))
             throw new ForbiddenException();
         return tournament;
     }
@@ -26,8 +32,7 @@ public static class TournamentAuthorizationHelper
         ICurrentUserService currentUser,
         HttpContext httpContext)
     {
-        var isOwner = currentUser.IsAuthenticated && tournament.IsOwnedBy(currentUser.UserId!);
-        if (isOwner)
+        if (HasAdminAccess(tournament, currentUser))
             return;
 
         var code = httpContext.Request.Headers["X-Tournament-Code"].FirstOrDefault();

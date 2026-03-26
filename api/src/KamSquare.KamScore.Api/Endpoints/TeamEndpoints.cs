@@ -43,7 +43,7 @@ public static class TeamEndpoints
 
         var dtos = mapper.Map<IEnumerable<TeamDto>>(teams);
 
-        if (!currentUser.IsAuthenticated || !tournament.IsOwnedBy(currentUser.UserId!))
+        if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
             dtos = dtos.Select(HideContactInfo);
 
         return Results.Ok(dtos);

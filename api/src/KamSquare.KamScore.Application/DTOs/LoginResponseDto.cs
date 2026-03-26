@@ -1,3 +1,3 @@
 namespace KamSquare.KamScore.Application.DTOs;
 
-public record LoginResponseDto(string Token, string Username, string DisplayName);
+public record LoginResponseDto(string Token, string Username, string DisplayName, string Role);
