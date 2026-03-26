@@ -32,19 +32,16 @@ public static class TournamentEndpoints
         ICurrentUserService currentUser,
         IMapper mapper)
     {
-        IEnumerable<TournamentDto> dtos;
-
-        if (currentUser.IsAuthenticated)
+        var allTournaments = await repository.GetAllAsync();
+        var dtos = allTournaments.Select(tournament =>
         {
-            var tournaments = await repository.GetByOwnerIdAsync(currentUser.UserId!);
-            dtos = mapper.Map<IEnumerable<TournamentDto>>(tournaments);
-        }
-        else
-        {
-            var allTournaments = await repository.GetAllAsync();
-            dtos = mapper.Map<IEnumerable<TournamentDto>>(allTournaments)
-                .Select(HideTournamentCode);
-        }
+            var dto = mapper.Map<TournamentDto>(tournament);
+            if (!currentUser.IsAuthenticated || !tournament.IsOwnedBy(currentUser.UserId!))
+            {
+                dto = HideTournamentCode(dto);
+            }
+            return dto;
+        });
 
         var enrichmentTasks = dtos.Select(async dto =>
         {

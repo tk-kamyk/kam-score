@@ -76,19 +76,38 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetTournaments_Authenticated_ShouldReturnOwnWithCodes()
+    public async Task GetTournaments_Authenticated_ShouldReturnAllTournaments()
     {
         var client = _factory.CreateAuthenticatedClient("alice");
-        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
-        A.CallTo(() => _factory.FakeRepository.GetByOwnerIdAsync("alice"))
-            .Returns(new[] { tournament });
+        var ownTournament = Tournament.Create("Cup A", Discipline.Volleyball, "alice");
+        var otherTournament = Tournament.Create("Cup B", Discipline.Volleyball, "bob");
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync())
+            .Returns(new[] { ownTournament, otherTournament });
 
         var response = await client.GetAsync("/api/tournaments");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
-        result.Should().HaveCount(1);
-        result![0].TournamentCode.Should().NotBeNullOrEmpty();
+        result.Should().HaveCount(2);
+    }
+
+    [Fact]
+    public async Task GetTournaments_Authenticated_ShouldShowCodeOnlyForOwnTournaments()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var ownTournament = Tournament.Create("Cup A", Discipline.Volleyball, "alice");
+        var otherTournament = Tournament.Create("Cup B", Discipline.Volleyball, "bob");
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync())
+            .Returns(new[] { ownTournament, otherTournament });
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        var cupA = result!.Single(t => t.Name == "Cup A");
+        var cupB = result!.Single(t => t.Name == "Cup B");
+        cupA.TournamentCode.Should().NotBeNullOrEmpty();
+        cupB.TournamentCode.Should().BeNull();
     }
 
     [Fact]
