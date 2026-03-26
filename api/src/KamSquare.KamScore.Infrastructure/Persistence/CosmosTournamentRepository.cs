@@ -22,15 +22,6 @@ public class CosmosTournamentRepository : CosmosRepository<Tournament>, ITournam
         return results.FirstOrDefault();
     }
 
-    public async Task<IEnumerable<Tournament>> GetByOwnerIdAsync(string ownerId)
-    {
-        var query = new QueryDefinition("SELECT * FROM c WHERE c.ownerId = @ownerId")
-            .WithParameter("@ownerId", ownerId);
-
-        return await ExecuteQueryAsync<Tournament>(query,
-            new QueryRequestOptions { PartitionKey = new PartitionKey(ownerId) });
-    }
-
     public async Task<IEnumerable<Tournament>> GetAllAsync()
     {
         var query = new QueryDefinition("SELECT TOP 1000 * FROM c");

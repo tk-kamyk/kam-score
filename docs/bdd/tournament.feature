@@ -43,11 +43,25 @@ Feature: Tournament Management
     When the user deletes the tournament
     Then the tournament no longer appears in the list
 
-  Scenario: User lists only their own tournaments
+  Scenario: Authenticated user sees all tournaments
     Given user "Alice" owns tournament "Cup A"
     And user "Bob" owns tournament "Cup B"
-    When Alice requests her tournament list
-    Then only "Cup A" is returned
+    When Alice requests the tournament list
+    Then both "Cup A" and "Cup B" are returned
+
+  Scenario: Authenticated user sees codes only for own tournaments in list
+    Given user "Alice" owns tournament "Cup A"
+    And user "Bob" owns tournament "Cup B"
+    When Alice requests the tournament list
+    Then "Cup A" includes the tournament code
+    And "Cup B" does not include the tournament code
+
+  Scenario: Anonymous visitor sees all tournaments without codes in list
+    Given user "Alice" owns tournament "Cup A"
+    And user "Bob" owns tournament "Cup B"
+    When a visitor requests the tournament list
+    Then both "Cup A" and "Cup B" are returned
+    And neither tournament includes the tournament code
 
   Scenario: User cannot update another user's tournament
     Given user "Alice" owns tournament "Cup A"
