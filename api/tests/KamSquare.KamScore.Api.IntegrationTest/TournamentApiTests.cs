@@ -254,6 +254,88 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetTournament_NonOwner_ShouldExcludeCode()
+    {
+        var client = _factory.CreateAuthenticatedClient("bob");
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.TournamentCode.Should().BeNull();
+    }
+
+    // --- Admin role tests ---
+
+    [Fact]
+    public async Task UpdateTournament_Admin_ShouldSucceedForOtherUsersTournament()
+    {
+        var client = _factory.CreateAdminClient("admin-user");
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+        A.CallTo(() => _factory.FakeRepository.UpdateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null);
+
+        var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Name.Should().Be("Winter Cup");
+    }
+
+    [Fact]
+    public async Task DeleteTournament_Admin_ShouldSucceedForOtherUsersTournament()
+    {
+        var client = _factory.CreateAdminClient("admin-user");
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+
+        var response = await client.DeleteAsync($"/api/tournaments/{tournament.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task GetTournaments_Admin_ShouldShowCodesForAllTournaments()
+    {
+        var client = _factory.CreateAdminClient("admin-user");
+        var aliceTournament = Tournament.Create("Cup A", Discipline.Volleyball, "alice");
+        var bobTournament = Tournament.Create("Cup B", Discipline.Volleyball, "bob");
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync())
+            .Returns(new[] { aliceTournament, bobTournament });
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Should().HaveCount(2);
+        result[0].TournamentCode.Should().NotBeNullOrEmpty();
+        result[1].TournamentCode.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task GetTournament_Admin_ShouldShowCodeForOtherUsersTournament()
+    {
+        var client = _factory.CreateAdminClient("admin-user");
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.TournamentCode.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
     public async Task DeleteTournament_Owner_ShouldAlsoDeleteAllRelatedEntities()
     {
         var client = _factory.CreateAuthenticatedClient("alice");

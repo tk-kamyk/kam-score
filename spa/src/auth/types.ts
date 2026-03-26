@@ -7,4 +7,5 @@ export interface LoginResponse {
   token: string
   username: string
   displayName: string
+  role: string
 }

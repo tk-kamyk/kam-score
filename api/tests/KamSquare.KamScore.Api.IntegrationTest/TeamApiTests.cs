@@ -190,6 +190,59 @@ public class TeamApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetTeams_NonOwner_ShouldReturnTeamsWithoutContactInfo()
+    {
+        var tournament = CreateTestTournament("alice");
+        SetupTournament(tournament);
+        var team = Team.Create("Eagles", 75, tournament.Id, "eagles@example.com", "+123456789");
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { team });
+        var client = _factory.CreateAuthenticatedClient("bob");
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/teams");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TeamDto>>();
+        result.Should().HaveCount(1);
+        result![0].Email.Should().BeNull();
+        result![0].Phone.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetTeams_Admin_ShouldReturnTeamsWithContactInfo()
+    {
+        var tournament = CreateTestTournament();
+        SetupTournament(tournament);
+        var team = Team.Create("Eagles", 75, tournament.Id, "eagles@example.com", "+123456789");
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { team });
+        var client = _factory.CreateAdminClient("admin-user");
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/teams");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TeamDto>>();
+        result.Should().HaveCount(1);
+        result![0].Email.Should().Be("eagles@example.com");
+        result![0].Phone.Should().Be("+123456789");
+    }
+
+    [Fact]
+    public async Task CreateTeam_Admin_ShouldSucceedForOtherUsersTournament()
+    {
+        var tournament = CreateTestTournament("alice");
+        SetupTournament(tournament);
+        A.CallTo(() => _factory.FakeTeamRepository.CreateAsync(A<Team>.Ignored))
+            .ReturnsLazily((Team t) => Task.FromResult(t));
+        var client = _factory.CreateAdminClient("admin-user");
+
+        var dto = new TeamDto(null, "Eagles", 75, null, null);
+        var response = await client.PostAsJsonAsync($"/api/tournaments/{tournament.Id}/teams", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
     public async Task CreateTeam_Anonymous_ShouldReturn401()
     {
         var client = _factory.CreateClient();

@@ -98,4 +98,11 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
         client.DefaultRequestHeaders.Add(TestAuthHandler.TestUserIdHeader, userId);
         return client;
     }
+
+    public HttpClient CreateAdminClient(string userId)
+    {
+        var client = CreateAuthenticatedClient(userId);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.TestRoleHeader, "Admin");
+        return client;
+    }
 }
