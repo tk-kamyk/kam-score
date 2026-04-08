@@ -28,6 +28,16 @@ const selectedGroupGames = computed(() => {
     .filter(g => g.groupId === props.selectedGroupId)
     .sort((a, b) => (a.round ?? 0) - (b.round ?? 0))
 })
+
+const numberOfGroupsInScope = computed(() => {
+  if (!props.selectedGroupId) return 0
+  const groups = props.phase.groups ?? []
+  const selectedGroup = groups.find(g => g.id === props.selectedGroupId)
+  if (selectedGroup?.levelId) {
+    return groups.filter(g => g.levelId === selectedGroup.levelId).length
+  }
+  return groups.length
+})
 </script>
 
 <template>
@@ -55,6 +65,9 @@ const selectedGroupGames = computed(() => {
           <StandingsGroup
             :standings="standings"
             :phase-format="phase.format"
+            :group-winners="phase.groupWinners"
+            :total-teams-proceeding="phase.totalTeamsProceeding"
+            :number-of-groups="numberOfGroupsInScope"
           />
         </div>
 

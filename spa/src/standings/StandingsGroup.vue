@@ -1,12 +1,41 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import type { StandingDto } from '@/standings/types'
 
-defineProps<{
+const props = defineProps<{
   standings: StandingDto[]
   phaseFormat: string
+  groupWinners?: number
+  totalTeamsProceeding?: number
+  numberOfGroups: number
 }>()
 
 const isRoundRobin = (format: string) => format === 'RoundRobin'
+
+const progressionThresholds = computed(() => {
+  const gw = props.groupWinners
+  const total = props.totalTeamsProceeding
+  const groups = props.numberOfGroups
+
+  if ((!gw && !total) || groups <= 0) return { directMax: 0, candidateMax: 0 }
+
+  const directMax = gw ?? 0
+  const directCount = directMax * groups
+  const wildcardSlots = total ? total - directCount : 0
+
+  if (wildcardSlots <= 0) return { directMax, candidateMax: directMax }
+
+  const candidateDepth = Math.ceil(wildcardSlots / groups)
+  return { directMax, candidateMax: directMax + candidateDepth }
+})
+
+function getRowClass(index: number): string {
+  const row = index + 1
+  const { directMax, candidateMax } = progressionThresholds.value
+  if (directMax > 0 && row <= directMax) return 'row-direct-qualifier'
+  if (candidateMax > 0 && row <= candidateMax) return 'row-candidate'
+  return ''
+}
 </script>
 
 <template>
@@ -28,7 +57,7 @@ const isRoundRobin = (format: string) => format === 'RoundRobin'
         </tr>
       </thead>
       <tbody>
-        <tr v-for="standing in standings" :key="standing.teamId">
+        <tr v-for="(standing, index) in standings" :key="standing.teamId" :class="getRowClass(index)">
           <td class="text-center">{{ standing.position }}</td>
           <td>{{ standing.teamName ?? standing.teamId }}</td>
           <td v-if="isRoundRobin(phaseFormat)"class="text-center">{{ standing.points }}</td>
@@ -57,5 +86,21 @@ const isRoundRobin = (format: string) => format === 'RoundRobin'
 
 .styled-table tbody tr:hover {
   background-color: var(--ks-border-subtle);
+}
+
+.styled-table tbody tr.row-direct-qualifier {
+  background-color: rgba(var(--v-theme-success), 0.12);
+}
+
+.styled-table tbody tr.row-candidate {
+  background-color: rgba(var(--v-theme-warning), 0.12);
+}
+
+.styled-table tbody tr.row-direct-qualifier:hover {
+  background-color: rgba(var(--v-theme-success), 0.2);
+}
+
+.styled-table tbody tr.row-candidate:hover {
+  background-color: rgba(var(--v-theme-warning), 0.2);
 }
 </style>

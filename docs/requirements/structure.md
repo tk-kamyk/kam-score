@@ -148,6 +148,17 @@
 - Earlier LB round losers get worse positions; later LB round losers get better positions
 - Teams that have not yet been eliminated default to the worst position
 
+## Progression Highlighting
+- When a phase has progression config (`groupWinners` and/or `totalTeamsProceeding`), standings rows are visually highlighted to indicate qualification status
+- Applies to all phase formats, not just Round Robin
+- **Direct qualifiers**: position ≤ `groupWinners` → highlighted in green/success color
+- **Candidates**: teams that could qualify via cross-group "best remaining" ranking → highlighted in yellow/warning color
+- Candidate depth = `ceil(wildcardSlots / groupsInScope)` positions after `groupWinners`, where `wildcardSlots = totalTeamsProceeding - groupWinners × groupsInScope`
+- When only `totalTeamsProceeding` is set (no `groupWinners`): highlight `ceil(totalTeamsProceeding / groupsInScope)` top positions as candidates (yellow)
+- When only `groupWinners` is set: only direct qualifiers are highlighted, no candidates
+- When neither is set: no highlighting
+- With levels: `groupsInScope` = number of groups in the same level as the selected group (not total groups across all levels)
+
 ## Final Standings (Tournament-wide)
 - Final standings show the standings of the **last phase** (highest order) only
 - Only available when the last phase has status `Completed` — returns empty list otherwise

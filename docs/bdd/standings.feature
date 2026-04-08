@@ -119,6 +119,46 @@ Feature: Group Standings
     When I request standings for group "A"
     Then no team should have a confirmed position yet
 
+  # --- Progression Highlighting ---
+
+  Scenario: Direct qualifiers highlighted when groupWinners is set
+    Given a round-robin phase with 4 groups and groupWinners=1
+    When I view standings for any group
+    Then the team at position 1 should be highlighted as a direct qualifier
+    And teams at position 2 and below should have no highlighting
+
+  Scenario: Candidates highlighted when totalTeamsProceeding creates wildcard slots
+    Given a round-robin phase with 4 groups, groupWinners=1, and totalTeamsProceeding=6
+    When I view standings for any group
+    Then the team at position 1 should be highlighted as a direct qualifier
+    And the team at position 2 should be highlighted as a candidate
+    And teams at position 3 and below should have no highlighting
+
+  Scenario: Multiple candidate positions when wildcard slots exceed group count
+    Given a round-robin phase with 4 groups, groupWinners=1, and totalTeamsProceeding=10
+    When I view standings for any group
+    Then the team at position 1 should be highlighted as a direct qualifier
+    And teams at positions 2 and 3 should be highlighted as candidates
+    And teams at position 4 and below should have no highlighting
+
+  Scenario: Only totalTeamsProceeding set — all top positions are candidates
+    Given a round-robin phase with 4 groups and totalTeamsProceeding=8
+    When I view standings for any group
+    Then teams at positions 1 and 2 should be highlighted as candidates
+    And teams at position 3 and below should have no highlighting
+
+  Scenario: No progression config — no highlighting
+    Given a round-robin phase with no groupWinners and no totalTeamsProceeding
+    When I view standings for any group
+    Then no teams should be highlighted
+
+  Scenario: Highlighting with levels uses groups per level
+    Given a round-robin phase with 2 levels, 3 groups per level, groupWinners=1, and totalTeamsProceeding=3
+    When I view standings for a group in Level 1
+    Then the team at position 1 should be highlighted as a direct qualifier
+    And the team at position 2 should be highlighted as a candidate
+    And groupsInScope should be 3 (groups in that level), not 6 (total groups)
+
   # --- API Access ---
 
   Scenario: Anonymous user can view standings
