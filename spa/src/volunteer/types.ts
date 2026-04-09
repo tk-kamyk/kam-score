@@ -3,5 +3,4 @@ export interface VolunteerDto {
   name: string
   contact?: string | null
   teamId?: string | null
-  teamName?: string | null
 }

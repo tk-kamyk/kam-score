@@ -227,6 +227,7 @@ Config-based JWT — deliberate choice over Azure Entra ID for simplicity (1-3 t
 | Phases | `/api/tournaments/{id}/phases` | GET public, mutations JWT |
 | Games | `/api/tournaments/{id}/games` | GET public, mutations JWT |
 | Schedule | `/api/tournaments/{id}/schedule` | GET public, mutations JWT |
+| Volunteers | `/api/tournaments/{id}/volunteers` | All endpoints JWT + owner/admin |
 | Feature Flags | `GET /api/feature-flags` | Public |
 | Health | `GET /api/health` | Public |
 

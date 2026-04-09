@@ -96,6 +96,11 @@ async function handleDelete() {
 }
 
 const realTeams = () => teamStore.teams.filter(t => !t.isPlaceholder)
+
+function teamName(teamId?: string | null): string {
+  if (!teamId) return '—'
+  return teamStore.teams.find(t => t.id === teamId)?.name ?? '—'
+}
 </script>
 
 <template>
@@ -122,7 +127,7 @@ const realTeams = () => teamStore.teams.filter(t => !t.isPlaceholder)
           <tr v-for="volunteer in volunteerStore.volunteers" :key="volunteer.id">
             <td>{{ volunteer.name }}</td>
             <td class="text-medium-emphasis">{{ volunteer.contact || '—' }}</td>
-            <td class="text-medium-emphasis">{{ volunteer.teamName || '—' }}</td>
+            <td class="text-medium-emphasis">{{ teamName(volunteer.teamId) }}</td>
             <td class="text-right">
               <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit volunteer ' + volunteer.name" @click="openEdit(volunteer)" />
               <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete volunteer ' + volunteer.name" @click="openDelete(volunteer)" />
