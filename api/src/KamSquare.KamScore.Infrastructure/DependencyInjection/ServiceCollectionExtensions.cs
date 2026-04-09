@@ -57,6 +57,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ICourtRepository, CosmosCourtRepository>();
             services.AddScoped<ITournamentStructureRepository, CosmosTournamentStructureRepository>();
             services.AddScoped<IGameRepository, CosmosGameRepository>();
+            services.AddScoped<IVolunteerRepository, CosmosVolunteerRepository>();
         }
 
         // Services
@@ -122,6 +123,8 @@ public static class ServiceCollectionExtensions
                 CosmosRepository<TournamentStructure>.GetContainerName(), "/tournamentId", cancellationToken: cts.Token);
             await database.Database.CreateContainerIfNotExistsAsync(
                 CosmosRepository<Game>.GetContainerName(), "/tournamentId", cancellationToken: cts.Token);
+            await database.Database.CreateContainerIfNotExistsAsync(
+                CosmosRepository<Volunteer>.GetContainerName(), "/tournamentId", cancellationToken: cts.Token);
 
             logger.LogInformation("Cosmos DB initialized: {Database}", options.DatabaseName);
         }
