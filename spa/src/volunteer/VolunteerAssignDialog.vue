@@ -105,20 +105,20 @@ async function handleUnassign(volunteerId: string) {
 
             <template #append>
               <div class="d-flex align-center ga-1">
+                <template v-if="!isSpecialShift">
+                  <v-chip v-if="vol.playsBefore" size="x-small" variant="tonal" color="warning">
+                    Plays before
+                  </v-chip>
+                  <v-chip v-if="vol.playsAfter" size="x-small" variant="tonal" color="warning">
+                    Plays after
+                  </v-chip>
+                  <v-chip v-if="!vol.available" size="x-small" variant="flat" color="error">
+                    Playing
+                  </v-chip>
+                </template>
                 <v-chip size="x-small" variant="tonal" color="info">
                   {{ vol.shiftCount }} {{ vol.shiftCount === 1 ? 'shift' : 'shifts' }}
                 </v-chip>
-                <template v-if="!isSpecialShift">
-                  <v-chip v-if="vol.playsBefore" size="x-small" variant="tonal" color="warning">
-                    plays before
-                  </v-chip>
-                  <v-chip v-if="vol.playsAfter" size="x-small" variant="tonal" color="warning">
-                    plays after
-                  </v-chip>
-                  <v-chip v-if="!vol.available" size="x-small" variant="flat" color="error">
-                    playing
-                  </v-chip>
-                </template>
                 <v-btn
                   v-if="vol.assigned"
                   icon="mdi-minus-circle-outline"

@@ -93,6 +93,7 @@ async function handleDelete() {
   if (!deletingVolunteer.value?.id) return
   try {
     await volunteerStore.deleteVolunteer(props.tournamentId, deletingVolunteer.value.id)
+    await volunteerStore.fetchShifts(props.tournamentId)
     showDeleteDialog.value = false
     showSuccess('Volunteer deleted')
   } catch (error) {
