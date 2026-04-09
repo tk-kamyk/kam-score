@@ -9,11 +9,22 @@ public class Volunteer : Entity
 
     public static Volunteer Create(string name, string tournamentId, string? contact = null, string? teamId = null)
     {
-        throw new NotImplementedException();
+        return new Volunteer
+        {
+            Id = Guid.NewGuid().ToString(),
+            Name = name,
+            TournamentId = tournamentId,
+            Contact = contact,
+            TeamId = teamId,
+            LastModified = DateTime.UtcNow
+        };
     }
 
     public void Update(string name, string? contact, string? teamId)
     {
-        throw new NotImplementedException();
+        Name = name;
+        Contact = contact;
+        TeamId = teamId;
+        LastModified = DateTime.UtcNow;
     }
 }
