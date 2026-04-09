@@ -9,6 +9,7 @@ import type { TournamentDto } from '@/tournament/types'
 const props = defineProps<{
   tournament: TournamentDto
   isOwner: boolean
+  deleting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -47,7 +48,6 @@ function handleUpdate() {
 
 function handleDelete() {
   emit('deleted')
-  showDeleteDialog.value = false
 }
 </script>
 
@@ -146,13 +146,14 @@ function handleDelete() {
   <v-dialog v-model="showDeleteDialog" max-width="400" aria-labelledby="delete-tournament-dialog-title">
     <v-card class="pa-2">
       <v-card-title id="delete-tournament-dialog-title" class="text-uppercase dialog-title">Delete Tournament</v-card-title>
+      <v-progress-linear v-if="props.deleting" indeterminate color="error" />
       <v-card-text id="delete-warning-text">
         Are you sure you want to delete "{{ tournament.name }}"? This action cannot be undone.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
-        <v-btn color="error" variant="elevated" aria-describedby="delete-warning-text" @click="handleDelete">Delete</v-btn>
+        <v-btn variant="text" :disabled="props.deleting" @click="showDeleteDialog = false">Cancel</v-btn>
+        <v-btn color="error" variant="elevated" :disabled="props.deleting" :loading="props.deleting" aria-describedby="delete-warning-text" @click="handleDelete">Delete</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

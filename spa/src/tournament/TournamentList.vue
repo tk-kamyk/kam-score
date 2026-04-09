@@ -14,6 +14,7 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 
 const showCreateDialog = ref(false)
+const creating = ref(false)
 
 const sortedTournaments = computed(() =>
   [...tournamentStore.tournaments].sort((a, b) =>
@@ -26,12 +27,16 @@ onMounted(() => {
 })
 
 async function handleCreated(dto: TournamentDto) {
+  creating.value = true
   try {
     const created = await tournamentStore.createTournament(dto)
+    showCreateDialog.value = false
     showSuccess('Tournament created')
     router.push({ name: 'tournament', params: { id: created.id } })
   } catch (error) {
     showError(parseErrorDetail(error) ?? 'Failed to create tournament')
+  } finally {
+    creating.value = false
   }
 }
 
@@ -51,6 +56,7 @@ function navigateToTournament(id: string) {
         color="primary"
         size="large"
         prepend-icon="mdi-plus"
+        :disabled="creating"
         @click="showCreateDialog = true"
       >
         New Tournament
@@ -103,7 +109,7 @@ function navigateToTournament(id: string) {
       <p v-if="auth.isAuthenticated" class="text-body-medium empty-hint">Click the button above to create your first tournament.</p>
     </v-card>
 
-    <TournamentCreateDialog v-model="showCreateDialog" @created="handleCreated" />
+    <TournamentCreateDialog v-model="showCreateDialog" :loading="creating" @created="handleCreated" />
   </div>
 </template>
 

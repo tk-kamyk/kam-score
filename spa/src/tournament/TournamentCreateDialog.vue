@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useTournamentStore } from '@/tournament/store'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import type { TournamentDto } from '@/tournament/types'
@@ -7,6 +7,7 @@ import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
 import { buildGameConditions } from '@/tournament/gameConditionsUtils'
 
 const model = defineModel<boolean>({ required: true })
+const props = defineProps<{ loading?: boolean }>()
 const emit = defineEmits<{ created: [tournament: TournamentDto] }>()
 
 const tournamentStore = useTournamentStore()
@@ -26,10 +27,12 @@ const newTournament = ref<TournamentDto>({
 const disciplines = ['Volleyball', 'BeachVolleyball']
 
 const tournamentOptions = computed(() =>
-  tournamentStore.tournaments.map(t => ({
-    title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
-    value: t.id!,
-  }))
+  [...tournamentStore.tournaments]
+    .sort((a, b) => new Date(b.lastModified ?? 0).getTime() - new Date(a.lastModified ?? 0).getTime())
+    .map(t => ({
+      title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
+      value: t.id!,
+    }))
 )
 
 const selectedSource = computed(() =>
@@ -38,6 +41,18 @@ const selectedSource = computed(() =>
     : undefined
 )
 
+function resetForm() {
+  newTournament.value = { name: '', discipline: 'Volleyball' }
+  useCustomConditions.value = false
+  bestOfSets.value = undefined
+  pointsPerSetText.value = ''
+  sourceTournamentId.value = undefined
+}
+
+watch(model, (open) => {
+  if (!open) resetForm()
+})
+
 function handleCreate() {
   const dto: TournamentDto = {
     ...newTournament.value,
@@ -45,12 +60,6 @@ function handleCreate() {
     sourceTournamentId: sourceTournamentId.value,
   }
   emit('created', dto)
-  model.value = false
-  newTournament.value = { name: '', discipline: 'Volleyball' }
-  useCustomConditions.value = false
-  bestOfSets.value = undefined
-  pointsPerSetText.value = ''
-  sourceTournamentId.value = undefined
 }
 </script>
 
@@ -58,6 +67,7 @@ function handleCreate() {
   <v-dialog v-model="model" max-width="500" aria-labelledby="create-tournament-dialog-title">
     <v-card class="pa-2">
       <v-card-title id="create-tournament-dialog-title" class="text-uppercase dialog-title">Create Tournament</v-card-title>
+      <v-progress-linear v-if="props.loading" indeterminate color="primary" />
       <v-card-text>
         <v-text-field
           v-model="newTournament.name"
@@ -84,38 +94,41 @@ function handleCreate() {
             Settings below will be overridden by source.
           </v-alert>
         </template>
-        <v-select
-          v-model="newTournament.discipline"
-          :items="disciplines"
-          label="Discipline"
-          :disabled="!!selectedSource"
-        />
-        <v-text-field
-          v-model="newTournament.startTime"
-          label="Date"
-          type="date"
-          :disabled="!!selectedSource"
-        />
-        <v-text-field
-          v-model.number="newTournament.gameLength"
-          label="Game Length (minutes)"
-          type="number"
-          :disabled="!!selectedSource"
-        />
-        <GameConditionsForm
-          v-if="!selectedSource"
-          v-model:enabled="useCustomConditions"
-          v-model:best-of-sets="bestOfSets"
-          v-model:points-per-set-text="pointsPerSetText"
-        />
+        <template v-else>
+          <v-select
+            v-model="newTournament.discipline"
+            :items="disciplines"
+            label="Discipline"
+            :disabled="!!selectedSource"
+          />
+          <v-text-field
+            v-model="newTournament.startTime"
+            label="Date"
+            type="date"
+            :disabled="!!selectedSource"
+          />
+          <v-text-field
+            v-model.number="newTournament.gameLength"
+            label="Game Length (minutes)"
+            type="number"
+            :disabled="!!selectedSource"
+          />
+          <GameConditionsForm
+            v-if="!selectedSource"
+            v-model:enabled="useCustomConditions"
+            v-model:best-of-sets="bestOfSets"
+            v-model:points-per-set-text="pointsPerSetText"
+          />
+        </template>
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="model = false">Cancel</v-btn>
+        <v-btn variant="text" :disabled="props.loading" @click="model = false">Cancel</v-btn>
         <v-btn
           color="primary"
           variant="elevated"
-          :disabled="!newTournament.name"
+          :disabled="!newTournament.name || props.loading"
+          :loading="props.loading"
           @click="handleCreate"
         >
           Create

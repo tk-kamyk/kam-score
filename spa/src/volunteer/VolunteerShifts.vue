@@ -26,7 +26,6 @@ function openAssignDialog(groupName: string, shiftTime?: string | null) {
 }
 
 async function handleAssigned() {
-  showAssignDialog.value = false
   await volunteerStore.fetchShifts(props.tournamentId)
 }
 

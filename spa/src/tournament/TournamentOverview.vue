@@ -90,13 +90,18 @@ async function handleUpdate(dto: TournamentDto) {
   }
 }
 
+const deleting = ref(false)
+
 async function handleDelete() {
+  deleting.value = true
   try {
     await tournamentStore.deleteTournament(props.id)
     showSuccess('Tournament deleted')
     router.push({ name: 'home' })
   } catch (error) {
     showError(parseErrorDetail(error) ?? 'Failed to delete tournament')
+  } finally {
+    deleting.value = false
   }
 }
 </script>
@@ -121,6 +126,7 @@ async function handleDelete() {
           <TournamentInfo
             :tournament="tournament"
             :is-owner="isOwner"
+            :deleting="deleting"
             @updated="handleUpdate"
             @deleted="handleDelete"
           />
