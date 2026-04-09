@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useVolunteerStore } from '@/volunteer/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
@@ -95,12 +95,24 @@ async function handleDelete() {
   }
 }
 
-const realTeams = () => teamStore.teams.filter(t => !t.isPlaceholder)
+const sortedTeamOptions = computed(() =>
+  [...teamStore.teams]
+    .filter(t => !t.isPlaceholder)
+    .sort((a, b) => a.name.localeCompare(b.name))
+)
 
 function teamName(teamId?: string | null): string {
-  if (!teamId) return '—'
-  return teamStore.teams.find(t => t.id === teamId)?.name ?? '—'
+  if (!teamId) return ''
+  return teamStore.teams.find(t => t.id === teamId)?.name ?? ''
 }
+
+const sortedVolunteers = computed(() =>
+  [...volunteerStore.volunteers].sort((a, b) => {
+    const nameA = teamName(a.teamId) || '\uffff'
+    const nameB = teamName(b.teamId) || '\uffff'
+    return nameA.localeCompare(nameB)
+  })
+)
 </script>
 
 <template>
@@ -124,7 +136,7 @@ function teamName(teamId?: string | null): string {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="volunteer in volunteerStore.volunteers" :key="volunteer.id">
+          <tr v-for="volunteer in sortedVolunteers" :key="volunteer.id">
             <td>{{ volunteer.name }}</td>
             <td class="text-medium-emphasis">{{ volunteer.contact || '—' }}</td>
             <td class="text-medium-emphasis">{{ teamName(volunteer.teamId) }}</td>
@@ -167,7 +179,7 @@ function teamName(teamId?: string | null): string {
             />
             <v-select
               v-model="form.teamId"
-              :items="realTeams()"
+              :items="sortedTeamOptions"
               item-title="name"
               item-value="id"
               label="Team"
