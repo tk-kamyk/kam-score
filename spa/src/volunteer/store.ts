@@ -1,44 +1,39 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import apiClient from '@/api/client'
 import type { VolunteerDto } from '@/volunteer/types'
 
 export const useVolunteerStore = defineStore('volunteer', () => {
   const volunteers = ref<VolunteerDto[]>([])
   const loading = ref(false)
 
-  async function fetchVolunteers(_tournamentId: string) {
+  async function fetchVolunteers(tournamentId: string) {
     loading.value = true
     try {
-      // TODO: Replace with API call in Gate 6
-      volunteers.value = [
-        { id: '1', name: 'John Doe', contact: 'john@email.com', teamId: 't1', teamName: 'Eagles' },
-        { id: '2', name: 'Jane Smith', contact: null, teamId: null, teamName: null },
-        { id: '3', name: 'Bob Wilson', contact: '+123456789', teamId: 't2', teamName: 'Hawks' },
-      ]
+      const { data } = await apiClient.get<VolunteerDto[]>(`/tournaments/${tournamentId}/volunteers`)
+      volunteers.value = data
     } finally {
       loading.value = false
     }
   }
 
-  async function createVolunteer(_tournamentId: string, dto: VolunteerDto): Promise<VolunteerDto> {
-    // TODO: Replace with API call in Gate 6
-    const created = { ...dto, id: crypto.randomUUID() }
-    volunteers.value = [...volunteers.value, created]
-    return created
+  async function createVolunteer(tournamentId: string, dto: VolunteerDto): Promise<VolunteerDto> {
+    const { data } = await apiClient.post<VolunteerDto>(`/tournaments/${tournamentId}/volunteers`, dto)
+    volunteers.value = [...volunteers.value, data]
+    return data
   }
 
-  async function updateVolunteer(_tournamentId: string, volunteerId: string, dto: VolunteerDto): Promise<VolunteerDto> {
-    // TODO: Replace with API call in Gate 6
-    const updated = { ...dto, id: volunteerId }
+  async function updateVolunteer(tournamentId: string, volunteerId: string, dto: VolunteerDto): Promise<VolunteerDto> {
+    const { data } = await apiClient.put<VolunteerDto>(`/tournaments/${tournamentId}/volunteers/${volunteerId}`, dto)
     const index = volunteers.value.findIndex(v => v.id === volunteerId)
     if (index >= 0) {
-      volunteers.value[index] = updated
+      volunteers.value[index] = data
     }
-    return updated
+    return data
   }
 
-  async function deleteVolunteer(_tournamentId: string, volunteerId: string) {
-    // TODO: Replace with API call in Gate 6
+  async function deleteVolunteer(tournamentId: string, volunteerId: string) {
+    await apiClient.delete(`/tournaments/${tournamentId}/volunteers/${volunteerId}`)
     volunteers.value = volunteers.value.filter(v => v.id !== volunteerId)
   }
 
