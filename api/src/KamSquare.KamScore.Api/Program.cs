@@ -81,6 +81,7 @@ app.MapLevelEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapTeamAssignmentEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapGameEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapStandingsEndpoints().AddEndpointFilter<ValidationFilter>();
+app.MapVolunteerEndpoints().AddEndpointFilter<ValidationFilter>();
 app.MapFeatureFlagEndpoints();
 app.MapHealthEndpoints();
 

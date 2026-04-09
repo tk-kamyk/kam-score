@@ -31,8 +31,9 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 - Write xUnit tests that express the BDD scenarios
 - Domain unit tests for business logic
 - Integration tests for API endpoints
-- ALL tests must FAIL (red) before writing implementation
-- Run `dotnet test api/KamScore.slnx` to confirm failures
+- Create skeleton implementation classes (entities, DTOs, validators, repositories, endpoints) that throw `NotImplementedException` — the solution MUST compile
+- ALL tests must FAIL at **runtime** (red), not at compile time
+- Run `dotnet build api/KamScore.slnx` to confirm compilation, then `dotnet test api/KamScore.slnx` to confirm failures
 
 ### Gate 5: API Implementation
 - Implement domain logic, services, endpoints
