@@ -4,7 +4,10 @@ import { useVolunteerStore } from '@/volunteer/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import SectionHeader from '@/components/SectionHeader.vue'
+import VolunteerShifts from '@/volunteer/VolunteerShifts.vue'
+import VolunteerListTable from '@/volunteer/VolunteerListTable.vue'
 import type { VolunteerDto } from '@/volunteer/types'
 import type { VForm } from 'vuetify/components'
 
@@ -12,6 +15,10 @@ const props = defineProps<{
   tournamentId: string
   active: boolean
 }>()
+
+const { isEnabled } = useFeatureFlags()
+const showShiftsTab = computed(() => isEnabled('VolunteerShifts'))
+const subTab = ref('list')
 
 const volunteerStore = useVolunteerStore()
 const teamStore = useTeamStore()
@@ -118,40 +125,37 @@ const sortedVolunteers = computed(() =>
 <template>
   <div>
     <SectionHeader title="Volunteers">
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreate">
+      <v-btn v-if="subTab === 'list'" color="primary" prepend-icon="mdi-plus" @click="openCreate">
         Add Volunteer
       </v-btn>
     </SectionHeader>
 
-    <v-progress-linear v-if="volunteerStore.loading" indeterminate color="primary" class="mb-4" />
+    <v-tabs v-if="showShiftsTab" v-model="subTab" density="compact" color="primary" class="mb-4">
+      <v-tab value="list">List</v-tab>
+      <v-tab value="shifts">Shifts</v-tab>
+    </v-tabs>
 
-    <v-card v-if="volunteerStore.volunteers.length > 0" class="data-table-card">
-      <v-table density="comfortable" class="styled-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Contact</th>
-            <th>Team</th>
-            <th class="text-right">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="volunteer in sortedVolunteers" :key="volunteer.id">
-            <td>{{ volunteer.name }}</td>
-            <td class="text-medium-emphasis">{{ volunteer.contact || '—' }}</td>
-            <td class="text-medium-emphasis">{{ teamName(volunteer.teamId) }}</td>
-            <td class="text-right">
-              <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit volunteer ' + volunteer.name" @click="openEdit(volunteer)" />
-              <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete volunteer ' + volunteer.name" @click="openDelete(volunteer)" />
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
-    </v-card>
+    <v-tabs-window v-if="showShiftsTab" v-model="subTab">
+      <v-tabs-window-item value="list">
+        <VolunteerListTable
+          :volunteers="sortedVolunteers"
+          :loading="volunteerStore.loading"
+          @edit="openEdit"
+          @delete="openDelete"
+        />
+      </v-tabs-window-item>
+      <v-tabs-window-item value="shifts">
+        <VolunteerShifts :tournament-id="tournamentId" />
+      </v-tabs-window-item>
+    </v-tabs-window>
 
-    <v-alert v-else-if="!volunteerStore.loading" type="info" variant="tonal" class="mt-4 mb-4">
-      No volunteers yet.
-    </v-alert>
+    <VolunteerListTable
+      v-if="!showShiftsTab"
+      :volunteers="sortedVolunteers"
+      :loading="volunteerStore.loading"
+      @edit="openEdit"
+      @delete="openDelete"
+    />
 
     <!-- Create / Edit Dialog -->
     <v-dialog v-model="showFormDialog" max-width="500">
@@ -219,12 +223,3 @@ const sortedVolunteers = computed(() =>
   </div>
 </template>
 
-<style scoped>
-.data-table-card {
-    border: 1px solid var(--ks-border);
-}
-
-.styled-table thead tr {
-    background-color: rgb(var(--v-theme-surface-bright));
-}
-</style>
