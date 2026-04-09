@@ -103,6 +103,7 @@ public static class TeamEndpoints
         ITournamentRepository tournamentRepository,
         ITournamentStructureRepository structureRepository,
         IGameRepository gameRepository,
+        IVolunteerRepository volunteerRepository,
         ICurrentUserService currentUser)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
@@ -127,6 +128,7 @@ public static class TeamEndpoints
             throw new ReferentialIntegrityException("team", team.Name,
                 "team is referenced in games. Delete the related games first");
 
+        await volunteerRepository.ClearTeamIdAsync(tournamentId, teamId);
         await teamRepository.DeleteAsync(teamId, tournamentId);
 
         return Results.NoContent();
