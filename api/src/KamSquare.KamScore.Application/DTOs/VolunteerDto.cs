@@ -4,4 +4,9 @@ public record VolunteerDto(
     string? Id,
     string Name,
     string? Contact,
-    string? TeamId);
+    string? TeamId,
+    List<ShiftAssignmentDto>? Assignments = null);
+
+public record ShiftAssignmentDto(
+    string ShiftGroup,
+    string? ShiftTime);

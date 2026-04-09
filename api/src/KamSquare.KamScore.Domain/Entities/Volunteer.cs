@@ -1,3 +1,5 @@
+using KamSquare.KamScore.Domain.ValueObjects;
+
 namespace KamSquare.KamScore.Domain.Entities;
 
 public class Volunteer : Entity
@@ -6,6 +8,7 @@ public class Volunteer : Entity
     public string? Contact { get; set; }
     public string? TeamId { get; set; }
     public string TournamentId { get; set; } = null!;
+    public List<ShiftAssignment> Assignments { get; set; } = [];
 
     public static Volunteer Create(string name, string tournamentId, string? contact = null, string? teamId = null)
     {
@@ -25,6 +28,21 @@ public class Volunteer : Entity
         Name = name;
         Contact = contact;
         TeamId = teamId;
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void AssignShift(string shiftGroup, TimeOnly? shiftTime)
+    {
+        var assignment = new ShiftAssignment(shiftGroup, shiftTime);
+        if (Assignments.Contains(assignment)) return;
+        Assignments.Add(assignment);
+        LastModified = DateTime.UtcNow;
+    }
+
+    public void UnassignShift(string shiftGroup, TimeOnly? shiftTime)
+    {
+        var assignment = new ShiftAssignment(shiftGroup, shiftTime);
+        Assignments.Remove(assignment);
         LastModified = DateTime.UtcNow;
     }
 }
