@@ -15,6 +15,8 @@ import CourtList from '@/court/CourtList.vue'
 import StructureDetail from '@/structure/StructureDetail.vue'
 import ScheduleOverview from '@/game/ScheduleOverview.vue'
 import StandingsOverview from '@/standings/StandingsOverview.vue'
+import VolunteerList from '@/volunteer/VolunteerList.vue'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -26,9 +28,30 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
 const standingsStore = useStandingsStore()
+const { isEnabled } = useFeatureFlags()
 
-const validTabs = ['overview', 'teams', 'courts', 'structure', 'schedule', 'standings']
-const activeTab = ref(validTabs.includes(route.query.tab as string) ? (route.query.tab as string) : 'overview')
+const tournament = computed(() => tournamentStore.currentTournament)
+const isOwner = computed(() =>
+  auth.isAuthenticated && (tournament.value?.ownerId === auth.username || auth.isAdmin)
+)
+
+const showVolunteersTab = computed(() => isOwner.value && isEnabled('Volunteers'))
+
+const validTabs = computed(() => {
+  const tabs = ['overview', 'teams', 'courts', 'structure', 'schedule', 'standings']
+  if (showVolunteersTab.value) tabs.push('volunteers')
+  return tabs
+})
+const activeTab = ref(validTabs.value.includes(route.query.tab as string) ? (route.query.tab as string) : 'overview')
+
+watch(validTabs, (tabs) => {
+  const urlTab = route.query.tab as string
+  if (urlTab && tabs.includes(urlTab) && activeTab.value !== urlTab) {
+    activeTab.value = urlTab
+  } else if (!tabs.includes(activeTab.value)) {
+    activeTab.value = 'overview'
+  }
+})
 
 watch(activeTab, (tab) => {
   router.replace({ query: { ...route.query, tab } })
@@ -37,11 +60,6 @@ watch(activeTab, (tab) => {
   }
 })
 
-const tournament = computed(() => tournamentStore.currentTournament)
-const isOwner = computed(() =>
-  auth.isAuthenticated && (tournament.value?.ownerId === auth.username || auth.isAdmin)
-)
-
 const tabLabels: Record<string, string> = {
   overview: 'Overview',
   teams: 'Teams',
@@ -49,6 +67,7 @@ const tabLabels: Record<string, string> = {
   structure: 'Structure',
   schedule: 'Schedule',
   standings: 'Standings',
+  volunteers: 'Volunteers',
 }
 
 const breadcrumbItems = computed(() => [
@@ -129,6 +148,10 @@ async function handleDelete() {
 
         <v-tabs-window-item value="schedule">
           <ScheduleOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'schedule'" />
+        </v-tabs-window-item>
+
+        <v-tabs-window-item v-if="showVolunteersTab" value="volunteers">
+          <VolunteerList :tournament-id="id" :active="activeTab === 'volunteers'" />
         </v-tabs-window-item>
       </v-tabs-window>
     </template>
