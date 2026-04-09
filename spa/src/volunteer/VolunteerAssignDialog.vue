@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useVolunteerStore } from '@/volunteer/store'
+import { useSnackbar } from '@/composables/useSnackbar'
 import type { VolunteerAvailabilityDto } from '@/volunteer/types'
 
 const props = defineProps<{
@@ -14,15 +16,10 @@ const emit = defineEmits<{
 
 const model = defineModel<boolean>()
 
+const volunteerStore = useVolunteerStore()
+const { showSuccess, showError } = useSnackbar()
 const loading = ref(false)
-
-// Mock data for Gate 3
-const volunteers = ref<VolunteerAvailabilityDto[]>([
-  { volunteerId: '3', name: 'Alice Wonder', shiftCount: 0, available: true, playsBefore: false, playsAfter: false, assigned: false },
-  { volunteerId: '4', name: 'Bob Smith', shiftCount: 1, available: true, playsBefore: false, playsAfter: true, assigned: false },
-  { volunteerId: '1', name: 'Charlie Brown', shiftCount: 2, available: true, playsBefore: true, playsAfter: false, assigned: true },
-  { volunteerId: '2', name: 'Dave Jones', shiftCount: 1, available: false, playsBefore: false, playsAfter: false, assigned: false },
-])
+const volunteers = ref<VolunteerAvailabilityDto[]>([])
 
 const isSpecialShift = computed(() => !props.shiftTime)
 
@@ -31,17 +28,44 @@ const dialogTitle = computed(() => {
   return `Assign to ${props.shiftGroup} — ${props.shiftTime}`
 })
 
+onMounted(async () => {
+  await loadVolunteers()
+})
+
+async function loadVolunteers() {
+  loading.value = true
+  try {
+    volunteers.value = await volunteerStore.fetchAvailableVolunteers(
+      props.tournamentId,
+      props.shiftGroup,
+      props.shiftTime,
+    )
+  } catch {
+    showError('Failed to load volunteers')
+  } finally {
+    loading.value = false
+  }
+}
+
 async function handleAssign(volunteerId: string) {
-  // Will call API in Gate 6
-  const vol = volunteers.value.find(v => v.volunteerId === volunteerId)
-  if (vol) vol.assigned = true
-  emit('assigned')
+  try {
+    await volunteerStore.assignVolunteer(props.tournamentId, props.shiftGroup, props.shiftTime, volunteerId)
+    await loadVolunteers()
+    showSuccess('Volunteer assigned')
+    emit('assigned')
+  } catch {
+    showError('Failed to assign volunteer')
+  }
 }
 
 async function handleUnassign(volunteerId: string) {
-  // Will call API in Gate 6
-  const vol = volunteers.value.find(v => v.volunteerId === volunteerId)
-  if (vol) vol.assigned = false
+  try {
+    await volunteerStore.unassignVolunteer(props.tournamentId, props.shiftGroup, props.shiftTime, volunteerId)
+    await loadVolunteers()
+    showSuccess('Volunteer removed')
+  } catch {
+    showError('Failed to remove volunteer')
+  }
 }
 </script>
 
@@ -118,6 +142,10 @@ async function handleUnassign(volunteerId: string) {
             </template>
           </v-list-item>
         </v-list>
+
+        <div v-if="!loading && volunteers.length === 0" class="pa-4 text-medium-emphasis text-body-2">
+          No volunteers available. Add volunteers in the List tab first.
+        </div>
       </v-card-text>
       <v-card-actions>
         <v-spacer />

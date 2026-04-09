@@ -1,5 +1,6 @@
 using FluentAssertions;
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
 
@@ -85,5 +86,94 @@ public class VolunteerTests
 
         volunteer.Contact.Should().BeNull();
         volunteer.TeamId.Should().BeNull();
+    }
+
+    // --- Shift Assignment ---
+
+    [Fact]
+    public void AssignShift_ShouldAddToAssignments()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.Assignments.Should().ContainSingle()
+            .Which.Should().Be(new ShiftAssignment("Pool", new TimeOnly(9, 0)));
+    }
+
+    [Fact]
+    public void AssignShift_SpecialShift_ShouldAddWithNullTime()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.AssignShift("Set-up", null);
+
+        volunteer.Assignments.Should().ContainSingle()
+            .Which.Should().Be(new ShiftAssignment("Set-up", null));
+    }
+
+    [Fact]
+    public void AssignShift_DuplicateAssignment_ShouldNotAddTwice()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.Assignments.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void AssignShift_MultipleShifts_ShouldTrackAll()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.AssignShift("Pool", new TimeOnly(9, 20));
+        volunteer.AssignShift("Cleanup", null);
+
+        volunteer.Assignments.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public void UnassignShift_ShouldRemoveFromAssignments()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.AssignShift("Pool", new TimeOnly(9, 20));
+
+        volunteer.UnassignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.Assignments.Should().ContainSingle()
+            .Which.Should().Be(new ShiftAssignment("Pool", new TimeOnly(9, 20)));
+    }
+
+    [Fact]
+    public void UnassignShift_SpecialShift_ShouldRemove()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+        volunteer.AssignShift("Set-up", null);
+
+        volunteer.UnassignShift("Set-up", null);
+
+        volunteer.Assignments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void UnassignShift_NonExistentAssignment_ShouldNotThrow()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        var action = () => volunteer.UnassignShift("Pool", new TimeOnly(9, 0));
+
+        action.Should().NotThrow();
+    }
+
+    [Fact]
+    public void Create_ShouldInitializeEmptyAssignments()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.Assignments.Should().BeEmpty();
     }
 }

@@ -1,62 +1,23 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
+import { useVolunteerStore } from '@/volunteer/store'
+import { useSnackbar } from '@/composables/useSnackbar'
 import VolunteerAssignDialog from '@/volunteer/VolunteerAssignDialog.vue'
-import type { ShiftGroupDto } from '@/volunteer/types'
 
 const props = defineProps<{
   tournamentId: string
 }>()
 
+const volunteerStore = useVolunteerStore()
+const { showSuccess, showError } = useSnackbar()
+
 const showAssignDialog = ref(false)
 const selectedShiftGroup = ref('')
 const selectedShiftTime = ref<string | null>(null)
 
-// Mock data for Gate 3
-const shiftGroups = ref<ShiftGroupDto[]>([
-  {
-    name: 'Set-up',
-    isSpecial: true,
-    shifts: [{ shiftTime: null, volunteers: [{ volunteerId: '1', name: 'John Doe', available: true }] }],
-  },
-  {
-    name: 'Pool',
-    isSpecial: false,
-    shifts: [
-      {
-        shiftTime: '09:00',
-        volunteers: [
-          { volunteerId: '1', name: 'John Doe', available: true },
-          { volunteerId: '2', name: 'Jane Doe', available: false },
-        ],
-      },
-      { shiftTime: '09:20', volunteers: [] },
-      {
-        shiftTime: '09:40',
-        volunteers: [{ volunteerId: '3', name: 'Bob Smith', available: true }],
-      },
-    ],
-  },
-  {
-    name: 'Playoffs',
-    isSpecial: false,
-    shifts: [
-      { shiftTime: '11:00', volunteers: [] },
-      { shiftTime: '11:20', volunteers: [] },
-    ],
-  },
-  {
-    name: 'Cleanup',
-    isSpecial: true,
-    shifts: [{ shiftTime: null, volunteers: [] }],
-  },
-])
-
-const loading = ref(false)
-
-function formatTime(shiftTime?: string | null): string {
-  if (!shiftTime) return ''
-  return shiftTime
-}
+onMounted(() => {
+  volunteerStore.fetchShifts(props.tournamentId)
+})
 
 function openAssignDialog(groupName: string, shiftTime?: string | null) {
   selectedShiftGroup.value = groupName
@@ -64,27 +25,28 @@ function openAssignDialog(groupName: string, shiftTime?: string | null) {
   showAssignDialog.value = true
 }
 
-function handleAssigned() {
+async function handleAssigned() {
   showAssignDialog.value = false
-  // Will reload shifts from API in Gate 6
+  await volunteerStore.fetchShifts(props.tournamentId)
 }
 
-function handleUnassign(groupName: string, shiftTime: string | null | undefined, volunteerId: string) {
-  // Will call API in Gate 6
-  const group = shiftGroups.value.find(g => g.name === groupName)
-  if (!group) return
-  const shift = group.shifts.find(s => s.shiftTime === (shiftTime ?? null))
-  if (!shift) return
-  shift.volunteers = shift.volunteers.filter(v => v.volunteerId !== volunteerId)
+async function handleUnassign(groupName: string, shiftTime: string | null | undefined, volunteerId: string) {
+  try {
+    await volunteerStore.unassignVolunteer(props.tournamentId, groupName, shiftTime ?? null, volunteerId)
+    await volunteerStore.fetchShifts(props.tournamentId)
+    showSuccess('Volunteer removed from shift')
+  } catch {
+    showError('Failed to remove volunteer')
+  }
 }
 </script>
 
 <template>
   <div>
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
+    <v-progress-linear v-if="volunteerStore.shiftsLoading" indeterminate color="primary" class="mb-4" />
 
     <div class="shift-groups">
-      <v-card v-for="group in shiftGroups" :key="group.name" class="mb-4 shift-group-card">
+      <v-card v-for="group in volunteerStore.shiftGroups" :key="group.name" class="mb-4 shift-group-card">
         <v-card-title class="text-subtitle-1 font-weight-bold bg-surface-bright py-2 px-4">
           {{ group.name }}
         </v-card-title>
@@ -100,7 +62,7 @@ function handleUnassign(groupName: string, shiftTime: string | null | undefined,
           <tbody>
             <tr v-for="(shift, index) in group.shifts" :key="shift.shiftTime ?? index">
               <td v-if="!group.isSpecial" class="time-col">
-                {{ formatTime(shift.shiftTime) }}
+                {{ shift.shiftTime ?? '' }}
               </td>
               <td>
                 <div class="d-flex flex-wrap ga-1">
@@ -136,6 +98,10 @@ function handleUnassign(groupName: string, shiftTime: string | null | undefined,
         </v-table>
       </v-card>
     </div>
+
+    <v-alert v-if="!volunteerStore.shiftsLoading && volunteerStore.shiftGroups.length === 0" type="info" variant="tonal" class="mt-4 mb-4">
+      No phases defined yet. Set up the tournament structure first.
+    </v-alert>
 
     <VolunteerAssignDialog
       v-if="showAssignDialog"

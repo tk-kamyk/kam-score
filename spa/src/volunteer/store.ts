@@ -1,11 +1,13 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import apiClient from '@/api/client'
-import type { VolunteerDto } from '@/volunteer/types'
+import type { VolunteerDto, ShiftGroupDto, VolunteerAvailabilityDto } from '@/volunteer/types'
 
 export const useVolunteerStore = defineStore('volunteer', () => {
   const volunteers = ref<VolunteerDto[]>([])
   const loading = ref(false)
+  const shiftGroups = ref<ShiftGroupDto[]>([])
+  const shiftsLoading = ref(false)
 
   async function fetchVolunteers(tournamentId: string) {
     loading.value = true
@@ -37,12 +39,64 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     volunteers.value = volunteers.value.filter(v => v.id !== volunteerId)
   }
 
+  async function fetchShifts(tournamentId: string) {
+    shiftsLoading.value = true
+    try {
+      const { data } = await apiClient.get<ShiftGroupDto[]>(`/tournaments/${tournamentId}/volunteers/shifts`)
+      shiftGroups.value = data
+    } finally {
+      shiftsLoading.value = false
+    }
+  }
+
+  async function fetchAvailableVolunteers(
+    tournamentId: string,
+    shiftGroup: string,
+    shiftTime: string | null,
+  ): Promise<VolunteerAvailabilityDto[]> {
+    const url = shiftTime
+      ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/available`
+      : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/available`
+    const { data } = await apiClient.get<VolunteerAvailabilityDto[]>(url)
+    return data
+  }
+
+  async function assignVolunteer(
+    tournamentId: string,
+    shiftGroup: string,
+    shiftTime: string | null,
+    volunteerId: string,
+  ) {
+    const url = shiftTime
+      ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
+      : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assign/${volunteerId}`
+    await apiClient.post(url)
+  }
+
+  async function unassignVolunteer(
+    tournamentId: string,
+    shiftGroup: string,
+    shiftTime: string | null,
+    volunteerId: string,
+  ) {
+    const url = shiftTime
+      ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
+      : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assign/${volunteerId}`
+    await apiClient.delete(url)
+  }
+
   return {
     volunteers,
     loading,
+    shiftGroups,
+    shiftsLoading,
     fetchVolunteers,
     createVolunteer,
     updateVolunteer,
     deleteVolunteer,
+    fetchShifts,
+    fetchAvailableVolunteers,
+    assignVolunteer,
+    unassignVolunteer,
   }
 })
