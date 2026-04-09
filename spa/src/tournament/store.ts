@@ -38,14 +38,9 @@ export const useTournamentStore = defineStore('tournament', () => {
   }
 
   async function createTournament(dto: TournamentDto): Promise<TournamentDto> {
-    loading.value = true
-    try {
-      const { data } = await apiClient.post<TournamentDto>('/tournaments', dto)
-      tournaments.value = [...tournaments.value, data]
-      return data
-    } finally {
-      loading.value = false
-    }
+    const { data } = await apiClient.post<TournamentDto>('/tournaments', dto)
+    tournaments.value = [...tournaments.value, data]
+    return data
   }
 
   async function updateTournament(id: string, dto: TournamentDto): Promise<TournamentDto> {
@@ -59,15 +54,10 @@ export const useTournamentStore = defineStore('tournament', () => {
   }
 
   async function deleteTournament(id: string) {
-    loading.value = true
-    try {
-      await apiClient.delete(`/tournaments/${id}`)
-      tournaments.value = tournaments.value.filter(t => t.id !== id)
-      if (currentTournament.value?.id === id) {
-        currentTournament.value = null
-      }
-    } finally {
-      loading.value = false
+    await apiClient.delete(`/tournaments/${id}`)
+    tournaments.value = tournaments.value.filter(t => t.id !== id)
+    if (currentTournament.value?.id === id) {
+      currentTournament.value = null
     }
   }
 
