@@ -353,6 +353,7 @@ Endpoints should ONLY: validate auth, map DTOs, delegate to domain/services, ret
 - **CSS Cascade Layers**: Custom CSS targeting Vuetify internals must use `@layer overrides { ... }`
 - Layer order declaration in `index.html` inline `<style>`
 - **Thin components**: Extract sub-components when parent exceeds ~150 lines or template blocks are reused
+- **`computed` over inline expressions**: Use `computed()` for any derived state — keeps templates clean and caches results. Avoid duplicating reactive expressions in the template or recalculating in methods
 
 ---
 
