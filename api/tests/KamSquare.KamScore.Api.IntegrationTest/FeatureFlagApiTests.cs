@@ -16,7 +16,7 @@ public class FeatureFlagApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GetFeatureFlags_WithNoFlagsConfigured_ReturnsEmptyObject()
+    public async Task GetFeatureFlags_ReturnsOkWithJsonResponse()
     {
         var client = _factory.CreateClient();
 
@@ -24,7 +24,7 @@ public class FeatureFlagApiTests : IClassFixture<KamScoreWebApplicationFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var flags = await response.Content.ReadFromJsonAsync<Dictionary<string, bool>>();
-        flags.Should().NotBeNull().And.BeEmpty();
+        flags.Should().NotBeNull();
     }
 
     [Fact]

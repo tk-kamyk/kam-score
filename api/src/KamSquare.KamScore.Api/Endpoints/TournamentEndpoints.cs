@@ -1,11 +1,13 @@
 using AutoMapper;
 using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
+using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.ValueObjects;
 using KamSquare.KamScore.Api.Helpers;
+using KamSquare.KamScore.Infrastructure.Options;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -88,9 +90,24 @@ public static class TournamentEndpoints
         TournamentDto request,
         ITournamentRepository repository,
         ITournamentStructureRepository structureRepository,
+        TournamentCopyService copyService,
+        IConfiguration configuration,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
+        if (!string.IsNullOrEmpty(request.SourceTournamentId))
+        {
+            var flags = configuration.GetSection(FeatureFlagOptions.SectionName)
+                .Get<Dictionary<string, bool>>() ?? [];
+            if (!flags.GetValueOrDefault("CopyTournamentStructure"))
+                return Results.BadRequest("Copy tournament structure feature is not enabled.");
+
+            var copied = await copyService.CopyAsync(
+                request.SourceTournamentId, request.Name, currentUser.UserId!);
+            var copiedDto = mapper.Map<TournamentDto>(copied);
+            return Results.Created($"/api/tournaments/{copiedDto.Id}", copiedDto);
+        }
+
         var discipline = Enum.Parse<Discipline>(request.Discipline, ignoreCase: true);
         var tournament = Tournament.Create(request.Name, discipline, currentUser.UserId!);
 

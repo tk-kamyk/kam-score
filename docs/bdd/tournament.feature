@@ -77,3 +77,71 @@ Feature: Tournament Management
     Given user "Alice" owns tournament "Cup A"
     When a visitor requests the details of "Cup A"
     Then the tournament details are returned successfully
+
+  # Copy Structure
+
+  Scenario: Create tournament by copying structure from another tournament
+    Given the user is authenticated
+    And a tournament "Summer Cup" exists with:
+      | Discipline   | Volleyball |
+      | GameLength   | 60         |
+      | StartTime    | 2026-06-01 |
+    And "Summer Cup" has 3 courts named "Main", "Side A", "Side B"
+    And "Summer Cup" has 8 real teams
+    And "Summer Cup" has a structure with:
+      | Phase        | Group Stage | Format: RoundRobin | Groups: 2 | GroupWinners: 2 | StartTime: 09:00 |
+      | Phase        | Playoffs    | Format: PlayoffElimination | Groups: 1 | StartTime: 14:00 |
+    When the user creates a tournament "Winter Cup" copying structure from "Summer Cup"
+    Then a new tournament "Winter Cup" is created
+    And the tournament has discipline "Volleyball", game length 60, and start time "2026-06-01"
+    And the tournament has 3 courts named "Main", "Side A", "Side B"
+    And the tournament has 8 seed teams (Seed 1 through Seed 8) with graduated levels
+    And the structure has 2 phases matching the source layout
+    And games are generated and scheduled for all phases
+
+  Scenario: Copied tournament gets seed teams instead of real teams
+    Given the user is authenticated
+    And a tournament "Source" exists with 6 real teams and 4 placeholder teams
+    When the user creates a tournament "Copy" copying structure from "Source"
+    Then "Copy" has 6 seed teams (not 10)
+    And no real team names or contact info are copied
+
+  Scenario: Copied tournament does not include volunteers
+    Given the user is authenticated
+    And a tournament "Source" exists with volunteers
+    When the user creates a tournament "Copy" copying structure from "Source"
+    Then "Copy" has no volunteers
+
+  Scenario: Copied tournament gets a fresh tournament code
+    Given the user is authenticated
+    And a tournament "Source" exists with tournament code "AB12"
+    When the user creates a tournament "Copy" copying structure from "Source"
+    Then "Copy" has a different tournament code than "AB12"
+
+  Scenario: Phase statuses after copy
+    Given the user is authenticated
+    And a tournament "Source" exists with 2 phases and full structure
+    When the user creates a tournament "Copy" copying structure from "Source"
+    Then phase 1 of "Copy" has status "InProgress"
+    And phase 2 of "Copy" has status "Scheduled"
+
+  Scenario: Placeholder teams generated for phase 2+ during copy
+    Given the user is authenticated
+    And a tournament "Source" exists with:
+      | Phase | Group Stage | GroupWinners: 2 | Groups: 2 |
+      | Phase | Playoffs    | Groups: 1                   |
+    When the user creates a tournament "Copy" copying structure from "Source"
+    Then "Copy" phase 2 has 4 placeholder teams from phase 1 progression
+
+  Scenario: Copy skips game generation when prerequisites are missing
+    Given the user is authenticated
+    And a tournament "Source" exists with a phase that has no start time
+    When the user creates a tournament "Copy" copying structure from "Source"
+    Then the phase in "Copy" has no games generated
+    And the phase status is "New"
+
+  Scenario: Any user can copy from any tournament
+    Given user "Alice" owns tournament "Cup A"
+    And user "Bob" is authenticated
+    When Bob creates a tournament "Cup B" copying structure from "Cup A"
+    Then "Cup B" is created successfully owned by Bob

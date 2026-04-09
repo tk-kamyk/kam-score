@@ -309,9 +309,11 @@ All state violations return HTTP 409 Conflict. Validation errors (e.g., unassign
 - Each source level's expected team count is split evenly across its corresponding target levels
 - Placeholder naming includes the source level context: `"{SourcePhaseName} - {SourceLevelName} - Seed {N}"`
 
-# TBC
+## Copy Structure
 
-# Phase
-
-- Phases structure can be copied from another tournament
+- When a tournament is created with a source tournament, the structure is copied phase by phase in order
+- Each phase preserves: name, format, number of groups, number of levels, group winners, total teams proceeding, start time
+- Groups and levels are recreated with the same names and configuration as the source
+- Teams are assigned to groups via auto-assign (snake draft) — seed teams for phase 1, placeholder teams for phase 2+
+- Games are generated and scheduled for each phase where prerequisites are met
 
