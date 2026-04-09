@@ -29,6 +29,10 @@ public class TournamentDtoValidator : AbstractValidator<TournamentDto>
                 pointsPerSet!.Count == dto.GameConditions!.BestOfSets)
             .WithMessage("Points per set count must match best of sets.")
             .When(x => x.GameConditions?.PointsPerSet != null && x.GameConditions?.BestOfSets.HasValue == true);
+
+        RuleFor(x => x.SourceTournamentId)
+            .NotEmpty().WithMessage("Source tournament ID must not be empty when provided.")
+            .When(x => x.SourceTournamentId is not null);
     }
 
     private static bool BeValidDiscipline(string discipline)

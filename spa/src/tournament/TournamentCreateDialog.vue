@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { useTournamentStore } from '@/tournament/store'
+import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import type { TournamentDto } from '@/tournament/types'
 import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
 import { buildGameConditions } from '@/tournament/gameConditionsUtils'
@@ -7,9 +9,15 @@ import { buildGameConditions } from '@/tournament/gameConditionsUtils'
 const model = defineModel<boolean>({ required: true })
 const emit = defineEmits<{ created: [tournament: TournamentDto] }>()
 
+const tournamentStore = useTournamentStore()
+const { isEnabled } = useFeatureFlags()
+
+const showCopyFrom = computed(() => isEnabled('CopyTournamentStructure'))
+
 const useCustomConditions = ref(false)
 const bestOfSets = ref<number | undefined>()
 const pointsPerSetText = ref('')
+const sourceTournamentId = ref<string | undefined>()
 const newTournament = ref<TournamentDto>({
   name: '',
   discipline: 'Volleyball',
@@ -17,10 +25,24 @@ const newTournament = ref<TournamentDto>({
 
 const disciplines = ['Volleyball', 'BeachVolleyball']
 
+const tournamentOptions = computed(() =>
+  tournamentStore.tournaments.map(t => ({
+    title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
+    value: t.id!,
+  }))
+)
+
+const selectedSource = computed(() =>
+  sourceTournamentId.value
+    ? tournamentStore.tournaments.find(t => t.id === sourceTournamentId.value)
+    : undefined
+)
+
 function handleCreate() {
   const dto: TournamentDto = {
     ...newTournament.value,
     gameConditions: buildGameConditions(useCustomConditions.value, bestOfSets.value, pointsPerSetText.value),
+    sourceTournamentId: sourceTournamentId.value,
   }
   emit('created', dto)
   model.value = false
@@ -28,6 +50,7 @@ function handleCreate() {
   useCustomConditions.value = false
   bestOfSets.value = undefined
   pointsPerSetText.value = ''
+  sourceTournamentId.value = undefined
 }
 </script>
 
@@ -42,21 +65,45 @@ function handleCreate() {
           autofocus
         />
         <v-select
+          v-if="showCopyFrom"
+          v-model="sourceTournamentId"
+          :items="tournamentOptions"
+          label="Copy structure from (optional)"
+          clearable
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+        />
+        <template v-if="selectedSource">
+          <v-alert type="info" variant="tonal" density="compact" class="mb-4">
+            Copying from <strong>{{ selectedSource.name }}</strong>:
+            {{ selectedSource.discipline }},
+            {{ selectedSource.teamCount ?? 0 }} seed teams,
+            {{ selectedSource.courtCount ?? 0 }} courts,
+            {{ selectedSource.gameLength ? `${selectedSource.gameLength} min games` : 'no game length' }}.
+            Settings below will be overridden by source.
+          </v-alert>
+        </template>
+        <v-select
           v-model="newTournament.discipline"
           :items="disciplines"
           label="Discipline"
+          :disabled="!!selectedSource"
         />
         <v-text-field
           v-model="newTournament.startTime"
           label="Date"
           type="date"
+          :disabled="!!selectedSource"
         />
         <v-text-field
           v-model.number="newTournament.gameLength"
           label="Game Length (minutes)"
           type="number"
+          :disabled="!!selectedSource"
         />
         <GameConditionsForm
+          v-if="!selectedSource"
           v-model:enabled="useCustomConditions"
           v-model:best-of-sets="bestOfSets"
           v-model:points-per-set-text="pointsPerSetText"

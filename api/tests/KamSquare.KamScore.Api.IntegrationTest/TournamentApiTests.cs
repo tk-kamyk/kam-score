@@ -302,6 +302,110 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
+    // --- Copy Structure tests ---
+
+    [Fact]
+    public async Task CreateTournament_WithSourceTournamentId_ShouldCopyStructure()
+    {
+        var client = _factory.CreateAuthenticatedClient("bob");
+        var source = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        source.Update("Summer Cup", Discipline.Volleyball, DateTime.Parse("2026-06-01"), 60, null);
+        var structure = TournamentStructure.Create(source.Id);
+        structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2,
+            groupWinners: 2, startTime: new TimeOnly(9, 0));
+        var teams = Team.GenerateSeedTeams(8, 1, source.Id);
+        var courts = new List<Court> { Court.Create("Main", source.Id), Court.Create("Side", source.Id) };
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(source.Id))
+            .Returns(source);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(structure);
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(teams);
+        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(courts);
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeCourtRepository.CreateBatchAsync(A<IEnumerable<Court>>.Ignored))
+            .ReturnsLazily((IEnumerable<Court> c) => Task.FromResult(c));
+        A.CallTo(() => _factory.FakeGameRepository.CreateBatchAsync(A<IEnumerable<Game>>.Ignored))
+            .ReturnsLazily((IEnumerable<Game> g) => Task.FromResult(g));
+
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null,
+            SourceTournamentId: source.Id);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result.Should().NotBeNull();
+        result!.Name.Should().Be("Winter Cup");
+        result.Discipline.Should().Be("Volleyball");
+        result.GameLength.Should().Be(60);
+        result.OwnerId.Should().Be("bob");
+    }
+
+    [Fact]
+    public async Task CreateTournament_WithNonExistentSource_ShouldReturn404()
+    {
+        var client = _factory.CreateAuthenticatedClient("bob");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync("nonexistent"))
+            .Returns((Tournament?)null);
+
+        var dto = new TournamentDto(null, "Copy", "Volleyball", null, null, null, null, null,
+            SourceTournamentId: "nonexistent");
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task CreateTournament_WithSourceFromAnotherUser_ShouldSucceed()
+    {
+        var client = _factory.CreateAuthenticatedClient("bob");
+        var source = Tournament.Create("Alice Cup", Discipline.BeachVolleyball, "alice");
+        source.Update("Alice Cup", Discipline.BeachVolleyball, null, 45, null);
+        var structure = TournamentStructure.Create(source.Id);
+        structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 1,
+            startTime: new TimeOnly(10, 0));
+        var teams = Team.GenerateSeedTeams(4, 1, source.Id);
+        var courts = new List<Court> { Court.Create("C1", source.Id) };
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(source.Id))
+            .Returns(source);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(structure);
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(teams);
+        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(courts);
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeCourtRepository.CreateBatchAsync(A<IEnumerable<Court>>.Ignored))
+            .ReturnsLazily((IEnumerable<Court> c) => Task.FromResult(c));
+        A.CallTo(() => _factory.FakeGameRepository.CreateBatchAsync(A<IEnumerable<Game>>.Ignored))
+            .ReturnsLazily((IEnumerable<Game> g) => Task.FromResult(g));
+
+        var dto = new TournamentDto(null, "Bob Copy", "Volleyball", null, null, null, null, null,
+            SourceTournamentId: source.Id);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.OwnerId.Should().Be("bob");
+        result.Discipline.Should().Be("BeachVolleyball");
+    }
+
     [Fact]
     public async Task GetTournaments_Admin_ShouldShowCodesForAllTournaments()
     {

@@ -15,4 +15,5 @@ export interface TournamentDto {
   lastModified?: string
   teamCount?: number
   courtCount?: number
+  sourceTournamentId?: string
 }
