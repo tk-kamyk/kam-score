@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import VolunteerAssignDialog from '@/volunteer/VolunteerAssignDialog.vue'
@@ -14,6 +14,13 @@ const { showSuccess, showError } = useSnackbar()
 const showAssignDialog = ref(false)
 const selectedShiftGroup = ref('')
 const selectedShiftTime = ref<string | null>(null)
+const assignDialogRef = ref<InstanceType<typeof VolunteerAssignDialog> | null>(null)
+
+watch(showAssignDialog, (open) => {
+  if (!open && assignDialogRef.value?.dirty) {
+    volunteerStore.fetchShifts(props.tournamentId)
+  }
+})
 
 onMounted(() => {
   volunteerStore.fetchShifts(props.tournamentId)
@@ -23,10 +30,6 @@ function openAssignDialog(groupName: string, shiftTime?: string | null) {
   selectedShiftGroup.value = groupName
   selectedShiftTime.value = shiftTime ?? null
   showAssignDialog.value = true
-}
-
-async function handleAssigned() {
-  await volunteerStore.fetchShifts(props.tournamentId)
 }
 
 async function handleUnassign(groupName: string, shiftTime: string | null | undefined, volunteerId: string) {
@@ -104,11 +107,11 @@ async function handleUnassign(groupName: string, shiftTime: string | null | unde
 
     <VolunteerAssignDialog
       v-if="showAssignDialog"
+      ref="assignDialogRef"
       v-model="showAssignDialog"
       :tournament-id="tournamentId"
       :shift-group="selectedShiftGroup"
       :shift-time="selectedShiftTime"
-      @assigned="handleAssigned"
     />
   </div>
 </template>

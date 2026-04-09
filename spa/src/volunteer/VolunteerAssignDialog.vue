@@ -10,16 +10,15 @@ const props = defineProps<{
   shiftTime: string | null
 }>()
 
-const emit = defineEmits<{
-  assigned: []
-}>()
-
 const model = defineModel<boolean>()
 
 const volunteerStore = useVolunteerStore()
 const { showSuccess, showError } = useSnackbar()
 const loading = ref(false)
 const volunteers = ref<VolunteerAvailabilityDto[]>([])
+const dirty = ref(false)
+
+defineExpose({ dirty })
 
 const isSpecialShift = computed(() => !props.shiftTime)
 
@@ -52,7 +51,7 @@ async function handleAssign(volunteerId: string) {
     await volunteerStore.assignVolunteer(props.tournamentId, props.shiftGroup, props.shiftTime, volunteerId)
     await loadVolunteers()
     showSuccess('Volunteer assigned')
-    emit('assigned')
+    dirty.value = true
   } catch {
     showError('Failed to assign volunteer')
   }
@@ -63,6 +62,7 @@ async function handleUnassign(volunteerId: string) {
     await volunteerStore.unassignVolunteer(props.tournamentId, props.shiftGroup, props.shiftTime, volunteerId)
     await loadVolunteers()
     showSuccess('Volunteer removed')
+    dirty.value = true
   } catch {
     showError('Failed to remove volunteer')
   }
@@ -85,17 +85,24 @@ async function handleUnassign(volunteerId: string) {
             :class="{ 'unavailable-row': !vol.available && !isSpecialShift }"
           >
             <template #prepend>
-              <v-icon
+              <v-btn
                 v-if="vol.assigned"
-                icon="mdi-check-circle"
-                color="primary"
-                size="small"
+                icon="mdi-minus-circle-outline"
+                variant="text"
+                size="x-small"
+                color="error"
+                :aria-label="'Remove ' + vol.name"
+                @click.stop="handleUnassign(vol.volunteerId)"
               />
-              <v-icon
+              <v-btn
                 v-else
-                icon="mdi-circle-outline"
-                color="grey"
-                size="small"
+                icon="mdi-plus-circle-outline"
+                variant="text"
+                size="x-small"
+                color="primary"
+                :disabled="!vol.available && !isSpecialShift"
+                :aria-label="'Assign ' + vol.name"
+                @click.stop="handleAssign(vol.volunteerId)"
               />
             </template>
 
@@ -119,25 +126,6 @@ async function handleUnassign(volunteerId: string) {
                 <v-chip size="x-small" variant="tonal" color="info">
                   {{ vol.shiftCount }} {{ vol.shiftCount === 1 ? 'shift' : 'shifts' }}
                 </v-chip>
-                <v-btn
-                  v-if="vol.assigned"
-                  icon="mdi-minus-circle-outline"
-                  variant="text"
-                  size="x-small"
-                  color="error"
-                  :aria-label="'Remove ' + vol.name"
-                  @click.stop="handleUnassign(vol.volunteerId)"
-                />
-                <v-btn
-                  v-else
-                  icon="mdi-plus-circle-outline"
-                  variant="text"
-                  size="x-small"
-                  color="primary"
-                  :disabled="!vol.available && !isSpecialShift"
-                  :aria-label="'Assign ' + vol.name"
-                  @click.stop="handleAssign(vol.volunteerId)"
-                />
               </div>
             </template>
           </v-list-item>
