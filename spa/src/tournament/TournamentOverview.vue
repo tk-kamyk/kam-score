@@ -16,7 +16,6 @@ import StructureDetail from '@/structure/StructureDetail.vue'
 import ScheduleOverview from '@/game/ScheduleOverview.vue'
 import StandingsOverview from '@/standings/StandingsOverview.vue'
 import VolunteerList from '@/volunteer/VolunteerList.vue'
-import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -28,14 +27,13 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
 const standingsStore = useStandingsStore()
-const { isEnabled } = useFeatureFlags()
 
 const tournament = computed(() => tournamentStore.currentTournament)
 const isOwner = computed(() =>
   auth.isAuthenticated && (tournament.value?.ownerId === auth.username || auth.isAdmin)
 )
 
-const showVolunteersTab = computed(() => isOwner.value && isEnabled('Volunteers'))
+const showVolunteersTab = computed(() => isOwner.value)
 
 const validTabs = computed(() => {
   const tabs = ['overview', 'teams', 'courts', 'structure', 'schedule', 'standings']
