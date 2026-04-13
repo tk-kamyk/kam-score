@@ -51,7 +51,10 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
     sku: {
       name: 'PerGB2018'
     }
-    retentionInDays: 7
+    retentionInDays: 30
+    workspaceCapping: {
+      dailyQuotaGb: json('0.1')
+    }
   }
 }
 
