@@ -51,7 +51,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
     sku: {
       name: 'PerGB2018'
     }
-    retentionInDays: 30
+    retentionInDays: 7
   }
 }
 
@@ -191,8 +191,18 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 3
+        rules: [
+          {
+            name: 'http-scale'
+            http: {
+              metadata: {
+                concurrentRequests: '30'
+              }
+            }
+          }
+        ]
       }
     }
   }
@@ -246,8 +256,18 @@ resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 1
+        minReplicas: 0
         maxReplicas: 2
+        rules: [
+          {
+            name: 'http-scale'
+            http: {
+              metadata: {
+                concurrentRequests: '100'
+              }
+            }
+          }
+        ]
       }
     }
   }
