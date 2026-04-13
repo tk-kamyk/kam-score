@@ -33,6 +33,11 @@ function openRename() {
   showRenameDialog.value = true
 }
 
+function openDelete() {
+  clearErrors()
+  showDeleteDialog.value = true
+}
+
 async function handleRename() {
   const { valid } = await formRef.value!.validate()
   if (!valid) return
@@ -66,7 +71,13 @@ async function handleDelete() {
 
 <template>
   <div class="d-inline">
-    <v-btn icon="mdi-pencil" variant="text" size="x-small" :aria-label="'Rename group ' + group.name" @click="openRename" />
+    <v-btn
+      icon="mdi-pencil"
+      variant="text"
+      size="x-small"
+      :aria-label="'Rename group ' + group.name"
+      @click="openRename"
+    />
     <v-btn
       v-if="!hasLevels"
       icon="mdi-delete"
@@ -74,16 +85,23 @@ async function handleDelete() {
       size="x-small"
       color="error"
       :aria-label="'Delete group ' + group.name"
-      @click="clearErrors(); showDeleteDialog = true"
+      @click="openDelete"
     />
 
     <v-dialog v-model="showRenameDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title"
-          >Rename Group</v-card-title
-        >
+        <v-card-title class="text-uppercase dialog-title">Rename Group</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-form ref="formRef" @submit.prevent="handleRename">
@@ -106,11 +124,18 @@ async function handleDelete() {
 
     <v-dialog v-model="showDeleteDialog" max-width="400">
       <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title"
-          >Delete Group</v-card-title
-        >
+        <v-card-title class="text-uppercase dialog-title">Delete Group</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           Are you sure you want to delete group "{{ group.name }}"?

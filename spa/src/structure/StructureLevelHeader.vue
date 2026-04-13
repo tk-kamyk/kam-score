@@ -20,7 +20,7 @@ const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } =
 const showRenameDialog = ref(false)
 const newName = ref('')
 const formRef = ref<InstanceType<typeof VForm> | null>(null)
-const renameBtnRef = ref<InstanceType<any> | null>(null)
+const renameBtnRef = ref<{ $el?: HTMLElement } | null>(null)
 
 const dialogTitleId = `rename-level-title-${props.level.id}`
 
@@ -71,9 +71,20 @@ async function handleRename() {
 
   <v-dialog v-model="showRenameDialog" max-width="400" :aria-labelledby="dialogTitleId">
     <v-card class="pa-2">
-      <v-card-title :id="dialogTitleId" class="text-uppercase dialog-title">Rename Level</v-card-title>
+      <v-card-title :id="dialogTitleId" class="text-uppercase dialog-title"
+        >Rename Level</v-card-title
+      >
       <v-card-text>
-        <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+        <v-alert
+          v-if="generalError"
+          type="error"
+          variant="tonal"
+          density="compact"
+          closable
+          role="alert"
+          class="mb-3"
+          @click:close="clearErrors()"
+        >
           {{ generalError }}
         </v-alert>
         <v-form ref="formRef" @submit.prevent="handleRename">

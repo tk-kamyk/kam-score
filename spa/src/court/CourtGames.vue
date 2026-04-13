@@ -33,7 +33,7 @@ function displayTeam(game: GameDto, side: 'home' | 'away'): string {
   return placeholder ?? '-'
 }
 
-const hasLabels = computed(() => games.value.some(g => g.label))
+const hasLabels = computed(() => games.value.some((g) => g.label))
 
 function openResultDialog(game: GameDto) {
   selectedGame.value = game
@@ -86,33 +86,35 @@ onMounted(loadGames)
           </td>
           <td>{{ displayTeam(game, 'away') }}</td>
           <td>
-              <v-btn
-                v-if="isOwner && game.refereeTeamName"
-                size="small"
-                variant="text"
-                aria-label="Reassign referee"
-                @click="openRefereeDialog(game)"
-              >
-                {{ game.refereeTeamName }}
-              </v-btn>
-              <v-btn
-                v-else-if="isOwner"
-                size="small"
-                variant="text"
-                icon="mdi-whistle"
-                aria-label="Assign referee"
-                @click="openRefereeDialog(game)"
-              />
-              <template v-else-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
-              <template v-else>-</template>
-            </td>
+            <v-btn
+              v-if="isOwner && game.refereeTeamName"
+              size="small"
+              variant="text"
+              aria-label="Reassign referee"
+              @click="openRefereeDialog(game)"
+            >
+              {{ game.refereeTeamName }}
+            </v-btn>
+            <v-btn
+              v-else-if="isOwner"
+              size="small"
+              variant="text"
+              icon="mdi-whistle"
+              aria-label="Assign referee"
+              @click="openRefereeDialog(game)"
+            />
+            <template v-else-if="game.refereeTeamName">{{ game.refereeTeamName }}</template>
+            <template v-else>-</template>
+          </td>
           <td class="text-right">
             <v-btn
               v-if="game.status === 'Completed' && game.homeScore != null"
               size="small"
               variant="text"
               icon="mdi-pencil"
-              :aria-label="'Edit result for ' + displayTeam(game, 'home') + ' vs ' + displayTeam(game, 'away')"
+              :aria-label="
+                'Edit result for ' + displayTeam(game, 'home') + ' vs ' + displayTeam(game, 'away')
+              "
               @click="openResultDialog(game)"
             />
           </td>

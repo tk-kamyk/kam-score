@@ -25,12 +25,24 @@ const gameStore = useGameStore()
 const structureStore = useStructureStore()
 
 provide('tournamentId', props.tournamentId)
-provide('isOwner', computed(() => props.isOwner))
+provide(
+  'isOwner',
+  computed(() => props.isOwner),
+)
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
-const { expanded: expandedPhases, toggle: togglePhaseBase, syncFromRoute: syncExpanded } = useExpandedQueryParam('phase')
-const { selectedGroups, selectGroup, deselectGroup, syncFromRoute: syncGroups } = useGroupSelection()
+const {
+  expanded: expandedPhases,
+  toggle: togglePhaseBase,
+  syncFromRoute: syncExpanded,
+} = useExpandedQueryParam('phase')
+const {
+  selectedGroups,
+  selectGroup,
+  deselectGroup,
+  syncFromRoute: syncGroups,
+} = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
 function togglePhase(phaseId: string) {
@@ -39,7 +51,7 @@ function togglePhase(phaseId: string) {
   if (expandedPhases.value.has(phaseId)) {
     // Auto-select first group for newly expanded phase
     if (!selectedGroups.value.has(phaseId)) {
-      const phase = phases.value.find(p => p.id === phaseId)
+      const phase = phases.value.find((p) => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
         selectGroup(phaseId, phase.groups[0].id)
       }
@@ -172,7 +184,7 @@ onMounted(async () => {
   // Auto-select first group for expanded phases
   for (const phaseId of expandedPhases.value) {
     if (!selectedGroups.value.has(phaseId)) {
-      const phase = phases.value.find(p => p.id === phaseId)
+      const phase = phases.value.find((p) => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
         selectGroup(phaseId, phase.groups[0].id)
       }
@@ -180,15 +192,18 @@ onMounted(async () => {
   }
 })
 
-watch(() => props.active, async (isActive) => {
-  if (!isActive) return
-  syncExpanded()
-  syncGroups()
-  await Promise.all([
-    structureStore.fetchStructure(props.tournamentId),
-    gameStore.fetchGames(props.tournamentId),
-  ])
-})
+watch(
+  () => props.active,
+  async (isActive) => {
+    if (!isActive) return
+    syncExpanded()
+    syncGroups()
+    await Promise.all([
+      structureStore.fetchStructure(props.tournamentId),
+      gameStore.fetchGames(props.tournamentId),
+    ])
+  },
+)
 </script>
 
 <template>
@@ -197,7 +212,12 @@ watch(() => props.active, async (isActive) => {
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
-    <v-alert class="mt-4 mb-4" v-if="phases.length === 0 && !structureStore.loading" type="info" variant="tonal">
+    <v-alert
+      v-if="phases.length === 0 && !structureStore.loading"
+      class="mt-4 mb-4"
+      type="info"
+      variant="tonal"
+    >
       No phases defined yet. Set up the tournament structure first.
     </v-alert>
 
@@ -227,11 +247,20 @@ watch(() => props.active, async (isActive) => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Games</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
-          Are you sure you want to delete all games for "{{ actionPhaseName }}"?
-          You can regenerate them afterwards.
+          Are you sure you want to delete all games for "{{ actionPhaseName }}"? You can regenerate
+          them afterwards.
         </v-card-text>
         <v-card-actions>
           <v-spacer />
@@ -245,7 +274,16 @@ watch(() => props.active, async (isActive) => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Complete Phase</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           Complete "{{ actionPhaseName }}"? Teams will advance to the next phase based on standings.
@@ -262,10 +300,20 @@ watch(() => props.active, async (isActive) => {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Reopen Phase</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
-          Reopen "{{ actionPhaseName }}"? This will clear team assignments and revert the next phase.
+          Reopen "{{ actionPhaseName }}"? This will clear team assignments and revert the next
+          phase.
         </v-card-text>
         <v-card-actions>
           <v-spacer />

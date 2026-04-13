@@ -7,7 +7,7 @@ const props = defineProps<{
   games: GameDto[]
 }>()
 
-const hasLabels = computed(() => props.games.some(g => g.label))
+const hasLabels = computed(() => props.games.some((g) => g.label))
 
 const emit = defineEmits<{
   'open-result': [game: GameDto]
@@ -60,7 +60,9 @@ function isPlaceholder(game: GameDto, side: 'home' | 'away'): boolean {
               size="small"
               variant="text"
               icon="mdi-pencil"
-              :aria-label="'Edit result for ' + displayTeam(game, 'home') + ' vs ' + displayTeam(game, 'away')"
+              :aria-label="
+                'Edit result for ' + displayTeam(game, 'home') + ' vs ' + displayTeam(game, 'away')
+              "
               @click="emit('open-result', game)"
             />
           </td>

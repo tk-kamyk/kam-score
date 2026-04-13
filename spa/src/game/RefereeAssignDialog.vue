@@ -23,7 +23,9 @@ const candidates = ref<RefereeCandidateDto[]>([])
 const selectedTeamId = ref<string | null>(null)
 const loading = ref(false)
 const submitting = ref(false)
-const isReassignment = computed(() => !!props.game.refereeTeamId || !!props.game.refereeTeamPlaceholder)
+const isReassignment = computed(
+  () => !!props.game.refereeTeamId || !!props.game.refereeTeamPlaceholder,
+)
 
 watch(
   () => props.modelValue,
@@ -39,10 +41,7 @@ watch(
 async function loadCandidates() {
   loading.value = true
   try {
-    const result = await gameStore.fetchRefereeCandidates(
-      props.tournamentId,
-      props.game.id!,
-    )
+    const result = await gameStore.fetchRefereeCandidates(props.tournamentId, props.game.id!)
     candidates.value = [...result].sort((a, b) => {
       if (a.isPlaceholder === b.isPlaceholder) return 0
       return a.isPlaceholder ? -1 : 1
@@ -117,7 +116,10 @@ function gameSummary(): string {
           auto-select-first
         />
 
-        <div v-if="!loading && candidates.length === 0" class="text-body-medium text-medium-emphasis mt-2">
+        <div
+          v-if="!loading && candidates.length === 0"
+          class="text-body-medium text-medium-emphasis mt-2"
+        >
           No eligible teams available for this time slot.
         </div>
       </v-card-text>

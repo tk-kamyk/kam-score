@@ -38,7 +38,7 @@ const previousPhaseId = computed(() => {
   const phases = structureStore.structure?.phases ?? []
   const currentOrder = props.phase.order ?? 1
   if (currentOrder <= 1) return undefined
-  return phases.find(p => p.order === currentOrder - 1)?.id
+  return phases.find((p) => p.order === currentOrder - 1)?.id
 })
 
 const isCompleted = computed(() => props.phase.status === 'Completed')
@@ -58,9 +58,9 @@ const hasLevels = computed(() => (props.phase.levels?.length ?? 0) > 0)
 
 const groupsByLevel = computed(() => {
   if (!hasLevels.value) return []
-  return (props.phase.levels ?? []).map(level => ({
+  return (props.phase.levels ?? []).map((level) => ({
     level,
-    groups: (props.phase.groups ?? []).filter(g => g.levelId === level.id),
+    groups: (props.phase.groups ?? []).filter((g) => g.levelId === level.id),
   }))
 })
 
@@ -84,12 +84,19 @@ function openAddGroup() {
   showAddGroupDialog.value = true
 }
 
+function openAutoAssign() {
+  clearErrors()
+  showAutoAssignDialog.value = true
+}
+
 async function handleAddGroup() {
   const { valid } = await groupFormRef.value!.validate()
   if (!valid) return
 
   try {
-    await structureStore.addGroup(props.tournamentId, props.phase.id!, { name: newGroupName.value })
+    await structureStore.addGroup(props.tournamentId, props.phase.id!, {
+      name: newGroupName.value,
+    })
     showAddGroupDialog.value = false
     showSuccess('Group added')
     await structureStore.fetchStructure(props.tournamentId)
@@ -116,10 +123,22 @@ async function handleAutoAssign() {
 <template>
   <CollapsiblePhaseCard :phase="phase" :expanded="expanded" @toggle="emit('toggle-phase')">
     <template #chips>
-      <v-chip v-if="phase.groupWinners" size="small" color="success" variant="tonal" prepend-icon="mdi-arrow-up">
+      <v-chip
+        v-if="phase.groupWinners"
+        size="small"
+        color="success"
+        variant="tonal"
+        prepend-icon="mdi-arrow-up"
+      >
         Top {{ phase.groupWinners }}
       </v-chip>
-      <v-chip v-if="phase.totalTeamsProceeding" size="small" color="info" variant="tonal" prepend-icon="mdi-arrow-up">
+      <v-chip
+        v-if="phase.totalTeamsProceeding"
+        size="small"
+        color="info"
+        variant="tonal"
+        prepend-icon="mdi-arrow-up"
+      >
         Total {{ phase.totalTeamsProceeding }}
       </v-chip>
     </template>
@@ -131,16 +150,17 @@ async function handleAutoAssign() {
           variant="text"
           size="small"
           :aria-label="'Edit phase ' + phase.name"
-          @click.stop="emit('edit', phase)" 
-          :disabled="isCompleted" />
+          :disabled="isCompleted"
+          @click.stop="emit('edit', phase)"
+        />
         <v-btn
           icon="mdi-delete"
           variant="text"
           size="small"
           color="error"
           :aria-label="'Delete phase ' + phase.name"
-          @click.stop="confirmDelete"
           :disabled="isActivated"
+          @click.stop="confirmDelete"
         />
 
         <v-dialog v-model="showDeleteDialog" max-width="400" :aria-labelledby="deleteDialogTitleId">
@@ -149,8 +169,8 @@ async function handleAutoAssign() {
               >Delete Phase</v-card-title
             >
             <v-card-text>
-              Are you sure you want to delete "{{ phase.name }}"? This will remove all groups and team
-              assignments within this phase.
+              Are you sure you want to delete "{{ phase.name }}"? This will remove all groups and
+              team assignments within this phase.
             </v-card-text>
             <v-card-actions>
               <v-spacer />
@@ -228,8 +248,8 @@ async function handleAutoAssign() {
         color="primary"
         variant="elevated"
         prepend-icon="mdi-plus"
-        @click="openAddGroup"
         :disabled="isActivated"
+        @click="openAddGroup"
       >
         Add Group
       </v-btn>
@@ -237,20 +257,33 @@ async function handleAutoAssign() {
         color="primary"
         variant="elevated"
         prepend-icon="mdi-shuffle-variant"
-        @click="clearErrors(); showAutoAssignDialog = true"
         :disabled="isActivated"
+        @click="openAutoAssign"
       >
         Auto-assign Teams
       </v-btn>
     </template>
 
-    <v-dialog v-model="showAutoAssignDialog" max-width="400" :aria-labelledby="autoAssignDialogTitleId">
+    <v-dialog
+      v-model="showAutoAssignDialog"
+      max-width="400"
+      :aria-labelledby="autoAssignDialogTitleId"
+    >
       <v-card class="pa-2">
         <v-card-title :id="autoAssignDialogTitleId" class="text-uppercase dialog-title"
           >Auto-assign Teams</v-card-title
         >
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           This will clear existing team assignments and redistribute all tournament teams into the
@@ -270,7 +303,16 @@ async function handleAutoAssign() {
           >Add Group</v-card-title
         >
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-form ref="groupFormRef" @submit.prevent="handleAddGroup">

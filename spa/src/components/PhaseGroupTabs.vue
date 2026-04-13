@@ -32,7 +32,7 @@ const entries = computed<TabEntry[]>(() => {
   const hasLevels = props.levels.length > 0
 
   if (!hasLevels) {
-    return props.groups.map(g => ({
+    return props.groups.map((g) => ({
       type: 'tab' as const,
       id: g.id!,
       label: `Group ${g.name}`,
@@ -41,7 +41,7 @@ const entries = computed<TabEntry[]>(() => {
 
   const result: TabEntry[] = []
   for (const level of props.levels) {
-    const levelGroups = props.groups.filter(g => g.levelId === level.id)
+    const levelGroups = props.groups.filter((g) => g.levelId === level.id)
     if (levelGroups.length === 1) {
       result.push({ type: 'tab', id: levelGroups[0].id!, label: level.name })
     } else if (levelGroups.length > 1) {
@@ -59,21 +59,27 @@ const entries = computed<TabEntry[]>(() => {
   <div v-if="hasMultipleGroups" class="mb-4">
     <v-tabs
       :model-value="selectedGroupId"
-      @update:model-value="(val: unknown) => { if (typeof val === 'string') emit('select-group', val) }"
       show-arrows
       grow
       density="compact"
       color="primary"
       aria-label="Select group"
+      @update:model-value="
+        (val: unknown) => {
+          if (typeof val === 'string') emit('select-group', val)
+        }
+      "
     >
       <template v-for="entry in entries" :key="entry.id">
-        <v-chip v-if="entry.type === 'label'"
+        <v-chip
+          v-if="entry.type === 'label'"
           size="default"
           color="secondary"
           variant="outlined"
           class="level-divider ml-12"
           prepend-icon="mdi-sitemap"
-          append-icon="mdi-chevron-right">
+          append-icon="mdi-chevron-right"
+        >
           {{ entry.text }}
         </v-chip>
         <v-tab v-else :value="entry.id">
@@ -89,7 +95,7 @@ const entries = computed<TabEntry[]>(() => {
   align-self: center;
   font-weight: bold;
   border: 0;
-  opacity: .8;
+  opacity: 0.8;
 }
 
 .level-divider:first-child {

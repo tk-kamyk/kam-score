@@ -11,15 +11,15 @@ const props = defineProps<{
 const levels = computed(() => {
   if (!props.data.length) return []
 
-  const levelNames = [...new Set(props.data.map(s => s.levelName).filter(Boolean))]
+  const levelNames = [...new Set(props.data.map((s) => s.levelName).filter(Boolean))]
 
   if (levelNames.length === 0) {
     return [{ name: null, standings: props.data }]
   }
 
-  return levelNames.map(name => ({
+  return levelNames.map((name) => ({
     name,
-    standings: props.data.filter(s => s.levelName === name),
+    standings: props.data.filter((s) => s.levelName === name),
   }))
 })
 

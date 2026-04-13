@@ -13,10 +13,14 @@ export function useExpandedQueryParam(queryKey: string) {
 
   const expanded = ref(parseQuerySet(route.query[queryKey]))
 
-  watch(expanded, (value) => {
-    const serialized = value.size > 0 ? [...value].join(',') : undefined
-    scheduleQueryUpdate(router, queryKey, serialized)
-  }, { deep: true })
+  watch(
+    expanded,
+    (value) => {
+      const serialized = value.size > 0 ? [...value].join(',') : undefined
+      scheduleQueryUpdate(router, queryKey, serialized)
+    },
+    { deep: true },
+  )
 
   function toggle(id: string) {
     const newSet = new Set(expanded.value)

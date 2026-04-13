@@ -48,7 +48,12 @@ async function loadVolunteers() {
 
 async function handleAssign(volunteerId: string) {
   try {
-    await volunteerStore.assignVolunteer(props.tournamentId, props.shiftGroup, props.shiftTime, volunteerId)
+    await volunteerStore.assignVolunteer(
+      props.tournamentId,
+      props.shiftGroup,
+      props.shiftTime,
+      volunteerId,
+    )
     await loadVolunteers()
     showSuccess('Volunteer assigned')
     dirty.value = true
@@ -59,7 +64,12 @@ async function handleAssign(volunteerId: string) {
 
 async function handleUnassign(volunteerId: string) {
   try {
-    await volunteerStore.unassignVolunteer(props.tournamentId, props.shiftGroup, props.shiftTime, volunteerId)
+    await volunteerStore.unassignVolunteer(
+      props.tournamentId,
+      props.shiftGroup,
+      props.shiftTime,
+      volunteerId,
+    )
     await loadVolunteers()
     showSuccess('Volunteer removed')
     dirty.value = true
@@ -131,7 +141,10 @@ async function handleUnassign(volunteerId: string) {
           </v-list-item>
         </v-list>
 
-        <div v-if="!loading && volunteers.length === 0" class="pa-4 text-medium-emphasis text-body-2">
+        <div
+          v-if="!loading && volunteers.length === 0"
+          class="pa-4 text-medium-emphasis text-body-2"
+        >
           No volunteers available. Add volunteers in the List tab first.
         </div>
       </v-card-text>

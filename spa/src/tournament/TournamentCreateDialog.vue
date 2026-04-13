@@ -24,17 +24,19 @@ const disciplines = ['Volleyball', 'BeachVolleyball']
 
 const tournamentOptions = computed(() =>
   [...tournamentStore.tournaments]
-    .sort((a, b) => new Date(b.lastModified ?? 0).getTime() - new Date(a.lastModified ?? 0).getTime())
-    .map(t => ({
+    .sort(
+      (a, b) => new Date(b.lastModified ?? 0).getTime() - new Date(a.lastModified ?? 0).getTime(),
+    )
+    .map((t) => ({
       title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
       value: t.id!,
-    }))
+    })),
 )
 
 const selectedSource = computed(() =>
   sourceTournamentId.value
-    ? tournamentStore.tournaments.find(t => t.id === sourceTournamentId.value)
-    : undefined
+    ? tournamentStore.tournaments.find((t) => t.id === sourceTournamentId.value)
+    : undefined,
 )
 
 function resetForm() {
@@ -52,7 +54,11 @@ watch(model, (open) => {
 function handleCreate() {
   const dto: TournamentDto = {
     ...newTournament.value,
-    gameConditions: buildGameConditions(useCustomConditions.value, bestOfSets.value, pointsPerSetText.value),
+    gameConditions: buildGameConditions(
+      useCustomConditions.value,
+      bestOfSets.value,
+      pointsPerSetText.value,
+    ),
     sourceTournamentId: sourceTournamentId.value,
   }
   emit('created', dto)
@@ -62,14 +68,12 @@ function handleCreate() {
 <template>
   <v-dialog v-model="model" max-width="500" aria-labelledby="create-tournament-dialog-title">
     <v-card class="pa-2">
-      <v-card-title id="create-tournament-dialog-title" class="text-uppercase dialog-title">Create Tournament</v-card-title>
+      <v-card-title id="create-tournament-dialog-title" class="text-uppercase dialog-title"
+        >Create Tournament</v-card-title
+      >
       <v-progress-linear v-if="props.loading" indeterminate color="primary" />
       <v-card-text>
-        <v-text-field
-          v-model="newTournament.name"
-          label="Name"
-          autofocus
-        />
+        <v-text-field v-model="newTournament.name" label="Name" autofocus />
         <v-select
           v-model="sourceTournamentId"
           :items="tournamentOptions"
@@ -81,12 +85,14 @@ function handleCreate() {
         />
         <template v-if="selectedSource">
           <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-            Copying from <strong>{{ selectedSource.name }}</strong>:
-            {{ selectedSource.discipline }},
-            {{ selectedSource.teamCount ?? 0 }} seed teams,
+            Copying from <strong>{{ selectedSource.name }}</strong
+            >: {{ selectedSource.discipline }}, {{ selectedSource.teamCount ?? 0 }} seed teams,
             {{ selectedSource.courtCount ?? 0 }} courts,
-            {{ selectedSource.gameLength ? `${selectedSource.gameLength} min games` : 'no game length' }}.
-            Settings below will be overridden by source.
+            {{
+              selectedSource.gameLength
+                ? `${selectedSource.gameLength} min games`
+                : 'no game length'
+            }}. Settings below will be overridden by source.
           </v-alert>
         </template>
         <template v-else>

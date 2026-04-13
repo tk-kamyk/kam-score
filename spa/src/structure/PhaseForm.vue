@@ -52,9 +52,7 @@ const nameRules = [
   (v: string) => v.length <= 200 || 'Phase name must not exceed 200 characters.',
 ]
 
-const groupsRules = [
-  (v: number) => v >= 1 || 'At least 1 group is required.',
-]
+const groupsRules = [(v: number) => v >= 1 || 'At least 1 group is required.']
 
 /** Level count of the previous phase (0 if no levels or no previous phase) */
 const previousPhaseLevelCount = computed(() => {
@@ -69,20 +67,22 @@ const previousPhaseLevelCount = computed(() => {
 const levelsRequired = computed(() => previousPhaseLevelCount.value > 0)
 
 /** Minimum number of levels for this phase */
-const minLevels = computed(() => levelsRequired.value ? previousPhaseLevelCount.value : 1)
+const minLevels = computed(() => (levelsRequired.value ? previousPhaseLevelCount.value : 1))
 
 const levelsRules = computed(() => [
-  (v: number) => v >= minLevels.value || `At least ${minLevels.value} levels required (previous phase has ${previousPhaseLevelCount.value}).`,
+  (v: number) =>
+    v >= minLevels.value ||
+    `At least ${minLevels.value} levels required (previous phase has ${previousPhaseLevelCount.value}).`,
   (v: number) => {
     if (previousPhaseLevelCount.value === 0) return true
-    return v % previousPhaseLevelCount.value === 0
-      || `Must be a multiple of ${previousPhaseLevelCount.value} (previous phase level count).`
+    return (
+      v % previousPhaseLevelCount.value === 0 ||
+      `Must be a multiple of ${previousPhaseLevelCount.value} (previous phase level count).`
+    )
   },
 ])
 
-const groupsLabel = computed(() =>
-  useLevels.value ? 'Groups per Level' : 'Number of Groups',
-)
+const groupsLabel = computed(() => (useLevels.value ? 'Groups per Level' : 'Number of Groups'))
 
 const totalGroupsHint = computed(() => {
   if (!useLevels.value) return ''
@@ -122,7 +122,15 @@ watch(model, (open) => {
       useLevels.value = levelsRequired.value
       isFinalPhase.value = false
       const defaultLevels = levelsRequired.value ? previousPhaseLevelCount.value : 2
-      form.value = { name: '', format: 'RoundRobin', numberOfGroups: 2, numberOfLevels: defaultLevels, groupWinners: null, totalTeamsProceeding: null, startTime: '' }
+      form.value = {
+        name: '',
+        format: 'RoundRobin',
+        numberOfGroups: 2,
+        numberOfLevels: defaultLevels,
+        groupWinners: null,
+        totalTeamsProceeding: null,
+        startTime: '',
+      }
     }
   }
 })
@@ -136,7 +144,11 @@ async function handleSave() {
       name: form.value.name,
       format: form.value.format,
       numberOfGroups: props.phase ? undefined : form.value.numberOfGroups,
-      numberOfLevels: props.phase ? undefined : (useLevels.value ? form.value.numberOfLevels : undefined),
+      numberOfLevels: props.phase
+        ? undefined
+        : useLevels.value
+          ? form.value.numberOfLevels
+          : undefined,
       groupWinners: isFinalPhase.value ? 0 : (form.value.groupWinners ?? undefined),
       totalTeamsProceeding: isFinalPhase.value ? 0 : (form.value.totalTeamsProceeding ?? undefined),
       startTime: form.value.startTime || undefined,
@@ -166,7 +178,16 @@ async function handleSave() {
         {{ phase ? 'Edit Phase' : 'Add Phase' }}
       </v-card-title>
       <v-card-text>
-        <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+        <v-alert
+          v-if="generalError"
+          type="error"
+          variant="tonal"
+          density="compact"
+          closable
+          role="alert"
+          class="mb-3"
+          @click:close="clearErrors()"
+        >
           {{ generalError }}
         </v-alert>
         <v-form ref="formRef" @submit.prevent="handleSave">
@@ -260,7 +281,11 @@ async function handleSave() {
             v-model="form.startTime"
             label="Start Time"
             type="time"
-            :hint="props.hasGames ? 'Cannot change start time while games exist' : 'Baseline time for scheduling games in this phase'"
+            :hint="
+              props.hasGames
+                ? 'Cannot change start time while games exist'
+                : 'Baseline time for scheduling games in this phase'
+            "
             persistent-hint
             :error-messages="fieldErrors('startTime')"
             :disabled="props.hasGames"

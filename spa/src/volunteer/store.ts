@@ -12,7 +12,9 @@ export const useVolunteerStore = defineStore('volunteer', () => {
   async function fetchVolunteers(tournamentId: string) {
     loading.value = true
     try {
-      const { data } = await apiClient.get<VolunteerDto[]>(`/tournaments/${tournamentId}/volunteers`)
+      const { data } = await apiClient.get<VolunteerDto[]>(
+        `/tournaments/${tournamentId}/volunteers`,
+      )
       volunteers.value = data
     } finally {
       loading.value = false
@@ -20,14 +22,24 @@ export const useVolunteerStore = defineStore('volunteer', () => {
   }
 
   async function createVolunteer(tournamentId: string, dto: VolunteerDto): Promise<VolunteerDto> {
-    const { data } = await apiClient.post<VolunteerDto>(`/tournaments/${tournamentId}/volunteers`, dto)
+    const { data } = await apiClient.post<VolunteerDto>(
+      `/tournaments/${tournamentId}/volunteers`,
+      dto,
+    )
     volunteers.value = [...volunteers.value, data]
     return data
   }
 
-  async function updateVolunteer(tournamentId: string, volunteerId: string, dto: VolunteerDto): Promise<VolunteerDto> {
-    const { data } = await apiClient.put<VolunteerDto>(`/tournaments/${tournamentId}/volunteers/${volunteerId}`, dto)
-    const index = volunteers.value.findIndex(v => v.id === volunteerId)
+  async function updateVolunteer(
+    tournamentId: string,
+    volunteerId: string,
+    dto: VolunteerDto,
+  ): Promise<VolunteerDto> {
+    const { data } = await apiClient.put<VolunteerDto>(
+      `/tournaments/${tournamentId}/volunteers/${volunteerId}`,
+      dto,
+    )
+    const index = volunteers.value.findIndex((v) => v.id === volunteerId)
     if (index >= 0) {
       volunteers.value[index] = data
     }
@@ -36,13 +48,15 @@ export const useVolunteerStore = defineStore('volunteer', () => {
 
   async function deleteVolunteer(tournamentId: string, volunteerId: string) {
     await apiClient.delete(`/tournaments/${tournamentId}/volunteers/${volunteerId}`)
-    volunteers.value = volunteers.value.filter(v => v.id !== volunteerId)
+    volunteers.value = volunteers.value.filter((v) => v.id !== volunteerId)
   }
 
   async function fetchShifts(tournamentId: string) {
     shiftsLoading.value = true
     try {
-      const { data } = await apiClient.get<ShiftGroupDto[]>(`/tournaments/${tournamentId}/volunteers/shifts`)
+      const { data } = await apiClient.get<ShiftGroupDto[]>(
+        `/tournaments/${tournamentId}/volunteers/shifts`,
+      )
       shiftGroups.value = data
     } finally {
       shiftsLoading.value = false

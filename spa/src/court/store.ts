@@ -23,9 +23,16 @@ export const useCourtStore = defineStore('court', () => {
     return data
   }
 
-  async function updateCourt(tournamentId: string, courtId: string, dto: CourtDto): Promise<CourtDto> {
-    const { data } = await apiClient.put<CourtDto>(`/tournaments/${tournamentId}/courts/${courtId}`, dto)
-    const index = courts.value.findIndex(c => c.id === courtId)
+  async function updateCourt(
+    tournamentId: string,
+    courtId: string,
+    dto: CourtDto,
+  ): Promise<CourtDto> {
+    const { data } = await apiClient.put<CourtDto>(
+      `/tournaments/${tournamentId}/courts/${courtId}`,
+      dto,
+    )
+    const index = courts.value.findIndex((c) => c.id === courtId)
     if (index >= 0) {
       courts.value[index] = data
     }
@@ -34,7 +41,7 @@ export const useCourtStore = defineStore('court', () => {
 
   async function deleteCourt(tournamentId: string, courtId: string) {
     await apiClient.delete(`/tournaments/${tournamentId}/courts/${courtId}`)
-    courts.value = courts.value.filter(c => c.id !== courtId)
+    courts.value = courts.value.filter((c) => c.id !== courtId)
   }
 
   async function generateCourts(tournamentId: string, count: number): Promise<CourtDto[]> {

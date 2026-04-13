@@ -14,11 +14,7 @@ const pointsPerSetText = defineModel<string>('pointsPerSetText', { required: tru
     class="mb-4"
   />
   <template v-if="enabled">
-    <v-select
-      v-model="bestOfSets"
-      :items="[1, 3, 5]"
-      label="Best of Sets"
-    />
+    <v-select v-model="bestOfSets" :items="[1, 3, 5]" label="Best of Sets" />
     <v-text-field
       v-model="pointsPerSetText"
       label="Points per Set (comma-separated)"

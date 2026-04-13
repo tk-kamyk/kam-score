@@ -57,17 +57,27 @@ function getRowClass(index: number): string {
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(standing, index) in standings" :key="standing.teamId" :class="getRowClass(index)">
+        <tr
+          v-for="(standing, index) in standings"
+          :key="standing.teamId"
+          :class="getRowClass(index)"
+        >
           <td class="text-center">{{ standing.position }}</td>
           <td>{{ standing.teamName ?? standing.teamId }}</td>
-          <td v-if="isRoundRobin(phaseFormat)"class="text-center">{{ standing.points }}</td>
+          <td v-if="isRoundRobin(phaseFormat)" class="text-center">{{ standing.points }}</td>
           <td class="text-center">{{ standing.gamesPlayed }}</td>
           <td class="text-center">{{ standing.wins }}</td>
           <td v-if="isRoundRobin(phaseFormat)" class="text-center">{{ standing.draws }}</td>
           <td class="text-center">{{ standing.losses }}</td>
           <template v-if="isRoundRobin(phaseFormat)">
-            <td class="text-center">{{ standing.setDifference != null && standing.setDifference > 0 ? '+' : '' }}{{ standing.setDifference }}</td>
-            <td class="text-center">{{ standing.pointDifference != null && standing.pointDifference > 0 ? '+' : '' }}{{ standing.pointDifference }}</td>
+            <td class="text-center">
+              {{ standing.setDifference != null && standing.setDifference > 0 ? '+' : ''
+              }}{{ standing.setDifference }}
+            </td>
+            <td class="text-center">
+              {{ standing.pointDifference != null && standing.pointDifference > 0 ? '+' : ''
+              }}{{ standing.pointDifference }}
+            </td>
           </template>
         </tr>
       </tbody>

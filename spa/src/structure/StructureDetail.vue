@@ -19,7 +19,11 @@ const props = defineProps<{
 const structureStore = useStructureStore()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
-const { expanded: expandedPhases, toggle: togglePhase, syncFromRoute } = useExpandedQueryParam('phase')
+const {
+  expanded: expandedPhases,
+  toggle: togglePhase,
+  syncFromRoute,
+} = useExpandedQueryParam('phase')
 
 const showPhaseForm = ref(false)
 const editingPhase = ref<PhaseDto | null>(null)
@@ -34,15 +38,18 @@ onMounted(async () => {
   ])
 })
 
-watch(() => props.active, async (isActive) => {
-  if (!isActive) return
-  syncFromRoute()
-  await Promise.all([
-    structureStore.fetchStructure(props.tournamentId),
-    teamStore.fetchTeams(props.tournamentId),
-    teamStore.fetchPlaceholders(props.tournamentId),
-  ])
-})
+watch(
+  () => props.active,
+  async (isActive) => {
+    if (!isActive) return
+    syncFromRoute()
+    await Promise.all([
+      structureStore.fetchStructure(props.tournamentId),
+      teamStore.fetchTeams(props.tournamentId),
+      teamStore.fetchPlaceholders(props.tournamentId),
+    ])
+  },
+)
 
 function openAddPhase() {
   editingPhase.value = null
@@ -74,17 +81,19 @@ async function handleDeletePhase(phaseId: string) {
 <template>
   <div>
     <SectionHeader title="Structure">
-      <v-btn
-        v-if="isOwner"
-        color="primary"
-        prepend-icon="mdi-plus"
-        @click="openAddPhase"
-      >
+      <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openAddPhase">
         Add Phase
       </v-btn>
     </SectionHeader>
 
-    <v-progress-linear v-if="structureStore.loading" indeterminate color="primary" class="mb-4" role="status" aria-label="Loading structure" />
+    <v-progress-linear
+      v-if="structureStore.loading"
+      indeterminate
+      color="primary"
+      class="mb-4"
+      role="status"
+      aria-label="Loading structure"
+    />
 
     <div v-if="phases.length > 0" class="phases-list">
       <StructurePhaseCard
@@ -101,7 +110,13 @@ async function handleDeletePhase(phaseId: string) {
       />
     </div>
 
-    <v-alert class="mt-4 mb-4" v-else-if="!structureStore.loading" type="info" variant="tonal" role="status">
+    <v-alert
+      v-else-if="!structureStore.loading"
+      class="mt-4 mb-4"
+      type="info"
+      variant="tonal"
+      role="status"
+    >
       No phases yet. {{ isOwner ? 'Add a phase to get started.' : '' }}
     </v-alert>
 

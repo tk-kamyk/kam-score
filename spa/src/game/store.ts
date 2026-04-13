@@ -49,11 +49,9 @@ export const useGameStore = defineStore('game', () => {
     if (tournamentCode) {
       headers['X-Tournament-Code'] = tournamentCode
     }
-    await apiClient.put<GameDto>(
-      `/tournaments/${tournamentId}/games/${gameId}/result`,
-      result,
-      { headers },
-    )
+    await apiClient.put<GameDto>(`/tournaments/${tournamentId}/games/${gameId}/result`, result, {
+      headers,
+    })
     await fetchGames(tournamentId)
   }
 
@@ -74,10 +72,7 @@ export const useGameStore = defineStore('game', () => {
     isPlaceholder?: boolean,
   ) {
     const body = isPlaceholder ? { placeholder: teamId } : { teamId }
-    await apiClient.put(
-      `/tournaments/${tournamentId}/games/${gameId}/referee`,
-      body,
-    )
+    await apiClient.put(`/tournaments/${tournamentId}/games/${gameId}/referee`, body)
     await fetchGames(tournamentId)
   }
 

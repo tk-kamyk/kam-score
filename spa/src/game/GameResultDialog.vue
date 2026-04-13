@@ -23,8 +23,8 @@ const tournamentStore = useTournamentStore()
 const { showSuccess, showError } = useSnackbar()
 const { handleError, generalError, clearErrors } = useFormErrors()
 
-const defaultSetCount = computed(() =>
-  tournamentStore.currentTournament?.gameConditions?.bestOfSets ?? 1
+const defaultSetCount = computed(
+  () => tournamentStore.currentTournament?.gameConditions?.bestOfSets ?? 1,
 )
 
 const mode = ref<'detailed' | 'simple'>('detailed')
@@ -45,7 +45,10 @@ watch(
       tournamentCode.value = ''
       if (props.game.sets?.length) {
         mode.value = 'detailed'
-        sets.value = props.game.sets.map(s => ({ homePoints: s.homePoints, awayPoints: s.awayPoints }))
+        sets.value = props.game.sets.map((s) => ({
+          homePoints: s.homePoints,
+          awayPoints: s.awayPoints,
+        }))
       } else if (props.game.homeScore != null) {
         mode.value = 'simple'
         homeScore.value = props.game.homeScore
@@ -81,15 +84,8 @@ async function submit() {
   try {
     const code = props.isOwner ? undefined : tournamentCode.value.toUpperCase() || undefined
     if (mode.value === 'detailed') {
-      const filledSets = sets.value.filter(
-        s => s.homePoints !== 0 || s.awayPoints !== 0,
-      )
-      await gameStore.recordResult(
-        props.tournamentId,
-        props.game.id!,
-        { sets: filledSets },
-        code,
-      )
+      const filledSets = sets.value.filter((s) => s.homePoints !== 0 || s.awayPoints !== 0)
+      await gameStore.recordResult(props.tournamentId, props.game.id!, { sets: filledSets }, code)
     } else {
       await gameStore.recordResult(
         props.tournamentId,
@@ -120,14 +116,28 @@ function awayName(): string {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="500" aria-labelledby="result-dialog-title" @update:model-value="emit('update:modelValue', $event)">
+  <v-dialog
+    :model-value="modelValue"
+    max-width="500"
+    aria-labelledby="result-dialog-title"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <v-card class="pa-2">
       <v-card-title id="result-dialog-title" class="text-uppercase dialog-title">
         {{ game.status === 'Completed' ? 'Edit Result' : 'Enter Result' }}
       </v-card-title>
 
       <v-card-text>
-        <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+        <v-alert
+          v-if="generalError"
+          type="error"
+          variant="tonal"
+          density="compact"
+          closable
+          role="alert"
+          class="mb-3"
+          @click:close="clearErrors()"
+        >
           {{ generalError }}
         </v-alert>
         <div class="text-center mb-4">
@@ -135,7 +145,14 @@ function awayName(): string {
             {{ homeName() }} vs {{ awayName() }}
           </div>
 
-          <v-btn-toggle v-model="mode" mandatory variant="outlined" density="comfortable" class="mb-4" aria-label="Result entry mode">
+          <v-btn-toggle
+            v-model="mode"
+            mandatory
+            variant="outlined"
+            density="comfortable"
+            class="mb-4"
+            aria-label="Result entry mode"
+          >
             <v-btn value="detailed">Detailed</v-btn>
             <v-btn value="simple">Simple</v-btn>
           </v-btn-toggle>
@@ -179,13 +196,7 @@ function awayName(): string {
             />
             <span v-else class="remove-btn-spacer" />
           </div>
-          <v-btn
-            prepend-icon="mdi-plus"
-            variant="text"
-            size="small"
-            class="mt-1"
-            @click="addSet"
-          >
+          <v-btn prepend-icon="mdi-plus" variant="text" size="small" class="mt-1" @click="addSet">
             Add Set
           </v-btn>
         </template>
@@ -227,12 +238,7 @@ function awayName(): string {
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="close">Cancel</v-btn>
-        <v-btn
-          color="primary"
-          variant="elevated"
-          :loading="submitting"
-          @click="submit"
-        >
+        <v-btn color="primary" variant="elevated" :loading="submitting" @click="submit">
           Save Result
         </v-btn>
       </v-card-actions>

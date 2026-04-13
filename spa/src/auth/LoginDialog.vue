@@ -25,16 +25,16 @@ async function handleLogin() {
 </script>
 
 <template>
-  <v-dialog v-model="auth.showLoginDialog" max-width="400" persistent aria-labelledby="login-dialog-title">
+  <v-dialog
+    v-model="auth.showLoginDialog"
+    max-width="400"
+    persistent
+    aria-labelledby="login-dialog-title"
+  >
     <v-card class="pa-2 login-card">
       <v-card-title id="login-dialog-title" class="text-uppercase dialog-title">Login</v-card-title>
       <v-card-text>
-        <v-text-field
-          v-model="username"
-          label="Username"
-          autofocus
-          @keyup.enter="handleLogin"
-        />
+        <v-text-field v-model="username" label="Username" autofocus @keyup.enter="handleLogin" />
         <v-text-field
           v-model="password"
           label="Password"
@@ -61,6 +61,6 @@ async function handleLogin() {
 
 <style scoped>
 .login-card {
-    border: 1px solid var(--ks-border);
+  border: 1px solid var(--ks-border);
 }
 </style>

@@ -18,17 +18,17 @@ import router from './router'
 const kamScoreDark = {
   dark: true,
   colors: {
-    background: '#2a2e33',        // --ks-bg
+    background: '#2a2e33', // --ks-bg
     surface: '#33383f',
     'surface-bright': '#3e454d',
-    'surface-light': '#4a5259',   // --ks-surface
-    primary: '#29b5d4',           // --ks-primary (lighter for readability on dark bg)
-    secondary: '#E8B930',         // --ks-secondary
+    'surface-light': '#4a5259', // --ks-surface
+    primary: '#29b5d4', // --ks-primary (lighter for readability on dark bg)
+    secondary: '#E8B930', // --ks-secondary
     error: '#e5534b',
     success: '#56d364',
     warning: '#e3b341',
-    'on-background': '#e6edf3',   // --ks-text
-    'on-surface': '#e6edf3',      // --ks-text
+    'on-background': '#e6edf3', // --ks-text
+    'on-surface': '#e6edf3', // --ks-text
   },
 }
 
