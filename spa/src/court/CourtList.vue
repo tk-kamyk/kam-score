@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCourtStore } from '@/court/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { useFormErrors } from '@/composables/useFormErrors'
 import SectionHeader from '@/components/SectionHeader.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import CourtFormDialog from '@/court/CourtFormDialog.vue'
+import GenerateCourtsDialog from '@/court/GenerateCourtsDialog.vue'
 import CourtGames from '@/court/CourtGames.vue'
 import type { CourtDto } from '@/court/types'
-import type { VForm } from 'vuetify/components'
 
 const props = defineProps<{
   tournamentId: string
@@ -19,24 +20,13 @@ const route = useRoute()
 const router = useRouter()
 const courtStore = useCourtStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
-
-const showFormDialog = ref(false)
-const showDeleteDialog = ref(false)
-const editingCourt = ref<CourtDto | null>(null)
-const deletingCourt = ref<CourtDto | null>(null)
-const form = ref<CourtDto>({ name: '' })
-const formRef = ref<InstanceType<typeof VForm> | null>(null)
 
 const expandedCourt = ref<string | null>((route.query.court as string) || null)
 
 watch(expandedCourt, (courtId) => {
   const query = { ...route.query }
-  if (courtId) {
-    query.court = courtId
-  } else {
-    delete query.court
-  }
+  if (courtId) query.court = courtId
+  else delete query.court
   router.replace({ query })
 })
 
@@ -45,14 +35,18 @@ function toggleExpand(courtId?: string) {
   expandedCourt.value = expandedCourt.value === courtId ? null : courtId
 }
 
-const nameRules = [
-  (v: string) => !!v || 'Court name is required.',
-  (v: string) => v.length <= 100 || 'Court name must not exceed 100 characters.',
-]
+// --- Dialog state ---
 
-onMounted(() => {
-  courtStore.fetchCourts(props.tournamentId)
-})
+const showFormDialog = ref(false)
+const showDeleteDialog = ref(false)
+const showGenerateDialog = ref(false)
+const editingCourt = ref<CourtDto | null>(null)
+const deletingCourt = ref<CourtDto | null>(null)
+const formDialog = ref<InstanceType<typeof CourtFormDialog> | null>(null)
+const deleteDialog = ref<InstanceType<typeof ConfirmDeleteDialog> | null>(null)
+const generateDialog = ref<InstanceType<typeof GenerateCourtsDialog> | null>(null)
+
+onMounted(() => courtStore.fetchCourts(props.tournamentId))
 
 watch(
   () => props.active,
@@ -63,39 +57,35 @@ watch(
 
 function openCreate() {
   editingCourt.value = null
-  form.value = { name: '' }
-  clearErrors()
   showFormDialog.value = true
 }
 
 function openEdit(court: CourtDto) {
   editingCourt.value = court
-  form.value = { ...court }
-  clearErrors()
   showFormDialog.value = true
 }
 
 function openDelete(court: CourtDto) {
   deletingCourt.value = court
-  clearErrors()
   showDeleteDialog.value = true
 }
 
-async function handleSave() {
-  const { valid } = await formRef.value!.validate()
-  if (!valid) return
+function openGenerate() {
+  showGenerateDialog.value = true
+}
 
+async function handleSave(court: CourtDto) {
   try {
     if (editingCourt.value?.id) {
-      await courtStore.updateCourt(props.tournamentId, editingCourt.value.id, form.value)
+      await courtStore.updateCourt(props.tournamentId, editingCourt.value.id, court)
       showSuccess('Court updated')
     } else {
-      await courtStore.createCourt(props.tournamentId, form.value)
+      await courtStore.createCourt(props.tournamentId, court)
       showSuccess('Court created')
     }
     showFormDialog.value = false
   } catch (error) {
-    if (!handleError(error)) {
+    if (!formDialog.value?.handleError(error)) {
       showError(editingCourt.value ? 'Failed to update court' : 'Failed to create court')
     }
   }
@@ -108,40 +98,19 @@ async function handleDelete() {
     showDeleteDialog.value = false
     showSuccess('Court deleted')
   } catch (error) {
-    if (!handleError(error)) {
+    if (!deleteDialog.value?.handleError(error)) {
       showError('Failed to delete court')
     }
   }
 }
 
-const showGenerateDialog = ref(false)
-const courtCount = ref(4)
-
-const courtCountRules = [(v: number) => (v >= 1 && v <= 20) || 'Count must be between 1 and 20.']
-
-const courtPreview = computed(() => {
-  const start = courtStore.courts.length + 1
-  const count = courtCount.value
-  if (count < 1 || count > 20) return ''
-  const names = Array.from({ length: Math.min(count, 4) }, (_, i) => `C${start + i}`)
-  if (count > 4) names.push(`... C${start + count - 1}`)
-  return names.join(', ')
-})
-
-function openGenerate() {
-  courtCount.value = 4
-  clearErrors()
-  showGenerateDialog.value = true
-}
-
-async function handleGenerate() {
-  if (courtCount.value < 1 || courtCount.value > 20) return
+async function handleGenerate(count: number) {
   try {
-    const generated = await courtStore.generateCourts(props.tournamentId, courtCount.value)
+    const generated = await courtStore.generateCourts(props.tournamentId, count)
     showGenerateDialog.value = false
     showSuccess(`Generated ${generated.length} courts`)
   } catch (error) {
-    if (!handleError(error)) {
+    if (!generateDialog.value?.handleError(error)) {
       showError('Failed to generate courts')
     }
   }
@@ -226,108 +195,25 @@ async function handleGenerate() {
       No courts yet.
     </v-alert>
 
-    <!-- Create / Edit Dialog -->
-    <v-dialog v-model="showFormDialog" max-width="500">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">
-          {{ editingCourt ? 'Edit Court' : 'Add Court' }}
-        </v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          <v-form ref="formRef" @submit.prevent="handleSave">
-            <v-text-field
-              v-model="form.name"
-              label="Name"
-              :rules="nameRules"
-              :error-messages="fieldErrors('name')"
-              @update:model-value="clearFieldError('name')"
-            />
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showFormDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="elevated" @click="handleSave">
-            {{ editingCourt ? 'Save' : 'Create' }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Delete Confirmation -->
-    <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Delete Court</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          Are you sure you want to delete "{{ deletingCourt?.name }}"?
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Generate Courts Dialog -->
-    <v-dialog v-model="showGenerateDialog" max-width="450">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Generate Courts</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          <v-text-field
-            v-model.number="courtCount"
-            label="Number of courts"
-            type="number"
-            :min="1"
-            :max="20"
-            :rules="courtCountRules"
-          />
-          <div v-if="courtPreview" class="text-body-2 text-medium-emphasis mt-1">
-            Will generate: {{ courtPreview }}
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showGenerateDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="elevated" @click="handleGenerate">Generate</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <CourtFormDialog
+      ref="formDialog"
+      v-model="showFormDialog"
+      :editing-court="editingCourt"
+      @save="handleSave"
+    />
+    <ConfirmDeleteDialog
+      ref="deleteDialog"
+      v-model="showDeleteDialog"
+      title="Delete Court"
+      :message="`Are you sure you want to delete &quot;${deletingCourt?.name ?? ''}&quot;?`"
+      @confirm="handleDelete"
+    />
+    <GenerateCourtsDialog
+      ref="generateDialog"
+      v-model="showGenerateDialog"
+      :existing-court-count="courtStore.courts.length"
+      @generate="handleGenerate"
+    />
   </div>
 </template>
 

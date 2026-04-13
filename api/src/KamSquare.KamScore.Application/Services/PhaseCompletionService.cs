@@ -218,6 +218,28 @@ public class PhaseCompletionService
         }
     }
 
+    /// <summary>
+    /// Deletes all games for a phase and resets the phase to <c>New</c> if
+    /// it was Scheduled or InProgress. Encapsulates the "games deleted →
+    /// phase status drops back" cross-entity rule that otherwise leaked into
+    /// the game-delete endpoint.
+    /// </summary>
+    public async Task DeletePhaseGamesAsync(
+        TournamentStructure structure,
+        string phaseId,
+        string tournamentId)
+    {
+        var phase = structure.GetPhase(phaseId);
+
+        await _gameRepository.DeleteByPhaseIdAsync(tournamentId, phaseId);
+
+        if (phase.Status is PhaseStatus.Scheduled or PhaseStatus.InProgress)
+        {
+            structure.ResetPhase(phaseId);
+            await _structureRepository.UpdateAsync(structure);
+        }
+    }
+
     public async Task<Phase> ReopenPhaseAsync(
         string tournamentId,
         string phaseId,

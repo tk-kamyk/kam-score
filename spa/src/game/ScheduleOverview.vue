@@ -4,7 +4,6 @@ import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { useFormErrors } from '@/composables/useFormErrors'
 import { parseErrorDetail } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import { useGroupSelection } from '@/composables/useGroupSelection'
@@ -12,6 +11,7 @@ import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import type { GameDto } from '@/game/types'
 import type { PhaseDto } from '@/structure/types'
 import SectionHeader from '@/components/SectionHeader.vue'
+import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import SchedulePhaseCard from '@/game/SchedulePhaseCard.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 
@@ -23,15 +23,15 @@ const props = defineProps<{
 
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
+const teamStore = useTeamStore()
 
 provide('tournamentId', props.tournamentId)
 provide(
   'isOwner',
   computed(() => props.isOwner),
 )
-const teamStore = useTeamStore()
+
 const { showSuccess, showError } = useSnackbar()
-const { handleError, generalError, clearErrors } = useFormErrors()
 const {
   expanded: expandedPhases,
   toggle: togglePhaseBase,
@@ -45,11 +45,12 @@ const {
 } = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
+const phases = computed(() => structureStore.structure?.phases ?? [])
+
 function togglePhase(phaseId: string) {
   togglePhaseBase(phaseId)
 
   if (expandedPhases.value.has(phaseId)) {
-    // Auto-select first group for newly expanded phase
     if (!selectedGroups.value.has(phaseId)) {
       const phase = phases.value.find((p) => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
@@ -61,23 +62,108 @@ function togglePhase(phaseId: string) {
   }
 }
 
+// --- Per-phase action state ---
+
 const generating = ref<string | null>(null)
 const completing = ref<string | null>(null)
 const reopening = ref<string | null>(null)
-const showDeleteDialog = ref(false)
-const showCompleteDialog = ref(false)
-const showReopenDialog = ref(false)
+
+type PhaseAction = 'delete' | 'complete' | 'reopen'
+const pendingAction = ref<PhaseAction | null>(null)
 const actionPhaseId = ref<string | null>(null)
 const actionPhaseName = ref('')
-const showResultDialog = ref(false)
-const selectedGame = ref<GameDto | null>(null)
+const actionDialog = ref<InstanceType<typeof ConfirmDialog> | null>(null)
 
-function openResultDialog(game: GameDto) {
-  selectedGame.value = game
-  showResultDialog.value = true
+function requestAction(action: PhaseAction, phase: PhaseDto) {
+  actionPhaseId.value = phase.id!
+  actionPhaseName.value = phase.name
+  pendingAction.value = action
 }
 
-const phases = computed(() => structureStore.structure?.phases ?? [])
+const actionConfig = computed(() => {
+  const configs: Record<PhaseAction, { title: string; message: string; label: string; color: string }> = {
+    delete: {
+      title: 'Delete Games',
+      message: `Are you sure you want to delete all games for "${actionPhaseName.value}"? You can regenerate them afterwards.`,
+      label: 'Delete',
+      color: 'error',
+    },
+    complete: {
+      title: 'Complete Phase',
+      message: `Complete "${actionPhaseName.value}"? Teams will advance to the next phase based on standings.`,
+      label: 'Complete',
+      color: 'primary',
+    },
+    reopen: {
+      title: 'Reopen Phase',
+      message: `Reopen "${actionPhaseName.value}"? This will clear team assignments and revert the next phase.`,
+      label: 'Reopen',
+      color: 'warning',
+    },
+  }
+  return pendingAction.value ? configs[pendingAction.value] : null
+})
+
+const showActionDialog = computed({
+  get: () => pendingAction.value !== null,
+  set: (open: boolean) => {
+    if (!open) pendingAction.value = null
+  },
+})
+
+async function runAction() {
+  if (!pendingAction.value || !actionPhaseId.value) return
+  const action = pendingAction.value
+  const phaseId = actionPhaseId.value
+
+  const handlers: Record<PhaseAction, () => Promise<void>> = {
+    delete: async () => {
+      await gameStore.deleteGames(props.tournamentId, phaseId)
+      await Promise.all([
+        gameStore.fetchGames(props.tournamentId),
+        structureStore.fetchStructure(props.tournamentId),
+      ])
+      showSuccess('Games deleted')
+    },
+    complete: async () => {
+      completing.value = phaseId
+      try {
+        await structureStore.completePhase(props.tournamentId, phaseId)
+        await Promise.all([
+          structureStore.fetchStructure(props.tournamentId),
+          gameStore.fetchGames(props.tournamentId),
+          teamStore.fetchPlaceholders(props.tournamentId),
+        ])
+        showSuccess('Phase completed')
+      } finally {
+        completing.value = null
+      }
+    },
+    reopen: async () => {
+      reopening.value = phaseId
+      try {
+        await structureStore.reopenPhase(props.tournamentId, phaseId)
+        await Promise.all([
+          structureStore.fetchStructure(props.tournamentId),
+          gameStore.fetchGames(props.tournamentId),
+          teamStore.fetchPlaceholders(props.tournamentId),
+        ])
+        showSuccess('Phase reopened')
+      } finally {
+        reopening.value = null
+      }
+    },
+  }
+
+  try {
+    await handlers[action]()
+    pendingAction.value = null
+  } catch (error) {
+    if (!actionDialog.value?.handleError(error)) {
+      showError(`Failed to ${action} phase`)
+    }
+  }
+}
 
 async function handleGenerate(phaseId: string) {
   generating.value = phaseId
@@ -95,84 +181,14 @@ async function handleGenerate(phaseId: string) {
   }
 }
 
-function confirmDelete(phase: PhaseDto) {
-  actionPhaseId.value = phase.id!
-  actionPhaseName.value = phase.name
-  clearErrors()
-  showDeleteDialog.value = true
-}
+// --- Result dialog ---
 
-async function handleDelete() {
-  if (!actionPhaseId.value) return
-  try {
-    await gameStore.deleteGames(props.tournamentId, actionPhaseId.value)
-    await Promise.all([
-      gameStore.fetchGames(props.tournamentId),
-      structureStore.fetchStructure(props.tournamentId),
-    ])
-    showDeleteDialog.value = false
-    showSuccess('Games deleted')
-  } catch (error) {
-    if (!handleError(error)) {
-      showError('Failed to delete games')
-    }
-  }
-}
+const showResultDialog = ref(false)
+const selectedGame = ref<GameDto | null>(null)
 
-function confirmComplete(phase: PhaseDto) {
-  actionPhaseId.value = phase.id!
-  actionPhaseName.value = phase.name
-  clearErrors()
-  showCompleteDialog.value = true
-}
-
-async function handleComplete() {
-  if (!actionPhaseId.value) return
-  completing.value = actionPhaseId.value
-  try {
-    await structureStore.completePhase(props.tournamentId, actionPhaseId.value)
-    await Promise.all([
-      structureStore.fetchStructure(props.tournamentId),
-      gameStore.fetchGames(props.tournamentId),
-      teamStore.fetchPlaceholders(props.tournamentId),
-    ])
-    showCompleteDialog.value = false
-    showSuccess('Phase completed')
-  } catch (error) {
-    if (!handleError(error)) {
-      showError('Failed to complete phase')
-    }
-  } finally {
-    completing.value = null
-  }
-}
-
-function confirmReopen(phase: PhaseDto) {
-  actionPhaseId.value = phase.id!
-  actionPhaseName.value = phase.name
-  clearErrors()
-  showReopenDialog.value = true
-}
-
-async function handleReopen() {
-  if (!actionPhaseId.value) return
-  reopening.value = actionPhaseId.value
-  try {
-    await structureStore.reopenPhase(props.tournamentId, actionPhaseId.value)
-    await Promise.all([
-      structureStore.fetchStructure(props.tournamentId),
-      gameStore.fetchGames(props.tournamentId),
-      teamStore.fetchPlaceholders(props.tournamentId),
-    ])
-    showReopenDialog.value = false
-    showSuccess('Phase reopened')
-  } catch (error) {
-    if (!handleError(error)) {
-      showError('Failed to reopen phase')
-    }
-  } finally {
-    reopening.value = null
-  }
+function openResultDialog(game: GameDto) {
+  selectedGame.value = game
+  showResultDialog.value = true
 }
 
 onMounted(async () => {
@@ -181,7 +197,6 @@ onMounted(async () => {
     gameStore.fetchGames(props.tournamentId),
   ])
 
-  // Auto-select first group for expanded phases
   for (const phaseId of expandedPhases.value) {
     if (!selectedGroups.value.has(phaseId)) {
       const phase = phases.value.find((p) => p.id === phaseId)
@@ -236,92 +251,23 @@ watch(
         @toggle-phase="togglePhase(phase.id!)"
         @select-group="(groupId) => selectGroup(phase.id!, groupId)"
         @generate="handleGenerate(phase.id!)"
-        @delete="confirmDelete(phase)"
-        @complete="confirmComplete(phase)"
-        @reopen="confirmReopen(phase)"
+        @delete="requestAction('delete', phase)"
+        @complete="requestAction('complete', phase)"
+        @reopen="requestAction('reopen', phase)"
         @open-result="openResultDialog"
       />
     </div>
 
-    <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Delete Games</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          Are you sure you want to delete all games for "{{ actionPhaseName }}"? You can regenerate
-          them afterwards.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="showCompleteDialog" max-width="400">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Complete Phase</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          Complete "{{ actionPhaseName }}"? Teams will advance to the next phase based on standings.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showCompleteDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="elevated" @click="handleComplete">Complete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <v-dialog v-model="showReopenDialog" max-width="400">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Reopen Phase</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          Reopen "{{ actionPhaseName }}"? This will clear team assignments and revert the next
-          phase.
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showReopenDialog = false">Cancel</v-btn>
-          <v-btn color="warning" variant="elevated" @click="handleReopen">Reopen</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ConfirmDialog
+      v-if="actionConfig"
+      ref="actionDialog"
+      v-model="showActionDialog"
+      :title="actionConfig.title"
+      :message="actionConfig.message"
+      :confirm-label="actionConfig.label"
+      :confirm-color="actionConfig.color"
+      @confirm="runAction"
+    />
 
     <GameResultDialog
       v-if="selectedGame"

@@ -5,11 +5,10 @@ using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
-using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
-using KamSquare.KamScore.Api.Helpers;
 using KamSquare.KamScore.Domain.Services;
 using KamSquare.KamScore.Domain.ValueObjects;
+using KamSquare.KamScore.Api.Helpers;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -91,7 +90,7 @@ public static class GameEndpoints
         string phaseId,
         ITournamentRepository tournamentRepository,
         ITournamentStructureRepository structureRepository,
-        IGameRepository gameRepository,
+        PhaseCompletionService phaseCompletionService,
         PhaseGuardService phaseGuardService,
         ICurrentUserService currentUser)
     {
@@ -103,14 +102,7 @@ public static class GameEndpoints
         var phase = structure.GetPhase(phaseId);
         phaseGuardService.EnsureGamesDeletable(phase);
 
-        await gameRepository.DeleteByPhaseIdAsync(tournamentId, phaseId);
-
-        // Reset phase status to New since games were the trigger for status change
-        if (phase.Status is PhaseStatus.Scheduled or PhaseStatus.InProgress)
-        {
-            structure.ResetPhase(phaseId);
-            await structureRepository.UpdateAsync(structure);
-        }
+        await phaseCompletionService.DeletePhaseGamesAsync(structure, phaseId, tournamentId);
 
         return Results.NoContent();
     }
@@ -196,6 +188,7 @@ public static class GameEndpoints
         ITournamentStructureRepository structureRepository,
         IGameRepository gameRepository,
         PhaseGuardService phaseGuardService,
+        BracketAdvancementService bracketAdvancementService,
         ICurrentUserService currentUser,
         HttpContext httpContext,
         IMapper mapper)
@@ -234,15 +227,7 @@ public static class GameEndpoints
 
         var updatedGame = await gameRepository.UpdateAsync(game);
 
-        if (updatedGame.Label is not null)
-        {
-            var allGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, updatedGame.PhaseId))
-                .Where(g => g.GroupId == updatedGame.GroupId)
-                .ToList();
-
-            var advancedGames = BracketUtilities.ResolveAdvancement(updatedGame, allGames);
-            await Task.WhenAll(advancedGames.Select(g => gameRepository.UpdateAsync(g)));
-        }
+        await bracketAdvancementService.ResolveAsync(tournamentId, updatedGame);
 
         return Results.Ok(mapper.Map<GameDto>(updatedGame));
     }

@@ -3,11 +3,12 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { useFormErrors } from '@/composables/useFormErrors'
 import SectionHeader from '@/components/SectionHeader.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
+import TeamFormDialog from '@/team/TeamFormDialog.vue'
+import GenerateSeedTeamsDialog from '@/team/GenerateSeedTeamsDialog.vue'
 import TeamSchedule from '@/team/TeamSchedule.vue'
 import type { TeamDto } from '@/team/types'
-import type { VForm } from 'vuetify/components'
 
 const props = defineProps<{
   tournamentId: string
@@ -19,17 +20,13 @@ const route = useRoute()
 const router = useRouter()
 const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
-const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 
 const expandedTeam = ref<string | null>((route.query.team as string) || null)
 
 watch(expandedTeam, (teamId) => {
   const query = { ...route.query }
-  if (teamId) {
-    query.team = teamId
-  } else {
-    delete query.team
-  }
+  if (teamId) query.team = teamId
+  else delete query.team
   router.replace({ query })
 })
 
@@ -39,40 +36,27 @@ function toggleExpand(teamId?: string) {
 }
 
 const columnCount = computed(() => {
-  let count = 2 // Name + Level
-  if (props.isOwner) count += 3 // Email + Phone + Actions
+  let count = 2
+  if (props.isOwner) count += 3
   return count
 })
-
-const showFormDialog = ref(false)
-const showDeleteDialog = ref(false)
-const editingTeam = ref<TeamDto | null>(null)
-const deletingTeam = ref<TeamDto | null>(null)
-const form = ref<TeamDto>({ name: '', level: 50 })
-const formRef = ref<InstanceType<typeof VForm> | null>(null)
-
-const nameRules = [
-  (v: string) => !!v || 'Team name is required.',
-  (v: string) => v.length <= 100 || 'Team name must not exceed 100 characters.',
-]
-
-const emailRules = [
-  (v: string | null | undefined) =>
-    !v || /.+@.+\..+/.test(v) || 'Email must be a valid email address.',
-]
-
-const phoneRules = [
-  (v: string | null | undefined) =>
-    !v || /^\+?[\d\s\-()]{7,20}$/.test(v) || 'Phone must be a valid phone number.',
-]
 
 const sortedTeams = computed(() =>
   [...teamStore.teams].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)),
 )
 
-onMounted(() => {
-  teamStore.fetchTeams(props.tournamentId)
-})
+// --- Dialog state ---
+
+const showFormDialog = ref(false)
+const showDeleteDialog = ref(false)
+const showGenerateDialog = ref(false)
+const editingTeam = ref<TeamDto | null>(null)
+const deletingTeam = ref<TeamDto | null>(null)
+const formDialog = ref<InstanceType<typeof TeamFormDialog> | null>(null)
+const deleteDialog = ref<InstanceType<typeof ConfirmDeleteDialog> | null>(null)
+const generateDialog = ref<InstanceType<typeof GenerateSeedTeamsDialog> | null>(null)
+
+onMounted(() => teamStore.fetchTeams(props.tournamentId))
 
 watch(
   () => props.active,
@@ -83,39 +67,35 @@ watch(
 
 function openCreate() {
   editingTeam.value = null
-  form.value = { name: '', level: 50, email: null, phone: null }
-  clearErrors()
   showFormDialog.value = true
 }
 
 function openEdit(team: TeamDto) {
   editingTeam.value = team
-  form.value = { ...team }
-  clearErrors()
   showFormDialog.value = true
 }
 
 function openDelete(team: TeamDto) {
   deletingTeam.value = team
-  clearErrors()
   showDeleteDialog.value = true
 }
 
-async function handleSave() {
-  const { valid } = await formRef.value!.validate()
-  if (!valid) return
+function openGenerate() {
+  showGenerateDialog.value = true
+}
 
+async function handleSave(team: TeamDto) {
   try {
     if (editingTeam.value?.id) {
-      await teamStore.updateTeam(props.tournamentId, editingTeam.value.id, form.value)
+      await teamStore.updateTeam(props.tournamentId, editingTeam.value.id, team)
       showSuccess('Team updated')
     } else {
-      await teamStore.createTeam(props.tournamentId, form.value)
+      await teamStore.createTeam(props.tournamentId, team)
       showSuccess('Team created')
     }
     showFormDialog.value = false
   } catch (error) {
-    if (!handleError(error)) {
+    if (!formDialog.value?.handleError(error)) {
       showError(editingTeam.value ? 'Failed to update team' : 'Failed to create team')
     }
   }
@@ -128,40 +108,19 @@ async function handleDelete() {
     showDeleteDialog.value = false
     showSuccess('Team deleted')
   } catch (error) {
-    if (!handleError(error)) {
+    if (!deleteDialog.value?.handleError(error)) {
       showError('Failed to delete team')
     }
   }
 }
 
-const showGenerateDialog = ref(false)
-const seedCount = ref(8)
-
-const seedCountRules = [(v: number) => (v >= 1 && v <= 100) || 'Count must be between 1 and 100.']
-
-const seedPreview = computed(() => {
-  const start = teamStore.teams.length + 1
-  const count = seedCount.value
-  if (count < 1 || count > 100) return ''
-  const names = Array.from({ length: Math.min(count, 4) }, (_, i) => `Seed ${start + i}`)
-  if (count > 4) names.push(`... Seed ${start + count - 1}`)
-  return names.join(', ')
-})
-
-function openGenerate() {
-  seedCount.value = 8
-  clearErrors()
-  showGenerateDialog.value = true
-}
-
-async function handleGenerate() {
-  if (seedCount.value < 1 || seedCount.value > 100) return
+async function handleGenerate(count: number) {
   try {
-    const generated = await teamStore.generateSeedTeams(props.tournamentId, seedCount.value)
+    const generated = await teamStore.generateSeedTeams(props.tournamentId, count)
     showGenerateDialog.value = false
     showSuccess(`Generated ${generated.length} seed teams`)
   } catch (error) {
-    if (!handleError(error)) {
+    if (!generateDialog.value?.handleError(error)) {
       showError('Failed to generate seed teams')
     }
   }
@@ -252,133 +211,25 @@ async function handleGenerate() {
       No teams yet.
     </v-alert>
 
-    <!-- Create / Edit Dialog -->
-    <v-dialog v-model="showFormDialog" max-width="500">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">
-          {{ editingTeam ? 'Edit Team' : 'Add Team' }}
-        </v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          <v-form ref="formRef" @submit.prevent="handleSave">
-            <v-text-field
-              v-model="form.name"
-              label="Name"
-              :rules="nameRules"
-              :error-messages="fieldErrors('name')"
-              @update:model-value="clearFieldError('name')"
-            />
-            <v-slider
-              v-model="form.level"
-              label="Level"
-              :min="0"
-              :max="100"
-              :step="1"
-              thumb-label="always"
-              color="primary"
-              class="mt-4"
-            />
-            <v-text-field
-              v-model="form.email"
-              label="Email"
-              type="email"
-              :rules="emailRules"
-              :error-messages="fieldErrors('email')"
-              @update:model-value="clearFieldError('email')"
-            />
-            <v-text-field
-              v-model="form.phone"
-              label="Phone"
-              :rules="phoneRules"
-              :error-messages="fieldErrors('phone')"
-              @update:model-value="clearFieldError('phone')"
-            />
-          </v-form>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showFormDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="elevated" @click="handleSave">
-            {{ editingTeam ? 'Save' : 'Create' }}
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Delete Confirmation -->
-    <v-dialog v-model="showDeleteDialog" max-width="400">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Delete Team</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          Are you sure you want to delete "{{ deletingTeam?.name }}"?
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showDeleteDialog = false">Cancel</v-btn>
-          <v-btn color="error" variant="elevated" @click="handleDelete">Delete</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-
-    <!-- Generate Seed Teams Dialog -->
-    <v-dialog v-model="showGenerateDialog" max-width="450">
-      <v-card class="pa-2">
-        <v-card-title class="text-uppercase dialog-title">Generate Seed Teams</v-card-title>
-        <v-card-text>
-          <v-alert
-            v-if="generalError"
-            type="error"
-            variant="tonal"
-            density="compact"
-            closable
-            role="alert"
-            class="mb-3"
-            @click:close="clearErrors()"
-          >
-            {{ generalError }}
-          </v-alert>
-          <v-text-field
-            v-model.number="seedCount"
-            label="Number of teams"
-            type="number"
-            :min="1"
-            :max="100"
-            :rules="seedCountRules"
-          />
-          <div v-if="seedPreview" class="text-body-2 text-medium-emphasis mt-1">
-            Will generate: {{ seedPreview }}
-          </div>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="showGenerateDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="elevated" @click="handleGenerate">Generate</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <TeamFormDialog
+      ref="formDialog"
+      v-model="showFormDialog"
+      :editing-team="editingTeam"
+      @save="handleSave"
+    />
+    <ConfirmDeleteDialog
+      ref="deleteDialog"
+      v-model="showDeleteDialog"
+      title="Delete Team"
+      :message="`Are you sure you want to delete &quot;${deletingTeam?.name ?? ''}&quot;?`"
+      @confirm="handleDelete"
+    />
+    <GenerateSeedTeamsDialog
+      ref="generateDialog"
+      v-model="showGenerateDialog"
+      :existing-team-count="teamStore.teams.length"
+      @generate="handleGenerate"
+    />
   </div>
 </template>
 
