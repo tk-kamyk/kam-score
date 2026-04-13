@@ -10,27 +10,29 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 **MANDATORY: Wait for user approval between gates.** After completing each gate, STOP and present the output to the user. Do NOT proceed to the next gate until the user explicitly confirms. This applies to every gate transition (1→2, 2→3, 3→4, etc.).
 
 ### Gate 1: Requirements
-- Read relevant `docs/requirements/*.md`
+- Read the relevant file(s) under `docs/requirements/` (see "Requirements & Design Docs" below for the split layout)
+- Implementation details (formulas, exact bracket sequences, algorithms) live in the paired `docs/design/<same-name>.md` — consult it when the *requirements* file says "see design"
 - Ignore anything under a `TBC` header
 - If the requirement is missing or unclear, ASK the user
-- If chat reveals requirement changes, UPDATE the requirements file
+- If chat reveals requirement changes, UPDATE the requirements file (and the paired design doc if implementation detail is also changing)
 
 ### Gate 2: BDD Specification
 - Write/update Gherkin scenarios in `docs/bdd/*.feature`
-- Each scenario must map to a testable behavior
+- **Keep scenarios behavioural, not exhaustive.** BDD describes user-visible behaviour; per-format math, algorithmic edge cases, and position formulas belong in unit tests
+- Use **`Scenario Outline` with `Examples`** whenever you'd otherwise write near-identical scenarios that vary only in input (e.g. state × operation matrices, access-control matrices, per-format smoke tests)
+- Avoid asserting on exact error copy (`And the error message contains "..."`); assert on HTTP status and error code/field instead — unit tests can check messages
+- Do NOT duplicate coverage that already exists in xUnit; if a Domain unit test covers it, the BDD file only needs a behavioural smoke scenario
 - Get user confirmation before proceeding
 
 ### Gate 3: Mocked UI (frontend features only — skip for pure backend work)
-- Build the Vue component with hardcoded/mock data
-- Add feature flag in `appsettings.Development.json` (enabled: `true`)
-- Wrap new UI behind `useFeatureFlags().isEnabled('FlagName')` guard
-- No API calls yet — use static data matching the BDD scenarios
+- Build the Vue component(s) with hardcoded/mock data matching the BDD scenarios
+- No API calls yet
+- Feature flags are **optional** (see "Feature Flags" below) — only gate behind a flag if the feature will be partially merged while still in development
 - Show the user for feedback
 
 ### Gate 4: Failing Tests
-- Write xUnit tests that express the BDD scenarios
-- Domain unit tests for business logic
-- Integration tests for API endpoints
+- Write xUnit tests that express the BDD scenarios AND any implementation-detail cases stripped from BDD (per-format math, tiebreakers, etc.)
+- See "Test layout" under Code Standards for which test project each case belongs to
 - Create skeleton implementation classes (entities, DTOs, validators, repositories, endpoints) that throw `NotImplementedException` — the solution MUST compile
 - ALL tests must FAIL at **runtime** (red), not at compile time
 - Run `dotnet build api/KamScore.slnx` to confirm compilation, then `dotnet test api/KamScore.slnx` to confirm failures
@@ -43,17 +45,16 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 ### Gate 6: Connect UI to API (skip if no frontend component)
 - Replace mock data with real API calls
 - Verify end-to-end flow works
-- Run `cd spa && npx vue-tsc --noEmit` for type safety
+- Run `cd spa && npm run lint && npx vue-tsc --noEmit`
 
 ### Gate 7: Cleanup
 - If corrections were needed, add them to Code Standards below
-- If requirements changed, verify `docs/` are updated
+- If requirements changed, verify `docs/requirements/` and `docs/design/` are both updated and still consistent
+- If a new file exceeded 300 lines of meaningful code, consider whether to split (see size guidelines)
 
-### Gate 8: Feature Flag Removal (optional)
-- Review feature flags added during this feature's development
-- Decision: remove flag (expose to all environments) or keep flagged
-- If removing: delete flag from appsettings, remove `v-if`/`isEnabled` guards in frontend
-- If keeping: document why in the requirements file
+### Gate 8: Feature Flag Removal (optional — only if you added one in Gate 3)
+- Remove the flag from appsettings and drop the `isEnabled` / `v-if` guard in the frontend
+- The underlying feature-flag *mechanism* (see "Feature Flags") stays as boilerplate
 
 ---
 
@@ -61,7 +62,25 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 
 KamScore is a tournament management system for sports tournaments (Volleyball, Beach Volleyball) with flexible structures, scheduling, and live result entry. Multi-phase tournaments with round-robin and play-off formats.
 
-Requirements: `docs/requirements/*.md` | BDD specs: `docs/bdd/*.feature`
+Requirements: `docs/requirements/*.md` | Design details: `docs/design/*.md` | BDD specs: `docs/bdd/*.feature`
+
+---
+
+## Requirements & Design Docs
+
+Requirements are split into focused per-area files. Implementation-level detail (formulas, exact game sequences, algorithm specifics) lives in an optional **paired design doc** with the **identical basename** under `docs/design/`.
+
+| Area | Requirements | Paired design |
+|------|--------------|---------------|
+| Structure (phases, groups, overview) | `docs/requirements/structure.md` | — |
+| Game generation + scheduling + referee | `docs/requirements/game-generation.md` | `docs/design/game-generation.md` |
+| Results, standings, bracket advancement | `docs/requirements/results-and-standings.md` | `docs/design/results-and-standings.md` |
+| Phase status, progression, placeholders | `docs/requirements/phase-advancement.md` | `docs/design/phase-advancement.md` |
+| Restriction matrix by phase state | `docs/requirements/phase-state-restrictions.md` | — |
+| Levels (per-phase divisions) | `docs/requirements/levels.md` | `docs/design/levels.md` |
+| Tournament, team, court, user, volunteer, feature-flags | `docs/requirements/<area>.md` | as needed |
+
+**Rule**: a requirement file states *what* the user can do. A design file states *how* we do it. Formulas, named constants (`bracketSize / 2^round + 1`), exact bracket walk orders, and step-by-step algorithms must not appear in the requirements — move them to the paired design doc and link with a `> See design: ./design/<name>.md` line at the top of the requirements file.
 
 ---
 
@@ -70,7 +89,7 @@ Requirements: `docs/requirements/*.md` | BDD specs: `docs/bdd/*.feature`
 ```
 api/                          # .NET 10 backend
   src/
-    KamSquare.KamScore.Domain/        # Entities, value objects, enums
+    KamSquare.KamScore.Domain/        # Entities, value objects, enums, Domain services
     KamSquare.KamScore.Application/   # Services, DTOs, validators, interfaces
     KamSquare.KamScore.Infrastructure/ # Cosmos DB, auth service, DI setup
     KamSquare.KamScore.Api/           # Minimal API endpoints, middleware, Program.cs
@@ -83,18 +102,21 @@ api/                          # .NET 10 backend
 
 spa/                          # Vue 3 frontend
   src/
-    api/          # Shared Axios client
+    api/          # Shared Axios client + error helpers
     auth/         # Auth store, types, components
     tournament/   # Tournament store, types, components
-    composables/  # Shared composables (useSnackbar)
-    views/        # Thin route views (wrappers only)
+    team/ court/ game/ structure/ standings/ volunteer/    # Domain folders
+    composables/  # Shared composables (useSnackbar, useFormErrors, useFeatureFlags, ...)
+    components/   # Cross-domain shared UI (ConfirmDialog, ConfirmDeleteDialog, SectionHeader, CollapsiblePhaseCard, ...)
+    views/        # Thin route wrappers only
     router/       # Vue Router configuration
   Dockerfile
   nginx.conf
 
 docs/
-  requirements/   # Feature requirements by area
-  bdd/            # Gherkin BDD specifications
+  requirements/   # Feature requirements by area (user-intent level)
+  design/         # Paired implementation-detail docs (formulas, algorithms)
+  bdd/            # Gherkin BDD specifications (behavioural scenarios)
 
 docker-compose.yml
 ```
@@ -138,13 +160,14 @@ Dependencies point inward. Domain has no external dependencies. Application defi
 |------------|----------|---------|
 | Single-entity validation/rules | Entity class (Domain) | `Tournament.IsCodeValid()`, `Tournament.IsOwnedBy()` |
 | Single-entity creation/mutation | Entity factory/mutation methods | `Tournament.Create()`, `Game.RecordResult()` |
-| Cross-entity calculations | Domain services (static classes) | `StandingsCalculator`, `GameScheduler`, `BracketUtilities` |
-| Multi-repository orchestration | Application services | `PhaseCompletionService`, `ScheduleGenerationService` |
+| Format-specific generation/standings | Strategy + static Generator/Ranker (Domain) | `RoundRobinGenerator`, `PlayoffEliminationStandingsRanker` |
+| Cross-entity calculations | Domain services (static classes) | `GameScheduler`, `RefereeAssigner`, `PhaseAdvancementCalculator`, `BracketUtilities` |
+| Multi-repository orchestration | Application services | `PhaseCompletionService`, `ScheduleGenerationService`, `BracketAdvancementService`, `VolunteerService`, `TournamentCopyService` |
 | Request validation | FluentValidation validators (Application) | `GameResultDtoValidator`, `TournamentDtoValidator` |
 | HTTP/auth concerns | API helpers or endpoint handlers | `TournamentAuthorizationHelper` |
 | Simple CRUD wiring | Endpoint handlers directly | `TournamentEndpoints.CreateTournament()` |
 
-**Rule**: If logic only needs the entity's own state → entity. If it needs multiple repositories → Application service. API layer = HTTP concerns + delegation only.
+**Rule**: If logic only needs the entity's own state → entity. If it needs multiple repositories or orchestrates cross-entity state transitions → Application service. API layer = HTTP concerns + delegation only.
 
 ### Domain Services
 
@@ -152,43 +175,57 @@ Static classes in `Domain/Services/` — cross-entity logic, no external depende
 
 | Service | Responsibility |
 |---------|---------------|
-| `StandingsCalculator` | Thin facade delegating to format-specific strategies via `PhaseFormatStrategy` |
+| `StandingsCalculator` | Thin facade delegating to format-specific `*StandingsRanker` via `PhaseFormatStrategy` |
 | `GameScheduler` | Schedules games across courts/time slots with conflict avoidance |
 | `PlaceholderTeamGenerator` | Creates placeholder teams for cross-phase progression |
 | `PlaceholderResolver` | Resolves/unresolves placeholder teams after phase completion |
 | `PhaseAdvancementCalculator` | Determines qualifying teams and seeding |
-| `BracketUtilities` | Bracket math (next power of 2, bracket ordering, advancement resolution) |
+| `BracketUtilities` | Bracket math (next power of 2, bracket ordering, within-phase advancement resolution) |
 | `RefereeAssigner` | Assigns referees based on team availability |
+| `VolunteerShiftCalculator` | Computes shift groups/slots for a tournament |
 
 ### Application Services
 
-Extracted when endpoint handlers grow beyond simple CRUD:
+Extract when endpoint handlers grow beyond simple CRUD.
 
 | Service | Responsibility |
 |---------|---------------|
-| `PhaseCompletionService` | Phase complete/reopen, placeholder creation/regeneration |
-| `ScheduleGenerationService` | Game generation + scheduling orchestration |
-
-**Extraction criteria**: multi-repository coordination, conditional logic across entities, or reuse across multiple endpoints.
+| `PhaseCompletionService` | Phase complete/reopen/delete-games, placeholder creation/regeneration/resolution |
+| `ScheduleGenerationService` | Game generation + scheduling orchestration, phase activation |
+| `BracketAdvancementService` | Propagates bracket placeholder resolution after a playoff result is recorded |
+| `VolunteerService` | Volunteer CRUD + shift calculation + assignment validation |
+| `TournamentCopyService` | Copy tournament structure from an existing tournament |
 
 ### Phase Format Strategy Pattern
 
-All format-specific logic lives in `IPhaseFormatStrategy` implementations (`Domain/Services/Formats/`):
+All format-specific logic lives in `Domain/Services/Formats/` and follows a **uniform three-file layout** per format `Xxx`:
+
+| File | Role |
+|------|------|
+| `XxxStrategy.cs` | Implements `IPhaseFormatStrategy`; thin orchestrator that delegates to the Generator and StandingsRanker |
+| `XxxGenerator.cs` | Static class; owns `Generate()` — bracket/pairing construction, including any team-count validation |
+| `XxxStandingsRanker.cs` | Static class; owns `Calculate()` (per-group standings) and `RankCrossGroup()` |
+
+Formats: `RoundRobin`, `PlayoffElimination`, `PlayoffWithPlacement`, `DoubleElimination`, `DoubleEliminationVd`.
 
 ```
 IPhaseFormatStrategy
-├── GenerateGames()         — produces games for a group
-├── CalculateStandings()    — computes standings from completed games
-├── RankCrossGroup()        — ranks standings across multiple groups
-├── SupportsRefereeAssignment — whether the format uses referees
-└── ValidateTeams()         — format-specific team count validation
+├── GenerateGames()                 → delegates to XxxGenerator.Generate(...)
+├── CalculateStandings()            → delegates to XxxStandingsRanker.Calculate(...)
+├── RankCrossGroup()                → delegates to XxxStandingsRanker.RankCrossGroup(...)
+├── SupportsRefereeAssignment       (property)
+└── ValidateTeams()                 (format-specific team count validation, e.g. VD requires 8)
 ```
-
-Implementations: `RoundRobinStrategy`, `PlayoffEliminationStrategy`, `PlayoffWithPlacementStrategy`, `DoubleEliminationStrategy`, `DoubleEliminationVdStrategy`.
 
 Factory: `PhaseFormatStrategy.For(PhaseFormat)` returns the correct instance.
 
-**Adding a new format**: (1) new `PhaseFormat` enum value, (2) new strategy class, (3) new case in `PhaseFormatStrategy.For()`. No changes to consumers.
+**Adding a new format**:
+1. New `PhaseFormat` enum value
+2. New `XxxStrategy.cs` + `XxxGenerator.cs` + `XxxStandingsRanker.cs` triad
+3. New case in `PhaseFormatStrategy.For()`
+4. Test files: `XxxGeneratorTests.cs` (+ a ranker test file if the ranking is non-trivial) in `Domain.UnitTest`
+
+No changes to consumers.
 
 ### Error Handling
 
@@ -200,6 +237,7 @@ Factory: `PhaseFormatStrategy.For(PhaseFormat)` returns the correct instance.
 | `UnauthorizedException` | 401 |
 | `ForbiddenException` | 403 |
 | `ValidationException` | 400 |
+| `PhaseStateException` | 409 |
 | Unhandled | 500 |
 
 ---
@@ -224,11 +262,11 @@ Config-based JWT — deliberate choice over Azure Entra ID for simplicity (1-3 t
 | Tournaments | `GET/POST/PUT/DELETE /api/tournaments` | GET public, mutations JWT |
 | Teams | `/api/tournaments/{id}/teams` | GET public, mutations JWT |
 | Courts | `/api/tournaments/{id}/courts` | GET public, mutations JWT |
-| Phases | `/api/tournaments/{id}/phases` | GET public, mutations JWT |
-| Games | `/api/tournaments/{id}/games` | GET public, mutations JWT |
-| Schedule | `/api/tournaments/{id}/schedule` | GET public, mutations JWT |
-| Volunteers | `/api/tournaments/{id}/volunteers` | All endpoints JWT + owner/admin |
-| Feature Flags | `GET /api/feature-flags` | Public |
+| Phases | `/api/tournaments/{id}/structure/phases` | GET public, mutations JWT |
+| Games | `/api/tournaments/{id}/games` | GET public, mutations JWT (result recording also accepts tournament code) |
+| Standings / Final | `/api/tournaments/{id}/standings`, `/final-standings` | Public |
+| Volunteers + shifts | `/api/tournaments/{id}/volunteers/**` | All endpoints JWT + owner/admin |
+| Feature Flags | `GET /api/feature-flags` | Public (boilerplate — see "Feature Flags") |
 | Health | `GET /api/health` | Public |
 
 ### Security Details
@@ -236,6 +274,18 @@ Config-based JWT — deliberate choice over Azure Entra ID for simplicity (1-3 t
 - CORS via `Cors:AllowedOrigins`
 - Owner verification: `tournament.IsOwnedBy(userId)` on all mutations
 - Contact info (email, phone) on teams hidden from non-owners
+
+---
+
+## Feature Flags
+
+The feature-flag *mechanism* is retained as intentional boilerplate — today there are **no active flags**. Keep the plumbing in place so a new in-development feature can be gated behind a flag without re-introducing the infrastructure each time.
+
+- Backend endpoint: `GET /api/feature-flags` (unauthenticated)
+- Frontend composable: `useFeatureFlags()` with `isEnabled(flag)` and session-scoped cache
+- Requirements doc: `docs/requirements/feature-flags.md`
+
+**Don't remove** the endpoint/composable/tests — they are marked as intentional boilerplate in their file headers.
 
 ---
 
@@ -249,12 +299,14 @@ dotnet run --project api/src/KamSquare.KamScore.Api
 
 # Frontend
 cd spa && npm install
-cd spa && npm run dev          # Dev server at localhost:5173
-cd spa && npx vite build       # Production build
-cd spa && npx vue-tsc --noEmit # Type checking
+cd spa && npm run dev            # Dev server at localhost:5173
+cd spa && npm run lint           # ESLint --fix
+cd spa && npm run format         # Prettier
+cd spa && npx vue-tsc --noEmit   # Type checking
+cd spa && npm run build          # Format + lint + type-check + vite build
 
 # Docker
-docker compose up              # Full stack (API + SPA)
+docker compose up                # Full stack (API + SPA)
 ```
 
 ---
@@ -284,7 +336,7 @@ Copy `.env.example` to `.env` and fill in values. Then `docker compose up`.
 
 ### General patterns
 - **Clean Architecture** with Dependency Injection
-- **DDD** — logic lives in domain entities
+- **DDD** — logic lives in domain entities and domain services
 - **Options Pattern** for all configuration (`JwtOptions`, `UserOptions`, `CosmosDbOptions`, `CorsOptions`)
 - **4-space indentation**, Allman brace style, `var` for type declarations
 - **Record types** for DTOs, value objects, and simple data structures
@@ -295,7 +347,7 @@ Copy `.env.example` to `.env` and fill in values. Then `docker compose up`.
 |------|--------|
 | Minimal API | Static classes with `Map*Endpoints()` extension methods |
 | Single DTO per entity | Nullable fields for response-only data (Id, OwnerId) |
-| No service layer for CRUD | Endpoint handlers call repository directly |
+| No service layer for pure CRUD | Endpoint handlers call repository directly |
 | AutoMapper | Entity↔DTO mapping via assembly scanning |
 | FakeItEasy | For all mocking (not Moq, not InMemory equivalents) |
 | FluentValidation | Auto-discovered from Application assembly |
@@ -304,16 +356,28 @@ Copy `.env.example` to `.env` and fill in values. Then `docker compose up`.
 
 ### Domain logic placement
 - Single-entity rules → entity class (e.g., `Tournament.IsCodeValid()`)
-- Cross-entity logic → Domain services (static classes in `Domain/Services/`)
-- Multi-repo orchestration → Application services
+- Format-specific logic → `Xxx{Strategy,Generator,StandingsRanker}` triad (see Phase Format Strategy Pattern)
+- Other cross-entity domain logic → Domain services (static classes in `Domain/Services/`)
+- Multi-repository orchestration, cross-entity state transitions → Application services
 
 ### ANTI-PATTERNS — do NOT put these in endpoint handlers
-- Field classification logic (e.g., which fields are "structural")
-- Conditional business logic (e.g., "if format changed, block update")
-- Domain calculations or old/new state comparisons
+
+The endpoint is a thin controller. Push logic down if you see any of these:
+
+- **Field classification** (e.g., deciding which DTO fields are "structural")
+- **Conditional business logic** (e.g., "if format changed, block update")
+- **Cross-entity coordination** (e.g., fetching games + structure + teams to compute a transition)
+- **Cascading state changes** (e.g., `if (phase.Status is Scheduled or InProgress) structure.ResetPhase(...)` — that belongs in an Application service)
+- **Multi-repo writes that must succeed together** (wrap them in a service method so the intent is named)
+- **Old/new state comparisons** for business decisions
 - Business rule checks beyond simple null/empty guards
 
-Endpoints should ONLY: validate auth, map DTOs, delegate to domain/services, return HTTP responses.
+Endpoints should ONLY: validate auth, map DTOs, call validator, delegate to domain/service, map response, return HTTP.
+
+**Canonical examples of well-named service methods** (extracted because the endpoint was doing too much):
+- `PhaseCompletionService.DeletePhaseGamesAsync` — owns "games deleted → phase resets to New"
+- `BracketAdvancementService.ResolveAsync` — owns "playoff result recorded → downstream placeholders resolve"
+- `VolunteerService.AssignToShiftAsync` — owns "validate shift time is a real slot, assign, persist"
 
 ### Control flow
 - **Early returns (guard clauses)** over nested if/else
@@ -340,34 +404,81 @@ Endpoints should ONLY: validate auth, map DTOs, delegate to domain/services, ret
 - Extract complex loop bodies into `Try*` methods returning `bool`
 
 ### Service extraction criteria
-- Extract when: multi-repo coordination, conditional cross-entity logic, reuse across endpoints
+- Extract when ANY of: multi-repo coordination, conditional cross-entity logic, cascading state changes, reuse across endpoints
 - Keep services focused — one cohesive responsibility per service
+- Register as `AddScoped` in `ServiceCollectionExtensions.cs`
 
-### Frontend standards
+### File size guidelines
+- Domain strategy files: prefer the three-file triad over a monolith — keep each file under ~400 lines
+- Endpoint files: under ~200 lines; push logic into Application services otherwise
+- Vue single-file components: under ~250 lines; extract sub-components (dialogs, list rows, filter bars) otherwise
+
+---
+
+## Testing
+
+### Test layout
+
+| Project | Scope |
+|---------|-------|
+| `Domain.UnitTest` | Entities, Domain services (including `XxxGeneratorTests`, `XxxStandingsRankerTests`), value objects. Pure, no mocks |
+| `Application.UnitTest` | Validators, mappers, Application services. Repositories are FakeItEasy fakes |
+| `Api.IntegrationTest` | End-to-end over `WebApplicationFactory` + `TestAuthHandler` (reads `X-Test-UserId`) + FakeItEasy repos |
+
+### What goes where
+- **Per-format math** (bracket size, placeholder strings, tiebreaker cascade, position formulas) → `Domain.UnitTest` generator/ranker tests
+- **Orchestration logic** (phase completion, schedule generation, bracket advancement propagation, volunteer shift validation) → `Application.UnitTest` service tests (e.g. `PhaseCompletionServiceTests`, `ScheduleGenerationServiceTests`)
+- **HTTP contracts, auth tiers, end-to-end flows** → `Api.IntegrationTest`
+
+### Anti-patterns
+- Do **not** write integration tests for cases that are already covered by unit tests — pick the lowest layer that can express the behaviour
+- Do **not** assert on exact error-message substrings (`error.message.Contains("phase is completed")`) — assert on HTTP status + error code/field. Unit tests may check messages
+- When adding a repository interface method, update FakeItEasy mocks in integration tests
+- AutoMapper maps `null` `List<T>` to an empty list by default — use `.BeNullOrEmpty()` in assertions, not `.BeNull()`
+
+---
+
+## Frontend Standards
+
+### Structure
 - **Vue 3** Composition API, single file components
-- **Group by domain** (`auth/`, `tournament/`), not by layer
+- **Group by domain** (`auth/`, `tournament/`, `team/`, `court/`, `game/`, `structure/`, `standings/`, `volunteer/`), not by layer
 - Shared infra (`api/client.ts`, `composables/`, `router/`) separate from domain folders
+- Cross-domain shared UI components live in `components/` (e.g. `ConfirmDialog`, `ConfirmDeleteDialog`, `SectionHeader`, `CollapsiblePhaseCard`)
 - `views/` = thin route wrappers only
+
+### Component size & extraction
+- Keep components **under ~250 lines** (template + script)
+- When a list page owns multiple dialogs, extract each dialog into its own `Xxx{Form,Generate,Delete}Dialog.vue` in the same domain folder
+- Use the shared `ConfirmDialog.vue` / `ConfirmDeleteDialog.vue` for simple confirmations; only hand-roll a dialog when it has a form or non-trivial body
+- Dialogs own their own form state and validation; the parent only owns `showXDialog` booleans and the save/delete handlers
+
+### Reactivity
+- **`computed` over inline expressions**: use `computed()` for any derived state — keeps templates clean and caches results. Do not duplicate reactive expressions in the template or recalculate in methods
+
+### Styling
 - **Responsive sizing**: Vuetify 4 responsive utility classes over custom CSS media queries
 - **Responsive layout**: Vuetify flex utilities (`d-flex`, `flex-sm-row`, `flex-wrap`, `ga-4`)
-- **CSS Cascade Layers**: Custom CSS targeting Vuetify internals must use `@layer overrides { ... }`
+- **CSS Cascade Layers**: custom CSS targeting Vuetify internals must use `@layer overrides { ... }`
 - Layer order declaration in `index.html` inline `<style>`
-- **Thin components**: Extract sub-components when parent exceeds ~150 lines or template blocks are reused
-- **`computed` over inline expressions**: Use `computed()` for any derived state — keeps templates clean and caches results. Avoid duplicating reactive expressions in the template or recalculating in methods
-- **Linting & formatting**: ESLint (flat config in `spa/eslint.config.js`) + Prettier (`spa/.prettierrc.json`) enforce style. Any generated or edited frontend code MUST conform:
-  - Prettier: single quotes, NO semicolons, trailing commas (all), 100-char print width, `arrowParens: always`
-  - ESLint: `@eslint/js` recommended + `typescript-eslint` recommended + `eslint-plugin-vue` flat/recommended, with Prettier compatibility via `@vue/eslint-config-prettier/skip-formatting`
-  - No `any` — use specific types or generics; prefix intentionally unused vars/args/destructures with `_`
-  - `npm run lint` auto-fixes ESLint issues; `npm run format` reformats with Prettier; `npm run build` runs format + lint + type-check + vite build (also executed by `spa/Dockerfile`)
+
+### Linting & formatting
+ESLint (flat config in `spa/eslint.config.js`) + Prettier (`spa/.prettierrc.json`) enforce style. Any generated or edited frontend code MUST conform:
+- Prettier: single quotes, NO semicolons, trailing commas (all), 100-char print width, `arrowParens: always`
+- ESLint: `@eslint/js` recommended + `typescript-eslint` recommended + `eslint-plugin-vue` flat/recommended, with Prettier compatibility via `@vue/eslint-config-prettier/skip-formatting`
+- No `any` — use specific types or generics; prefix intentionally unused vars/args/destructures with `_`
+- `npm run lint` auto-fixes ESLint issues; `npm run format` reformats with Prettier; `npm run build` runs format + lint + type-check + vite build (also executed by `spa/Dockerfile`)
 
 ---
 
 ## Known Technical Gotchas
 
 - .NET 10 uses `.slnx` format, not `.sln`
-- Swashbuckle 10.x uses Microsoft.OpenApi v2 — types in `Microsoft.OpenApi` namespace (NOT `Microsoft.OpenApi.Models`)
-- Infrastructure.csproj requires `<FrameworkReference Include="Microsoft.AspNetCore.App" />`
+- Swashbuckle 10.x uses Microsoft.OpenApi v2 — types in `Microsoft.OpenApi` namespace (NOT `Microsoft.OpenApi.Models`). `OpenApiSecuritySchemeReference("id", document)` replaces the old pattern; `AddSecurityRequirement` takes `Func<OpenApiDocument, OpenApiSecurityRequirement>` — values must be `List<string>()` not `Array.Empty<string>()`
+- `Infrastructure.csproj` needs `<FrameworkReference Include="Microsoft.AspNetCore.App" />` AND the `Microsoft.AspNetCore.Authentication.JwtBearer` NuGet package
+- `AzureCosmosDisableNewtonsoftJsonCheck` must be set in `Directory.Build.props` (not just `Infrastructure.csproj`)
 - Docker: nginx serves SPA and proxies `/api/` to backend (ports: API 5001→8080, SPA 3000→80)
+- `create-vue` CLI is interactive — scaffold manually in non-interactive terminals
 
 ---
 
@@ -377,3 +488,8 @@ Endpoints should ONLY: validate auth, map DTOs, delegate to domain/services, ret
 - **Test projects**: `KamSquare.KamScore.{Layer}.{UnitTest|IntegrationTest}`
 - **Config**: `appsettings.json` + `appsettings.Development.json`
 - **Env vars**: Double-underscore for nested keys (e.g., `Jwt__Secret`)
+- **Format files**: `XxxStrategy.cs` + `XxxGenerator.cs` + `XxxStandingsRanker.cs`
+- **Format tests**: `XxxGeneratorTests.cs` + `XxxStandingsRankerTests.cs` (when ranker is non-trivial)
+- **Requirements/design pairing**: identical basename across `docs/requirements/` and `docs/design/`
+- **Application services**: `XxxService.cs` in `Application/Services/`, registered `AddScoped<XxxService>()` in `ServiceCollectionExtensions.cs`
+- **Frontend shared dialogs**: domain-specific in `<domain>/Xxx{Form,Delete,Generate}Dialog.vue`; truly generic in `components/`
