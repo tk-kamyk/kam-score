@@ -1,150 +1,75 @@
 Feature: Team Management
 
-  Scenario: Owner adds a team to a tournament
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup"
-    When the user adds a team with:
-      | Name    | Eagles  |
-      | Level   | 75      |
-      | Email   | eagles@example.com |
-      | Phone   | +123456789 |
-    Then the team is added to the tournament
-    And the tournament's team count is 1
+  Scenario: Owner adds, updates, and deletes a team
+    Given the user owns a tournament
+    When the user adds a team with name, level, and contact info
+    And updates the team's name and level
+    And deletes the team
+    Then each change is reflected in the team list
 
-  Scenario: Owner updates a team
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with team "Eagles"
-    When the user updates team "Eagles" name to "Hawks" and level to 80
-    Then the team name is "Hawks"
-    And the team level is 80
+  Scenario Outline: Team validation rejects invalid input
+    Given the user owns a tournament with an existing team "Eagles"
+    When the user submits <input>
+    Then the request is rejected with status 400
 
-  Scenario: Owner deletes a team
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with team "Eagles"
-    When the user deletes team "Eagles"
-    Then the tournament's team count is 0
+    Examples:
+      | input                                      |
+      | a team named "Eagles" (duplicate)          |
+      | a team with level above 100                |
+      | a rename of another team to "Eagles"       |
 
-  Scenario: Adding a team with duplicate name is rejected
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with team "Eagles"
-    When the user adds a team with name "Eagles"
-    Then the request is rejected with 400 Bad Request
+  Scenario Outline: Team access control
+    Given a tournament owned by Alice
+    When <actor> tries to <action>
+    Then the request is <result>
 
-  Scenario: Team level must be between 0 and 100
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup"
-    When the user adds a team with level 101
-    Then the request is rejected with 400 Bad Request
+    Examples:
+      | actor               | action             | result                  |
+      | Bob (authenticated) | add a team         | rejected with status 403 |
+      | an anonymous visitor | add a team        | rejected with status 401 |
+      | an anonymous visitor | view the team list | returned successfully    |
 
-  Scenario: Non-owner cannot add a team
-    Given user "Alice" owns tournament "Summer Cup"
-    When user "Bob" attempts to add a team to "Summer Cup"
-    Then the request is rejected with 403 Forbidden
-
-  Scenario: Anonymous visitor can view teams
-    Given user "Alice" owns tournament "Summer Cup" with team "Eagles"
-    When a visitor requests the teams of "Summer Cup"
-    Then the team list is returned successfully
-
-  Scenario: Anonymous visitor sees teams without contact info
-    Given user "Alice" owns tournament "Summer Cup" with team "Eagles" (email: "eagles@example.com", phone: "+123456789")
-    When a visitor requests the teams of "Summer Cup"
-    Then the team list is returned successfully
-    And the team email and phone are hidden
-
-  Scenario: Updating a team with duplicate name is rejected
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with teams "Eagles" and "Hawks"
-    When the user updates team "Hawks" name to "Eagles"
-    Then the request is rejected with 400 Bad Request
-
-  Scenario: Anonymous visitor cannot add a team
-    Given a tournament "Summer Cup" exists
-    When a visitor attempts to add a team to "Summer Cup"
-    Then the request is rejected with 401 Unauthorized
+  Scenario: Anonymous visitors see teams without contact info
+    Given a team with email and phone
+    When an anonymous visitor requests the team list
+    Then the team is returned without email or phone
 
   # --- Team Schedule & Participation ---
 
-  Scenario: API returns games filtered by teamId
-    Given a tournament with teams "Eagles" and "Hawks" and "Wolves"
-    And a phase with scheduled games including "Eagles" vs "Hawks" and "Hawks" vs "Wolves"
-    When a user requests games filtered by teamId for "Hawks"
-    Then the response contains games where "Hawks" plays (home or away) or referees
-    And the response does not contain games where "Hawks" is not involved
+  Scenario: API filters games by teamId
+    Given a tournament with scheduled games
+    When games are requested filtered by a specific team
+    Then only games where that team plays or referees are returned
 
   Scenario: Game response includes phase, group, and level names
-    Given a tournament with a phase "Group Stage" (RoundRobin) with group "A" in level "Main"
-    And scheduled games in that group
-    When a user requests the games
-    Then each game includes phaseName "Group Stage", groupName "A", and levelName "Main"
+    Given games scheduled in phases with groups and levels
+    When games are requested
+    Then each game includes phaseName, groupName, and levelName
 
-  Scenario: Team schedule shows games grouped by phase
-    Given a tournament with teams assigned to multiple phases
-    And games scheduled across those phases
-    When a user expands a team row in the team list
-    Then the team's games are displayed grouped under phase headers
-    And each header shows the phase name, format, and group name
+  Scenario: Team schedule in UI groups games by phase and highlights role
+    Given a team participating in multiple phases
+    When the user expands the team row
+    Then games are grouped under phase headers showing the team's role (Home/Away/Referee)
 
-  Scenario: Team schedule highlights team's role in each game
-    Given a tournament with "Eagles" playing home, away, and refereeing in different games
-    When a user expands the "Eagles" team row
-    Then each game row shows the team's role: "Home", "Away", or "Referee"
-
-  Scenario: Team schedule shows breaks when toggled on
-    Given a tournament with scheduled games across 5 time slots
-    And "Eagles" is involved in 3 of those 5 time slots
-    When a user expands "Eagles" and enables "Show breaks"
-    Then 2 break rows are displayed for the time slots where "Eagles" has no game
-
-  Scenario: Team with no scheduled games shows empty message
-    Given a tournament with team "Eagles" assigned to no games
-    When a user expands the "Eagles" team row
-    Then the message "No games scheduled for this team" is displayed
+  Scenario: Team schedule can toggle break rows
+    Given a team involved in some but not all time slots
+    When "Show breaks" is enabled
+    Then break rows are displayed for the time slots where the team has no game
 
   # --- Generate Seed Teams ---
 
-  Scenario: Owner generates seed teams for an empty tournament
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with no teams
-    When the user generates 4 seed teams
-    Then the tournament has 4 teams
-    And the teams are named "Seed 1", "Seed 2", "Seed 3", "Seed 4"
-    And the team levels are proportionally distributed: 100, 67, 33, 0
+  Scenario: Owner generates seed teams
+    Given a tournament
+    When the owner generates N seed teams
+    Then N teams are added named "Seed 1".."Seed N" with proportionally distributed levels
+    And generation is additive (names continue from the existing team count)
 
-  Scenario: Generating seed teams is additive
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with 2 existing teams
-    When the user generates 3 seed teams
-    Then the tournament has 5 teams total
-    And the new teams are named "Seed 3", "Seed 4", "Seed 5"
+  Scenario Outline: Seed team generation validation and auth
+    When <actor> attempts to <action>
+    Then the request is rejected with status <status>
 
-  Scenario: Generating a single seed team assigns level 50
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup" with no teams
-    When the user generates 1 seed team
-    Then the tournament has 1 team named "Seed 1" with level 50
-
-  Scenario: Seed team count must be between 1 and 100
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup"
-    When the user attempts to generate 0 seed teams
-    Then the request is rejected with 400 Bad Request
-    When the user attempts to generate 101 seed teams
-    Then the request is rejected with 400 Bad Request
-
-  Scenario: Non-owner cannot generate seed teams
-    Given user "Alice" owns tournament "Summer Cup"
-    When user "Bob" attempts to generate seed teams for "Summer Cup"
-    Then the request is rejected with 403 Forbidden
-
-  Scenario: Anonymous visitor cannot generate seed teams
-    Given a tournament "Summer Cup" exists
-    When a visitor attempts to generate seed teams for "Summer Cup"
-    Then the request is rejected with 401 Unauthorized
-
-  Scenario: Generated seed teams are real teams, not placeholders
-    Given the user is authenticated
-    And the user owns tournament "Summer Cup"
-    When the user generates 2 seed teams
-    Then each generated team has isPlaceholder false
-    And each generated team can be edited like a normal team
+    Examples:
+      | actor               | action                              | status |
+      | the owner           | generate 0 or 101 seed teams        | 400    |
+      | a non-owner         | generate seed teams                 | 403    |
+      | an anonymous visitor | generate seed teams                | 401    |

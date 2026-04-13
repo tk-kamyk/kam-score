@@ -1,151 +1,88 @@
 Feature: Manual Referee Assignment
-  As a tournament owner
-  I want to manually assign or re-assign a referee to a game
-  So that every game has a designated referee and I can correct mistakes
 
   Background:
     Given I am an authenticated tournament owner
     And I have a tournament with courts, teams, groups, and scheduled games
 
-  # --- Candidate List ---
+  # --- Candidate list ---
+  # The referee eligibility algorithm is unit-tested (RefereeAssignerTests).
 
-  Scenario: Candidate list includes teams from same level across groups
-    Given a phase with 2 levels, each with 2 groups of 4 teams
-    And games are generated and scheduled
-    And a game in Level 1 Group A has no referee assigned
-    When I request referee candidates for that game
-    Then I should see teams from both Level 1 Group A and Level 1 Group B
-    And I should not see teams from Level 2
+  Scenario: Candidate list is scoped by level when phase has levels
+    Given a phase with multiple levels
+    When I request candidates for a game in one level
+    Then only teams from that level are returned
 
-  Scenario: Candidate list includes all phase teams when no levels defined
-    Given a phase with no levels and 2 groups of 4 teams
-    And games are generated and scheduled
-    And a game in Group A has no referee assigned
-    When I request referee candidates for that game
-    Then I should see teams from both Group A and Group B
+  Scenario: Candidate list spans all phase teams when phase has no levels
+    Given a phase with no levels
+    When I request candidates for a game
+    Then teams from all groups in the phase are returned
 
-  Scenario: Candidate list excludes teams playing in the same time slot
+  Scenario Outline: Teams busy in or around the time slot are excluded
     Given a game at 10:00 with no referee
-    And another game at 10:00 where Team X is playing
-    When I request referee candidates for the first game
-    Then Team X should not be in the candidate list
+    And another team <activity>
+    When I request candidates for the 10:00 game
+    Then that team is not in the candidate list
 
-  Scenario: Candidate list excludes teams refereeing in the same time slot
-    Given a game at 10:00 with no referee
-    And another game at 10:00 where Team Y is already assigned as referee
-    When I request referee candidates for the first game
-    Then Team Y should not be in the candidate list
+    Examples:
+      | activity                                     |
+      | plays in the 10:00 slot                      |
+      | referees in the 10:00 slot                   |
+      | plays in the next slot (10:30)               |
+      | is the home or away team of the target game |
 
-  Scenario: Candidate list excludes teams playing in the next time slot
-    Given a game at 10:00 with no referee and game length of 30 minutes
-    And a game at 10:30 where Team Z is playing
-    When I request referee candidates for the 10:00 game
-    Then Team Z should not be in the candidate list
+  # --- Elimination bracket placeholders ---
 
-  Scenario: Candidate list excludes the home and away teams of the target game
-    Given a game between Team A (home) and Team B (away) with no referee
-    When I request referee candidates for that game
-    Then Team A should not be in the candidate list
-    And Team B should not be in the candidate list
+  Scenario: Candidate list includes unresolved bracket placeholders from earlier rounds
+    Given a later-round elimination game with no referee
+    When I request candidates for that game
+    Then placeholders from earlier rounds are included and marked as such
 
-  # --- Elimination Bracket Placeholder Candidates ---
+  Scenario Outline: Placeholders busy in or around the time slot are excluded
+    Given a placeholder <activity>
+    When I request candidates for the target game
+    Then that placeholder is not in the candidate list
 
-  Scenario: Candidate list for SF game includes placeholders from QF round
-    Given a single-elimination phase with 8 teams (QF → SF → Final)
-    And games are generated and scheduled
-    And an SF game "Winner QF1 vs Winner QF2" has no referee
-    When I request referee candidates for that SF game
-    Then the candidate list should include "Loser QF1" and "Loser QF2"
-    And the candidate list should include "Winner QF3", "Loser QF3", "Winner QF4", "Loser QF4"
-    And each placeholder candidate should be marked as a placeholder
+    Examples:
+      | activity                                     |
+      | is the home or away of the target game       |
+      | plays in the same slot in another game       |
+      | plays in the next slot                       |
 
-  Scenario: Placeholder playing in the target game is excluded from candidates
-    Given an SF game where "Winner QF1" plays "Winner QF2"
-    When I request referee candidates for that SF game
-    Then "Winner QF1" should not be in the candidate list
-    And "Winner QF2" should not be in the candidate list
+  # --- Assignment & resolution ---
 
-  Scenario: Placeholder busy in the same time slot is excluded
-    Given an SF1 game at 11:00 with no referee
-    And an SF2 game at 11:00 where "Winner QF3" is playing
-    When I request referee candidates for SF1
-    Then "Winner QF3" should not be in the candidate list
-
-  Scenario: Placeholder playing in the next time slot is excluded
-    Given an SF1 game at 11:00 with no referee and game length of 30 minutes
-    And a Final game at 11:30 where "Winner SF1" is playing
-    When I request referee candidates for the SF1 game
-    Then "Winner SF1" should not be in the candidate list
-
-  Scenario: Candidate list for Final includes placeholders from all earlier rounds
-    Given a single-elimination phase with 8 teams (QF → SF → Final)
-    And games are generated and scheduled
-    And the Final game has no referee
-    When I request referee candidates for the Final
-    Then the candidate list should include placeholders from both QF and SF rounds
-
-  # --- Placeholder Assignment ---
+  Scenario: Owner assigns a real team as referee
+    Given a game with no referee and a valid candidate team
+    When the owner assigns the team as referee
+    Then the game shows that team as its referee
 
   Scenario: Owner assigns a placeholder as referee
-    Given an SF game with no referee assigned
-    And "Loser QF1" is a valid placeholder candidate
-    When I assign "Loser QF1" as referee for that SF game
-    Then the game should have "Loser QF1" as the referee placeholder
-    And the game should not have a referee team ID
-    And "Loser QF1" should be displayed as the referee in the schedule
+    Given a game with no referee and a valid placeholder candidate
+    When the owner assigns the placeholder as referee
+    Then the game shows the placeholder label as referee (no team ID until resolved)
 
-  # --- Placeholder Resolution ---
+  Scenario: Re-assigning a referee replaces the current assignment
+    Given a game with an existing referee
+    When the owner assigns a different valid candidate
+    Then the game shows the new referee and the previous one is cleared
 
-  Scenario: Referee placeholder resolves when referenced game completes
-    Given an SF game with "Loser QF1" assigned as referee placeholder
-    And QF1 is played and Team A loses
-    When QF1 result is recorded
-    Then the SF game's referee team ID should be Team A
-    And the SF game's referee placeholder should remain "Loser QF1"
+  Scenario: Referee placeholder resolves when the referenced game completes
+    Given a game with a "Loser {label}" referee placeholder
+    When the referenced upstream game's result is recorded
+    Then the game's refereeTeamId is set while the placeholder label is preserved
 
-  # --- Assignment (real teams) ---
+  Scenario: Ineligible team assignment is rejected
+    Given a game with no referee
+    When the owner tries to assign a team busy in the same slot
+    Then the request is rejected with status 400
 
-  Scenario: Owner assigns a real team as referee to a game without one
-    Given a game with no referee assigned
-    And Team C is a valid candidate
-    When I assign Team C as referee for that game
-    Then the game should have Team C as the referee
-    And the game's referee name should be visible in the schedule
+  # --- Access control ---
 
-  Scenario: Assigning an ineligible team is rejected
-    Given a game with no referee assigned
-    And Team X is playing in the same time slot
-    When I try to assign Team X as referee for that game
-    Then I should receive a 400 error
-
-  # --- Re-assignment ---
-
-  Scenario: Owner re-assigns a referee to a game that already has one
-    Given a game with Team C assigned as referee
-    And Team D is a valid candidate
-    When I assign Team D as referee for that game
-    Then the game should have Team D as the referee
-    And Team C should no longer be the referee
-
-  Scenario: Current referee appears in candidate list for re-assignment
-    Given a game with Team C assigned as referee
-    When I request referee candidates for that game
-    Then Team C should be in the candidate list
-
-  Scenario: Re-assigning an ineligible team is rejected
-    Given a game with Team C assigned as referee
-    And Team X is playing in the same time slot
-    When I try to assign Team X as referee for that game
-    Then I should receive a 400 error
-
-  # --- Access Control ---
-
-  Scenario: Non-owner cannot assign a referee
-    Given a game with no referee in someone else's tournament
-    When I try to assign a referee for that game
-    Then I should receive a 403 Forbidden error
-
-  Scenario: Non-owner cannot view referee candidates
+  Scenario Outline: Only the owner can assign or view candidates
     Given a game in someone else's tournament
-    When I try to request referee candidates for that game
-    Then I should receive a 403 Forbidden error
+    When I try to <action>
+    Then the request is rejected with status 403
+
+    Examples:
+      | action                  |
+      | assign a referee        |
+      | view referee candidates |

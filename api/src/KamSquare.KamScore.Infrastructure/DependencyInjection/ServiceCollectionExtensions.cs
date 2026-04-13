@@ -67,6 +67,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<PhaseGuardService>();
         services.AddScoped<ScheduleGenerationService>();
         services.AddScoped<TournamentCopyService>();
+        services.AddScoped<BracketAdvancementService>();
+        services.AddScoped<VolunteerService>();
         services.AddHttpContextAccessor();
 
         // AutoMapper
