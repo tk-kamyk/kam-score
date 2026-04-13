@@ -4,7 +4,6 @@ import { useVolunteerStore } from '@/volunteer/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
-import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import SectionHeader from '@/components/SectionHeader.vue'
 import VolunteerShifts from '@/volunteer/VolunteerShifts.vue'
 import VolunteerListTable from '@/volunteer/VolunteerListTable.vue'
@@ -16,8 +15,6 @@ const props = defineProps<{
   active: boolean
 }>()
 
-const { isEnabled } = useFeatureFlags()
-const showShiftsTab = computed(() => isEnabled('VolunteerShifts'))
 const subTab = ref('list')
 
 const volunteerStore = useVolunteerStore()
@@ -131,12 +128,12 @@ const sortedVolunteers = computed(() =>
       </v-btn>
     </SectionHeader>
 
-    <v-tabs v-if="showShiftsTab" v-model="subTab" density="compact" color="primary" class="mb-4">
+    <v-tabs v-model="subTab" density="compact" color="primary" class="mb-4">
       <v-tab value="list">List</v-tab>
       <v-tab value="shifts">Shifts</v-tab>
     </v-tabs>
 
-    <v-tabs-window v-if="showShiftsTab" v-model="subTab">
+    <v-tabs-window v-model="subTab">
       <v-tabs-window-item value="list">
         <VolunteerListTable
           :volunteers="sortedVolunteers"
@@ -149,14 +146,6 @@ const sortedVolunteers = computed(() =>
         <VolunteerShifts :tournament-id="tournamentId" />
       </v-tabs-window-item>
     </v-tabs-window>
-
-    <VolunteerListTable
-      v-if="!showShiftsTab"
-      :volunteers="sortedVolunteers"
-      :loading="volunteerStore.loading"
-      @edit="openEdit"
-      @delete="openDelete"
-    />
 
     <!-- Create / Edit Dialog -->
     <v-dialog v-model="showFormDialog" max-width="500">

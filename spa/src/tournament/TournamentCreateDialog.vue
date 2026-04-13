@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useTournamentStore } from '@/tournament/store'
-import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import type { TournamentDto } from '@/tournament/types'
 import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
 import { buildGameConditions } from '@/tournament/gameConditionsUtils'
@@ -11,9 +10,6 @@ const props = defineProps<{ loading?: boolean }>()
 const emit = defineEmits<{ created: [tournament: TournamentDto] }>()
 
 const tournamentStore = useTournamentStore()
-const { isEnabled } = useFeatureFlags()
-
-const showCopyFrom = computed(() => isEnabled('CopyTournamentStructure'))
 
 const useCustomConditions = ref(false)
 const bestOfSets = ref<number | undefined>()
@@ -75,7 +71,6 @@ function handleCreate() {
           autofocus
         />
         <v-select
-          v-if="showCopyFrom"
           v-model="sourceTournamentId"
           :items="tournamentOptions"
           label="Copy structure from (optional)"
