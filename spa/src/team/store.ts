@@ -26,7 +26,7 @@ export const useTeamStore = defineStore('team', () => {
       const { data } = await apiClient.get<TeamDto[]>(`/tournaments/${tournamentId}/teams`, {
         params: { includePlaceholders: true },
       })
-      placeholders.value = data.filter(t => t.isPlaceholder)
+      placeholders.value = data.filter((t) => t.isPlaceholder)
     } finally {
       loading.value = false
     }
@@ -39,8 +39,11 @@ export const useTeamStore = defineStore('team', () => {
   }
 
   async function updateTeam(tournamentId: string, teamId: string, dto: TeamDto): Promise<TeamDto> {
-    const { data } = await apiClient.put<TeamDto>(`/tournaments/${tournamentId}/teams/${teamId}`, dto)
-    const index = teams.value.findIndex(t => t.id === teamId)
+    const { data } = await apiClient.put<TeamDto>(
+      `/tournaments/${tournamentId}/teams/${teamId}`,
+      dto,
+    )
+    const index = teams.value.findIndex((t) => t.id === teamId)
     if (index >= 0) {
       teams.value[index] = data
     }
@@ -49,7 +52,7 @@ export const useTeamStore = defineStore('team', () => {
 
   async function deleteTeam(tournamentId: string, teamId: string) {
     await apiClient.delete(`/tournaments/${tournamentId}/teams/${teamId}`)
-    teams.value = teams.value.filter(t => t.id !== teamId)
+    teams.value = teams.value.filter((t) => t.id !== teamId)
   }
 
   async function generateSeedTeams(tournamentId: string, count: number): Promise<TeamDto[]> {

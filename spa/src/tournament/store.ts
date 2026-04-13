@@ -10,12 +10,15 @@ export const useTournamentStore = defineStore('tournament', () => {
   const currentTournament = ref<TournamentDto | null>(null)
   const loading = ref(false)
 
-  watch(() => auth.isAuthenticated, () => {
-    fetchTournaments()
-    if (currentTournament.value?.id) {
-      fetchTournament(currentTournament.value.id)
-    }
-  })
+  watch(
+    () => auth.isAuthenticated,
+    () => {
+      fetchTournaments()
+      if (currentTournament.value?.id) {
+        fetchTournament(currentTournament.value.id)
+      }
+    },
+  )
 
   async function fetchTournaments() {
     loading.value = true
@@ -45,7 +48,7 @@ export const useTournamentStore = defineStore('tournament', () => {
 
   async function updateTournament(id: string, dto: TournamentDto): Promise<TournamentDto> {
     const { data } = await apiClient.put<TournamentDto>(`/tournaments/${id}`, dto)
-    const index = tournaments.value.findIndex(t => t.id === id)
+    const index = tournaments.value.findIndex((t) => t.id === id)
     if (index >= 0) {
       tournaments.value[index] = data
     }
@@ -55,7 +58,7 @@ export const useTournamentStore = defineStore('tournament', () => {
 
   async function deleteTournament(id: string) {
     await apiClient.delete(`/tournaments/${id}`)
-    tournaments.value = tournaments.value.filter(t => t.id !== id)
+    tournaments.value = tournaments.value.filter((t) => t.id !== id)
     if (currentTournament.value?.id === id) {
       currentTournament.value = null
     }

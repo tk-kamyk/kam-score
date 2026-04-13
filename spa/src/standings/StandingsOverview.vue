@@ -20,8 +20,17 @@ const props = defineProps<{
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const standingsStore = useStandingsStore()
-const { expanded: expandedPhases, toggle: togglePhaseBase, syncFromRoute: syncExpanded } = useExpandedQueryParam('phase')
-const { selectedGroups, selectGroup: selectGroupBase, deselectGroup, syncFromRoute: syncGroups } = useGroupSelection()
+const {
+  expanded: expandedPhases,
+  toggle: togglePhaseBase,
+  syncFromRoute: syncExpanded,
+} = useExpandedQueryParam('phase')
+const {
+  selectedGroups,
+  selectGroup: selectGroupBase,
+  deselectGroup,
+  syncFromRoute: syncGroups,
+} = useGroupSelection()
 const { phaseGames } = useGamesByPhase()
 
 function togglePhase(phaseId: string) {
@@ -30,7 +39,7 @@ function togglePhase(phaseId: string) {
   if (expandedPhases.value.has(phaseId)) {
     // Fetch standings for newly expanded phase
     if (!selectedGroups.value.has(phaseId)) {
-      const phase = phases.value.find(p => p.id === phaseId)
+      const phase = phases.value.find((p) => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
         selectGroup(phaseId, phase.groups[0].id)
       }
@@ -59,18 +68,21 @@ watch(showResultDialog, (open) => {
   }
 })
 
-watch(() => props.active, async (isActive) => {
-  if (!isActive) return
-  syncExpanded()
-  syncGroups()
-  await Promise.all([
-    structureStore.fetchStructure(props.tournamentId),
-    gameStore.fetchGames(props.tournamentId),
-  ])
-  for (const [phaseId, groupId] of selectedGroups.value) {
-    standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
-  }
-})
+watch(
+  () => props.active,
+  async (isActive) => {
+    if (!isActive) return
+    syncExpanded()
+    syncGroups()
+    await Promise.all([
+      structureStore.fetchStructure(props.tournamentId),
+      gameStore.fetchGames(props.tournamentId),
+    ])
+    for (const [phaseId, groupId] of selectedGroups.value) {
+      standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
+    }
+  },
+)
 
 function openResultDialog(game: GameDto) {
   selectedGame.value = game
@@ -88,7 +100,7 @@ onMounted(async () => {
   // Auto-select first group for expanded phases if not already selected
   for (const phaseId of expandedPhases.value) {
     if (!selectedGroups.value.has(phaseId)) {
-      const phase = phases.value.find(p => p.id === phaseId)
+      const phase = phases.value.find((p) => p.id === phaseId)
       if (phase?.groups?.[0]?.id) {
         selectGroup(phaseId, phase.groups[0].id)
       }
@@ -106,7 +118,12 @@ onMounted(async () => {
 
     <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
 
-    <v-alert v-if="phases.length === 0 && !structureStore.loading" class="mt-4 mb-4" type="info" variant="tonal">
+    <v-alert
+      v-if="phases.length === 0 && !structureStore.loading"
+      class="mt-4 mb-4"
+      type="info"
+      variant="tonal"
+    >
       No phases defined yet. Set up the tournament structure first.
     </v-alert>
 

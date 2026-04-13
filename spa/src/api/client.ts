@@ -26,7 +26,7 @@ apiClient.interceptors.response.use(
       onUnauthorized?.()
     }
     return Promise.reject(error)
-  }
+  },
 )
 
 export default apiClient

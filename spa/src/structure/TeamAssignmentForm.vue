@@ -24,7 +24,7 @@ const selectedTeamId = ref<string | null>(null)
 
 const assignedTeams = computed(() => {
   return (props.group.teamIds ?? [])
-    .map(id => props.teams.find(t => t.id === id))
+    .map((id) => props.teams.find((t) => t.id === id))
     .filter((t): t is TeamDto => t != null)
 })
 
@@ -40,24 +40,22 @@ const assignedTeamIdsInPhase = computed(() => {
 
 const previousPhasePlaceholders = computed(() => {
   if (props.phaseOrder <= 1 || !props.previousPhaseId) return []
-  return props.teams.filter(
-    t => t.isPlaceholder && t.sourcePhaseId === props.previousPhaseId,
-  )
+  return props.teams.filter((t) => t.isPlaceholder && t.sourcePhaseId === props.previousPhaseId)
 })
 
 const placeholdersResolved = computed(() => {
   const ph = previousPhasePlaceholders.value
-  return ph.length > 0 && ph.every(t => t.resolvedTeamId)
+  return ph.length > 0 && ph.every((t) => t.resolvedTeamId)
 })
 
 const resolvedTeamIds = computed(() => {
   if (!placeholdersResolved.value) return new Set<string>()
-  return new Set(previousPhasePlaceholders.value.map(pt => pt.resolvedTeamId!))
+  return new Set(previousPhasePlaceholders.value.map((pt) => pt.resolvedTeamId!))
 })
 
 const availableTeams = computed(() => {
   return props.teams
-    .filter(t => {
+    .filter((t) => {
       if (!t.id || assignedTeamIdsInPhase.value.has(t.id)) return false
       if (props.phaseOrder > 1) {
         if (placeholdersResolved.value) {
@@ -96,12 +94,7 @@ async function handleAssign() {
 
 async function handleRemove(teamId: string) {
   try {
-    await structureStore.removeTeam(
-      props.tournamentId,
-      props.phaseId,
-      props.group.id!,
-      teamId,
-    )
+    await structureStore.removeTeam(props.tournamentId, props.phaseId, props.group.id!, teamId)
     showSuccess('Team removed')
     await structureStore.fetchStructure(props.tournamentId)
   } catch (error) {
@@ -115,7 +108,10 @@ async function handleRemove(teamId: string) {
     <v-list v-if="assignedTeams.length > 0" density="compact" class="pa-0 team-list">
       <v-list-item v-for="team in assignedTeams" :key="team.id" class="px-0">
         <template #default>
-          <span class="text-body-medium" :class="{ 'text-italic text-medium-emphasis': team.isPlaceholder }">
+          <span
+            class="text-body-medium"
+            :class="{ 'text-italic text-medium-emphasis': team.isPlaceholder }"
+          >
             {{ team.name }}
           </span>
         </template>

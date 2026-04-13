@@ -15,7 +15,7 @@ export const useStructureStore = defineStore('structure', () => {
 
   function replacePhase(phaseId: string, data: PhaseDto) {
     if (!structure.value?.phases) return
-    const index = structure.value.phases.findIndex(p => p.id === phaseId)
+    const index = structure.value.phases.findIndex((p) => p.id === phaseId)
     if (index >= 0) {
       structure.value.phases[index] = data
     }
@@ -61,21 +61,17 @@ export const useStructureStore = defineStore('structure', () => {
     await apiClient.delete(`/tournaments/${tournamentId}/structure/phases/${phaseId}`)
     if (structure.value?.phases) {
       structure.value.phases = structure.value.phases
-        .filter(p => p.id !== phaseId)
+        .filter((p) => p.id !== phaseId)
         .map((p, i) => ({ ...p, order: i + 1 }))
     }
   }
 
-  async function addGroup(
-    tournamentId: string,
-    phaseId: string,
-    dto: GroupDto,
-  ): Promise<GroupDto> {
+  async function addGroup(tournamentId: string, phaseId: string, dto: GroupDto): Promise<GroupDto> {
     const { data } = await apiClient.post<GroupDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/groups`,
       dto,
     )
-    const phase = structure.value?.phases?.find(p => p.id === phaseId)
+    const phase = structure.value?.phases?.find((p) => p.id === phaseId)
     if (phase?.groups) {
       phase.groups = [...phase.groups, data]
     }
@@ -92,9 +88,9 @@ export const useStructureStore = defineStore('structure', () => {
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/groups/${groupId}`,
       dto,
     )
-    const phase = structure.value?.phases?.find(p => p.id === phaseId)
+    const phase = structure.value?.phases?.find((p) => p.id === phaseId)
     if (phase?.groups) {
-      const index = phase.groups.findIndex(g => g.id === groupId)
+      const index = phase.groups.findIndex((g) => g.id === groupId)
       if (index >= 0) {
         phase.groups[index] = data
       }
@@ -106,9 +102,9 @@ export const useStructureStore = defineStore('structure', () => {
     await apiClient.delete(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/groups/${groupId}`,
     )
-    const phase = structure.value?.phases?.find(p => p.id === phaseId)
+    const phase = structure.value?.phases?.find((p) => p.id === phaseId)
     if (phase?.groups) {
-      phase.groups = phase.groups.filter(g => g.id !== groupId)
+      phase.groups = phase.groups.filter((g) => g.id !== groupId)
     }
   }
 
@@ -123,8 +119,8 @@ export const useStructureStore = defineStore('structure', () => {
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/groups/${groupId}/teams`,
       request,
     )
-    const phase = structure.value?.phases?.find(p => p.id === phaseId)
-    const group = phase?.groups?.find(g => g.id === groupId)
+    const phase = structure.value?.phases?.find((p) => p.id === phaseId)
+    const group = phase?.groups?.find((g) => g.id === groupId)
     if (group?.teamIds) {
       group.teamIds = [...group.teamIds, teamId]
     }
@@ -139,10 +135,10 @@ export const useStructureStore = defineStore('structure', () => {
     await apiClient.delete(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/groups/${groupId}/teams/${teamId}`,
     )
-    const phase = structure.value?.phases?.find(p => p.id === phaseId)
-    const group = phase?.groups?.find(g => g.id === groupId)
+    const phase = structure.value?.phases?.find((p) => p.id === phaseId)
+    const group = phase?.groups?.find((g) => g.id === groupId)
     if (group?.teamIds) {
-      group.teamIds = group.teamIds.filter(id => id !== teamId)
+      group.teamIds = group.teamIds.filter((id) => id !== teamId)
     }
   }
 
@@ -172,9 +168,9 @@ export const useStructureStore = defineStore('structure', () => {
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/levels/${levelId}`,
       dto,
     )
-    const phase = structure.value?.phases?.find(p => p.id === phaseId)
+    const phase = structure.value?.phases?.find((p) => p.id === phaseId)
     if (phase?.levels) {
-      const index = phase.levels.findIndex(l => l.id === levelId)
+      const index = phase.levels.findIndex((l) => l.id === levelId)
       if (index >= 0) {
         phase.levels[index] = data
       }

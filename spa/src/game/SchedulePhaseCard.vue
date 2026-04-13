@@ -27,18 +27,18 @@ const emit = defineEmits<{
   'open-result': [game: GameDto]
 }>()
 
-const allGamesCompleted = computed(() =>
-  props.games.length > 0 && props.games.every(g => g.status === 'Completed'),
+const allGamesCompleted = computed(
+  () => props.games.length > 0 && props.games.every((g) => g.status === 'Completed'),
 )
 
 const selectedGroupGames = computed(() => {
   if (!props.selectedGroupId) return []
-  return props.games.filter(g => g.groupId === props.selectedGroupId)
+  return props.games.filter((g) => g.groupId === props.selectedGroupId)
 })
 
 const selectedGroupName = computed(() => {
   if (!props.selectedGroupId) return ''
-  const group = props.phase.groups?.find(g => g.id === props.selectedGroupId)
+  const group = props.phase.groups?.find((g) => g.id === props.selectedGroupId)
   return group?.name ?? ''
 })
 </script>
@@ -64,13 +64,7 @@ const selectedGroupName = computed(() => {
         />
       </template>
 
-      <v-alert
-        v-else
-        class="mt-4 mb-4"
-        type="info"
-        variant="tonal"
-        density="compact"
-      >
+      <v-alert v-else class="mt-4 mb-4" type="info" variant="tonal" density="compact">
         No games generated for this phase yet.
       </v-alert>
     </v-card-text>

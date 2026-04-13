@@ -18,10 +18,15 @@ export function useGroupSelection(queryKey = 'group') {
 
   const selectedGroups = ref(parseGroupSelections(route.query[queryKey]))
 
-  watch(selectedGroups, (groups) => {
-    const serialized = groups.size > 0 ? [...groups.entries()].map(([p, g]) => `${p}:${g}`).join(',') : undefined
-    scheduleQueryUpdate(router, queryKey, serialized)
-  }, { deep: true })
+  watch(
+    selectedGroups,
+    (groups) => {
+      const serialized =
+        groups.size > 0 ? [...groups.entries()].map(([p, g]) => `${p}:${g}`).join(',') : undefined
+      scheduleQueryUpdate(router, queryKey, serialized)
+    },
+    { deep: true },
+  )
 
   function selectGroup(phaseId: string, groupId: string) {
     const newMap = new Map(selectedGroups.value)

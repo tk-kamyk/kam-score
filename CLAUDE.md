@@ -354,6 +354,11 @@ Endpoints should ONLY: validate auth, map DTOs, delegate to domain/services, ret
 - Layer order declaration in `index.html` inline `<style>`
 - **Thin components**: Extract sub-components when parent exceeds ~150 lines or template blocks are reused
 - **`computed` over inline expressions**: Use `computed()` for any derived state — keeps templates clean and caches results. Avoid duplicating reactive expressions in the template or recalculating in methods
+- **Linting & formatting**: ESLint (flat config in `spa/eslint.config.js`) + Prettier (`spa/.prettierrc.json`) enforce style. Any generated or edited frontend code MUST conform:
+  - Prettier: single quotes, NO semicolons, trailing commas (all), 100-char print width, `arrowParens: always`
+  - ESLint: `@eslint/js` recommended + `typescript-eslint` recommended + `eslint-plugin-vue` flat/recommended, with Prettier compatibility via `@vue/eslint-config-prettier/skip-formatting`
+  - No `any` — use specific types or generics; prefix intentionally unused vars/args/destructures with `_`
+  - `npm run lint` auto-fixes ESLint issues; `npm run format` reformats with Prettier; `npm run build` runs format + lint + type-check + vite build (also executed by `spa/Dockerfile`)
 
 ---
 

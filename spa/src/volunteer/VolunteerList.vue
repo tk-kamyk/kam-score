@@ -39,12 +39,15 @@ onMounted(() => {
   teamStore.fetchTeams(props.tournamentId)
 })
 
-watch(() => props.active, (isActive) => {
-  if (isActive) {
-    volunteerStore.fetchVolunteers(props.tournamentId)
-    teamStore.fetchTeams(props.tournamentId)
-  }
-})
+watch(
+  () => props.active,
+  (isActive) => {
+    if (isActive) {
+      volunteerStore.fetchVolunteers(props.tournamentId)
+      teamStore.fetchTeams(props.tournamentId)
+    }
+  },
+)
 
 function openCreate() {
   editingVolunteer.value = null
@@ -72,7 +75,11 @@ async function handleSave() {
 
   try {
     if (editingVolunteer.value?.id) {
-      await volunteerStore.updateVolunteer(props.tournamentId, editingVolunteer.value.id, form.value)
+      await volunteerStore.updateVolunteer(
+        props.tournamentId,
+        editingVolunteer.value.id,
+        form.value,
+      )
       showSuccess('Volunteer updated')
     } else {
       await volunteerStore.createVolunteer(props.tournamentId, form.value)
@@ -81,7 +88,9 @@ async function handleSave() {
     showFormDialog.value = false
   } catch (error) {
     if (!handleError(error)) {
-      showError(editingVolunteer.value ? 'Failed to update volunteer' : 'Failed to create volunteer')
+      showError(
+        editingVolunteer.value ? 'Failed to update volunteer' : 'Failed to create volunteer',
+      )
     }
   }
 }
@@ -101,14 +110,12 @@ async function handleDelete() {
 }
 
 const sortedTeamOptions = computed(() =>
-  [...teamStore.teams]
-    .filter(t => !t.isPlaceholder)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  [...teamStore.teams].filter((t) => !t.isPlaceholder).sort((a, b) => a.name.localeCompare(b.name)),
 )
 
 function teamName(teamId?: string | null): string {
   if (!teamId) return ''
-  return teamStore.teams.find(t => t.id === teamId)?.name ?? ''
+  return teamStore.teams.find((t) => t.id === teamId)?.name ?? ''
 }
 
 const sortedVolunteers = computed(() =>
@@ -116,7 +123,7 @@ const sortedVolunteers = computed(() =>
     const nameA = teamName(a.teamId) || '\uffff'
     const nameB = teamName(b.teamId) || '\uffff'
     return nameA.localeCompare(nameB)
-  })
+  }),
 )
 </script>
 
@@ -154,7 +161,16 @@ const sortedVolunteers = computed(() =>
           {{ editingVolunteer ? 'Edit Volunteer' : 'Add Volunteer' }}
         </v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-form ref="formRef" @submit.prevent="handleSave">
@@ -198,7 +214,16 @@ const sortedVolunteers = computed(() =>
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Volunteer</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           Are you sure you want to delete "{{ deletingVolunteer?.name }}"?
@@ -212,4 +237,3 @@ const sortedVolunteers = computed(() =>
     </v-dialog>
   </div>
 </template>
-

@@ -49,7 +49,14 @@ useFeatureFlags().fetch()
 
     <LoginDialog />
 
-    <v-snackbar v-model="snackbarShow" :color="snackbarColor" :timeout="3000" role="status" aria-live="polite" class="ks-snackbar">
+    <v-snackbar
+      v-model="snackbarShow"
+      :color="snackbarColor"
+      :timeout="3000"
+      role="status"
+      aria-live="polite"
+      class="ks-snackbar"
+    >
       {{ snackbarMessage }}
     </v-snackbar>
   </v-app>
@@ -57,36 +64,36 @@ useFeatureFlags().fetch()
 
 <style scoped>
 .app-bar-border {
-    border-bottom: 1px solid var(--ks-border-strong);
+  border-bottom: 1px solid var(--ks-border-strong);
 }
 
 .brand-link {
-    color: inherit;
+  color: inherit;
 }
 
 .brand-text {
-    font-family: 'Dosis', sans-serif;
-    font-weight: 700;
-    font-size: 1.4rem;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: #fff;
+  font-family: 'Dosis', sans-serif;
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #fff;
 }
 
 .main-container {
-    max-width: 1200px;
+  max-width: 1200px;
 }
 
 @media (min-width: 1145px) {
-    .main-container {
-        max-width: 1400px;
-    }
+  .main-container {
+    max-width: 1400px;
+  }
 }
 
 @media (max-width: 599px) {
-    .brand-text {
-        font-size: 1.15rem;
-        letter-spacing: 1px;
-    }
+  .brand-text {
+    font-size: 1.15rem;
+    letter-spacing: 1px;
+  }
 }
 </style>

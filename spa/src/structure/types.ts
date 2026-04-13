@@ -45,5 +45,5 @@ export const PHASE_FORMATS = [
 ] as const
 
 export function formatPhaseFormat(format: string): string {
-  return PHASE_FORMATS.find(f => f.value === format)?.title ?? format
+  return PHASE_FORMATS.find((f) => f.value === format)?.title ?? format
 }

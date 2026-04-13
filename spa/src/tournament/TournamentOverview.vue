@@ -29,8 +29,8 @@ const { smAndDown } = useDisplay()
 const standingsStore = useStandingsStore()
 
 const tournament = computed(() => tournamentStore.currentTournament)
-const isOwner = computed(() =>
-  auth.isAuthenticated && (tournament.value?.ownerId === auth.username || auth.isAdmin)
+const isOwner = computed(
+  () => auth.isAuthenticated && (tournament.value?.ownerId === auth.username || auth.isAdmin),
 )
 
 const showVolunteersTab = computed(() => isOwner.value)
@@ -40,7 +40,9 @@ const validTabs = computed(() => {
   if (showVolunteersTab.value) tabs.push('volunteers')
   return tabs
 })
-const activeTab = ref(validTabs.value.includes(route.query.tab as string) ? (route.query.tab as string) : 'overview')
+const activeTab = ref(
+  validTabs.value.includes(route.query.tab as string) ? (route.query.tab as string) : 'overview',
+)
 
 watch(validTabs, (tabs) => {
   const urlTab = route.query.tab as string
@@ -108,13 +110,32 @@ async function handleDelete() {
   <div>
     <TournamentBreadcrumb :items="breadcrumbItems" @navigate="activeTab = 'overview'" />
 
-    <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" aria-label="Loading tournament" />
+    <v-progress-linear
+      v-if="tournamentStore.loading"
+      indeterminate
+      color="primary"
+      aria-label="Loading tournament"
+    />
 
     <template v-if="tournament">
-      <h2 class="section-title text-title-medium text-md-title-large text-lg-headline-medium mb-6">{{ tournament.name }}</h2>
+      <h2 class="section-title text-title-medium text-md-title-large text-lg-headline-medium mb-6">
+        {{ tournament.name }}
+      </h2>
 
-      <v-tabs v-model="activeTab" color="primary" class="mb-4" slider-color="primary" aria-label="Tournament sections" :density="smAndDown ? 'compact' : 'comfortable'">
-        <v-tab v-for="tab in validTabs" :key="tab" :value="tab" :size="smAndDown ? 'default' : 'large'">
+      <v-tabs
+        v-model="activeTab"
+        color="primary"
+        class="mb-4"
+        slider-color="primary"
+        aria-label="Tournament sections"
+        :density="smAndDown ? 'compact' : 'comfortable'"
+      >
+        <v-tab
+          v-for="tab in validTabs"
+          :key="tab"
+          :value="tab"
+          :size="smAndDown ? 'default' : 'large'"
+        >
           {{ tabLabels[tab] }}
         </v-tab>
       </v-tabs>
@@ -143,15 +164,27 @@ async function handleDelete() {
         </v-tabs-window-item>
 
         <v-tabs-window-item value="structure">
-          <StructureDetail :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'structure'" />
+          <StructureDetail
+            :tournament-id="id"
+            :is-owner="isOwner"
+            :active="activeTab === 'structure'"
+          />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="standings">
-          <StandingsOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'standings'" />
+          <StandingsOverview
+            :tournament-id="id"
+            :is-owner="isOwner"
+            :active="activeTab === 'standings'"
+          />
         </v-tabs-window-item>
 
         <v-tabs-window-item value="schedule">
-          <ScheduleOverview :tournament-id="id" :is-owner="isOwner" :active="activeTab === 'schedule'" />
+          <ScheduleOverview
+            :tournament-id="id"
+            :is-owner="isOwner"
+            :active="activeTab === 'schedule'"
+          />
         </v-tabs-window-item>
 
         <v-tabs-window-item v-if="showVolunteersTab" value="volunteers">

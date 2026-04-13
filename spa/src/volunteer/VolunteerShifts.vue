@@ -32,9 +32,18 @@ function openAssignDialog(groupName: string, shiftTime?: string | null) {
   showAssignDialog.value = true
 }
 
-async function handleUnassign(groupName: string, shiftTime: string | null | undefined, volunteerId: string) {
+async function handleUnassign(
+  groupName: string,
+  shiftTime: string | null | undefined,
+  volunteerId: string,
+) {
   try {
-    await volunteerStore.unassignVolunteer(props.tournamentId, groupName, shiftTime ?? null, volunteerId)
+    await volunteerStore.unassignVolunteer(
+      props.tournamentId,
+      groupName,
+      shiftTime ?? null,
+      volunteerId,
+    )
     await volunteerStore.fetchShifts(props.tournamentId)
     showSuccess('Volunteer removed from shift')
   } catch {
@@ -45,10 +54,19 @@ async function handleUnassign(groupName: string, shiftTime: string | null | unde
 
 <template>
   <div>
-    <v-progress-linear v-if="volunteerStore.shiftsLoading" indeterminate color="primary" class="mb-4" />
+    <v-progress-linear
+      v-if="volunteerStore.shiftsLoading"
+      indeterminate
+      color="primary"
+      class="mb-4"
+    />
 
     <div class="shift-groups">
-      <v-card v-for="group in volunteerStore.shiftGroups" :key="group.name" class="mb-4 shift-group-card">
+      <v-card
+        v-for="group in volunteerStore.shiftGroups"
+        :key="group.name"
+        class="mb-4 shift-group-card"
+      >
         <v-card-title class="text-subtitle-1 font-weight-bold bg-surface-bright py-2 px-4">
           {{ group.name }}
         </v-card-title>
@@ -80,7 +98,10 @@ async function handleUnassign(groupName: string, shiftTime: string | null | unde
                     {{ vol.name }}
                     <v-icon v-if="!vol.available" end icon="mdi-alert" size="x-small" />
                   </v-chip>
-                  <span v-if="shift.volunteers.length === 0" class="text-medium-emphasis text-body-2">
+                  <span
+                    v-if="shift.volunteers.length === 0"
+                    class="text-medium-emphasis text-body-2"
+                  >
                     No volunteers assigned
                   </span>
                 </div>
@@ -91,7 +112,11 @@ async function handleUnassign(groupName: string, shiftTime: string | null | unde
                   variant="text"
                   size="small"
                   color="primary"
-                  :aria-label="'Assign volunteer to ' + group.name + (shift.shiftTime ? ' at ' + shift.shiftTime : '')"
+                  :aria-label="
+                    'Assign volunteer to ' +
+                    group.name +
+                    (shift.shiftTime ? ' at ' + shift.shiftTime : '')
+                  "
                   @click="openAssignDialog(group.name, shift.shiftTime)"
                 />
               </td>
@@ -101,7 +126,12 @@ async function handleUnassign(groupName: string, shiftTime: string | null | unde
       </v-card>
     </div>
 
-    <v-alert v-if="!volunteerStore.shiftsLoading && volunteerStore.shiftGroups.length === 0" type="info" variant="tonal" class="mt-4 mb-4">
+    <v-alert
+      v-if="!volunteerStore.shiftsLoading && volunteerStore.shiftGroups.length === 0"
+      type="info"
+      variant="tonal"
+      class="mt-4 mb-4"
+    >
       No phases defined yet. Set up the tournament structure first.
     </v-alert>
 

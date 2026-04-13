@@ -10,7 +10,7 @@ defineEmits<{
 }>()
 
 function formatSets(game: GameDto): string {
-  return game.sets?.map(s => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
+  return game.sets?.map((s) => `${s.homePoints}–${s.awayPoints}`).join(' / ') || ''
 }
 </script>
 
@@ -28,6 +28,14 @@ function formatSets(game: GameDto): string {
       {{ formatSets(game) }}
     </div>
   </template>
-  <v-btn v-else-if="game.homeTeamId && game.awayTeamId" size="small" variant="tonal" color="primary" @click="$emit('enter-result')" prepend-icon="mdi-scoreboard">Enter result</v-btn>
+  <v-btn
+    v-else-if="game.homeTeamId && game.awayTeamId"
+    size="small"
+    variant="tonal"
+    color="primary"
+    prepend-icon="mdi-scoreboard"
+    @click="$emit('enter-result')"
+    >Enter result</v-btn
+  >
   <v-chip v-else size="small" variant="tonal" class="text-medium-emphasis">TBD</v-chip>
 </template>

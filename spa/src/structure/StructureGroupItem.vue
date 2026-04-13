@@ -19,7 +19,7 @@ defineProps<{
 </script>
 
 <template>
-  <v-card variant="outlined" class="group-card" :class="{'pt-4' : singleGroup}">
+  <v-card variant="outlined" class="group-card" :class="{ 'pt-4': singleGroup }">
     <v-card-title v-if="!singleGroup" class="d-flex align-center justify-space-between py-2">
       <span class="text-title-medium font-weight-medium">Group {{ group.name }}</span>
       <StructureGroupCard

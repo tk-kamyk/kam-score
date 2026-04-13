@@ -54,9 +54,12 @@ onMounted(() => {
   courtStore.fetchCourts(props.tournamentId)
 })
 
-watch(() => props.active, (isActive) => {
-  if (isActive) courtStore.fetchCourts(props.tournamentId)
-})
+watch(
+  () => props.active,
+  (isActive) => {
+    if (isActive) courtStore.fetchCourts(props.tournamentId)
+  },
+)
 
 function openCreate() {
   editingCourt.value = null
@@ -114,9 +117,7 @@ async function handleDelete() {
 const showGenerateDialog = ref(false)
 const courtCount = ref(4)
 
-const courtCountRules = [
-  (v: number) => (v >= 1 && v <= 20) || 'Count must be between 1 and 20.',
-]
+const courtCountRules = [(v: number) => (v >= 1 && v <= 20) || 'Count must be between 1 and 20.']
 
 const courtPreview = computed(() => {
   const start = courtStore.courts.length + 1
@@ -151,7 +152,14 @@ async function handleGenerate() {
   <div>
     <SectionHeader title="Courts">
       <div>
-        <v-btn v-if="isOwner" variant="outlined" color="primary" prepend-icon="mdi-apps" class="mr-2" @click="openGenerate">
+        <v-btn
+          v-if="isOwner"
+          variant="outlined"
+          color="primary"
+          prepend-icon="mdi-apps"
+          class="mr-2"
+          @click="openGenerate"
+        >
           Generate Courts
         </v-btn>
         <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
@@ -182,8 +190,21 @@ async function handleGenerate() {
                 {{ court.name }}
               </td>
               <td v-if="isOwner" class="text-right">
-                <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit court ' + court.name" @click.stop="openEdit(court)" />
-                <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete court ' + court.name" @click.stop="openDelete(court)" />
+                <v-btn
+                  icon="mdi-pencil"
+                  variant="text"
+                  size="small"
+                  :aria-label="'Edit court ' + court.name"
+                  @click.stop="openEdit(court)"
+                />
+                <v-btn
+                  icon="mdi-delete"
+                  variant="text"
+                  size="small"
+                  color="error"
+                  :aria-label="'Delete court ' + court.name"
+                  @click.stop="openDelete(court)"
+                />
               </td>
             </tr>
             <tr v-if="expandedCourt === court.id">
@@ -201,7 +222,7 @@ async function handleGenerate() {
       </v-table>
     </v-card>
 
-    <v-alert class="mt-4 mb-4" v-else-if="!courtStore.loading" type="info" variant="tonal">
+    <v-alert v-else-if="!courtStore.loading" class="mt-4 mb-4" type="info" variant="tonal">
       No courts yet.
     </v-alert>
 
@@ -212,7 +233,16 @@ async function handleGenerate() {
           {{ editingCourt ? 'Edit Court' : 'Add Court' }}
         </v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-form ref="formRef" @submit.prevent="handleSave">
@@ -240,7 +270,16 @@ async function handleGenerate() {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Court</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           Are you sure you want to delete "{{ deletingCourt?.name }}"?
@@ -258,7 +297,16 @@ async function handleGenerate() {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Generate Courts</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-text-field
@@ -285,22 +333,22 @@ async function handleGenerate() {
 
 <style scoped>
 .data-table-card {
-    border: 1px solid var(--ks-border);
+  border: 1px solid var(--ks-border);
 }
 
 .styled-table thead tr {
-    background-color: rgb(var(--v-theme-surface-bright));
+  background-color: rgb(var(--v-theme-surface-bright));
 }
 
 .styled-table tbody tr.court-row {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .styled-table tbody tr.court-row:hover {
-    background-color: var(--ks-border-subtle);
+  background-color: var(--ks-border-subtle);
 }
 
 .court-expanded-cell {
-    background-color: rgb(var(--v-theme-surface-bright));
+  background-color: rgb(var(--v-theme-surface-bright));
 }
 </style>

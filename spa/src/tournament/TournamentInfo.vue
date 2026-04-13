@@ -40,7 +40,11 @@ function openEdit() {
 function handleUpdate() {
   const dto: TournamentDto = {
     ...editForm.value,
-    gameConditions: buildGameConditions(editCustomConditions.value, editBestOfSets.value, editPointsPerSetText.value),
+    gameConditions: buildGameConditions(
+      editCustomConditions.value,
+      editBestOfSets.value,
+      editPointsPerSetText.value,
+    ),
   }
   emit('updated', dto)
   showEditDialog.value = false
@@ -55,8 +59,21 @@ function handleDelete() {
   <div>
     <SectionHeader title="Details">
       <div v-if="isOwner">
-        <v-btn icon="mdi-pencil" variant="text" size="small" aria-label="Edit tournament" @click="openEdit" />
-        <v-btn icon="mdi-delete" variant="text" size="small" color="error" aria-label="Delete tournament" @click="showDeleteDialog = true" />
+        <v-btn
+          icon="mdi-pencil"
+          variant="text"
+          size="small"
+          aria-label="Edit tournament"
+          @click="openEdit"
+        />
+        <v-btn
+          icon="mdi-delete"
+          variant="text"
+          size="small"
+          color="error"
+          aria-label="Delete tournament"
+          @click="showDeleteDialog = true"
+        />
       </div>
     </SectionHeader>
 
@@ -92,7 +109,13 @@ function handleDelete() {
           <tr v-if="tournament.tournamentCode">
             <th scope="row" class="font-weight-bold">Tournament Code</th>
             <td>
-              <v-chip color="secondary" size="small" variant="tonal" prepend-icon="mdi-key" class="font-weight-bold code-chip">
+              <v-chip
+                color="secondary"
+                size="small"
+                variant="tonal"
+                prepend-icon="mdi-key"
+                class="font-weight-bold code-chip"
+              >
                 {{ tournament.tournamentCode }}
               </v-chip>
             </td>
@@ -105,22 +128,13 @@ function handleDelete() {
   <!-- Edit Dialog -->
   <v-dialog v-model="showEditDialog" max-width="500" aria-labelledby="edit-tournament-dialog-title">
     <v-card class="pa-2">
-      <v-card-title id="edit-tournament-dialog-title" class="text-uppercase dialog-title">Edit Tournament</v-card-title>
+      <v-card-title id="edit-tournament-dialog-title" class="text-uppercase dialog-title"
+        >Edit Tournament</v-card-title
+      >
       <v-card-text>
-        <v-text-field
-          v-model="editForm.name"
-          label="Name"
-        />
-        <v-select
-          v-model="editForm.discipline"
-          :items="disciplines"
-          label="Discipline"
-        />
-        <v-text-field
-          v-model="editForm.startTime"
-          label="Date"
-          type="date"
-        />
+        <v-text-field v-model="editForm.name" label="Name" />
+        <v-select v-model="editForm.discipline" :items="disciplines" label="Discipline" />
+        <v-text-field v-model="editForm.startTime" label="Date" type="date" />
         <v-text-field
           v-model.number="editForm.gameLength"
           label="Game Length (minutes)"
@@ -143,17 +157,33 @@ function handleDelete() {
   </v-dialog>
 
   <!-- Delete Confirmation -->
-  <v-dialog v-model="showDeleteDialog" max-width="400" aria-labelledby="delete-tournament-dialog-title">
+  <v-dialog
+    v-model="showDeleteDialog"
+    max-width="400"
+    aria-labelledby="delete-tournament-dialog-title"
+  >
     <v-card class="pa-2">
-      <v-card-title id="delete-tournament-dialog-title" class="text-uppercase dialog-title">Delete Tournament</v-card-title>
+      <v-card-title id="delete-tournament-dialog-title" class="text-uppercase dialog-title"
+        >Delete Tournament</v-card-title
+      >
       <v-progress-linear v-if="props.deleting" indeterminate color="error" />
       <v-card-text id="delete-warning-text">
         Are you sure you want to delete "{{ tournament.name }}"? This action cannot be undone.
       </v-card-text>
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" :disabled="props.deleting" @click="showDeleteDialog = false">Cancel</v-btn>
-        <v-btn color="error" variant="elevated" :disabled="props.deleting" :loading="props.deleting" aria-describedby="delete-warning-text" @click="handleDelete">Delete</v-btn>
+        <v-btn variant="text" :disabled="props.deleting" @click="showDeleteDialog = false"
+          >Cancel</v-btn
+        >
+        <v-btn
+          color="error"
+          variant="elevated"
+          :disabled="props.deleting"
+          :loading="props.deleting"
+          aria-describedby="delete-warning-text"
+          @click="handleDelete"
+          >Delete</v-btn
+        >
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -161,14 +191,14 @@ function handleDelete() {
 
 <style scoped>
 .data-table-card {
-    border: 1px solid var(--ks-border);
+  border: 1px solid var(--ks-border);
 }
 
 .styled-table thead tr {
-    background-color: rgb(var(--v-theme-surface-bright));
+  background-color: rgb(var(--v-theme-surface-bright));
 }
 
 .styled-table tbody tr:hover {
-    background-color: var(--ks-border-subtle);
+  background-color: var(--ks-border-subtle);
 }
 </style>

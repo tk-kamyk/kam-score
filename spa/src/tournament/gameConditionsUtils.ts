@@ -3,8 +3,8 @@ import type { GameConditionsDto } from '@/tournament/types'
 export function parsePointsPerSet(text: string): number[] | undefined {
   const points = text
     .split(',')
-    .map(s => parseInt(s.trim()))
-    .filter(n => !isNaN(n))
+    .map((s) => parseInt(s.trim()))
+    .filter((n) => !isNaN(n))
   return points.length > 0 ? points : undefined
 }
 

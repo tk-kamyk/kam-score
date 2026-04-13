@@ -21,7 +21,6 @@ const teamStore = useTeamStore()
 const { showSuccess, showError } = useSnackbar()
 const { fieldErrors, handleError, clearErrors, clearFieldError, generalError } = useFormErrors()
 
-
 const expandedTeam = ref<string | null>((route.query.team as string) || null)
 
 watch(expandedTeam, (teamId) => {
@@ -58,24 +57,29 @@ const nameRules = [
 ]
 
 const emailRules = [
-  (v: string | null | undefined) => !v || /.+@.+\..+/.test(v) || 'Email must be a valid email address.',
+  (v: string | null | undefined) =>
+    !v || /.+@.+\..+/.test(v) || 'Email must be a valid email address.',
 ]
 
 const phoneRules = [
-  (v: string | null | undefined) => !v || /^\+?[\d\s\-()]{7,20}$/.test(v) || 'Phone must be a valid phone number.',
+  (v: string | null | undefined) =>
+    !v || /^\+?[\d\s\-()]{7,20}$/.test(v) || 'Phone must be a valid phone number.',
 ]
 
 const sortedTeams = computed(() =>
-  [...teamStore.teams].sort((a, b) => (b.level ?? 0) - (a.level ?? 0))
+  [...teamStore.teams].sort((a, b) => (b.level ?? 0) - (a.level ?? 0)),
 )
 
 onMounted(() => {
   teamStore.fetchTeams(props.tournamentId)
 })
 
-watch(() => props.active, (isActive) => {
-  if (isActive) teamStore.fetchTeams(props.tournamentId)
-})
+watch(
+  () => props.active,
+  (isActive) => {
+    if (isActive) teamStore.fetchTeams(props.tournamentId)
+  },
+)
 
 function openCreate() {
   editingTeam.value = null
@@ -133,9 +137,7 @@ async function handleDelete() {
 const showGenerateDialog = ref(false)
 const seedCount = ref(8)
 
-const seedCountRules = [
-  (v: number) => (v >= 1 && v <= 100) || 'Count must be between 1 and 100.',
-]
+const seedCountRules = [(v: number) => (v >= 1 && v <= 100) || 'Count must be between 1 and 100.']
 
 const seedPreview = computed(() => {
   const start = teamStore.teams.length + 1
@@ -170,7 +172,14 @@ async function handleGenerate() {
   <div>
     <SectionHeader title="Teams">
       <div>
-        <v-btn v-if="isOwner" variant="outlined" color="primary" prepend-icon="mdi-account-multiple-plus" class="mr-2" @click="openGenerate">
+        <v-btn
+          v-if="isOwner"
+          variant="outlined"
+          color="primary"
+          prepend-icon="mdi-account-multiple-plus"
+          class="mr-2"
+          @click="openGenerate"
+        >
           Generate Teams
         </v-btn>
         <v-btn v-if="isOwner" color="primary" prepend-icon="mdi-plus" @click="openCreate">
@@ -207,8 +216,21 @@ async function handleGenerate() {
               <td v-if="isOwner">{{ team.email ?? '—' }}</td>
               <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
               <td v-if="isOwner" class="text-right">
-                <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit team ' + team.name" @click.stop="openEdit(team)" />
-                <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete team ' + team.name" @click.stop="openDelete(team)" />
+                <v-btn
+                  icon="mdi-pencil"
+                  variant="text"
+                  size="small"
+                  :aria-label="'Edit team ' + team.name"
+                  @click.stop="openEdit(team)"
+                />
+                <v-btn
+                  icon="mdi-delete"
+                  variant="text"
+                  size="small"
+                  color="error"
+                  :aria-label="'Delete team ' + team.name"
+                  @click.stop="openDelete(team)"
+                />
               </td>
             </tr>
             <tr v-if="expandedTeam === team.id">
@@ -226,7 +248,7 @@ async function handleGenerate() {
       </v-table>
     </v-card>
 
-    <v-alert class="mt-4 mb-4" v-else-if="!teamStore.loading" type="info" variant="tonal">
+    <v-alert v-else-if="!teamStore.loading" class="mt-4 mb-4" type="info" variant="tonal">
       No teams yet.
     </v-alert>
 
@@ -237,7 +259,16 @@ async function handleGenerate() {
           {{ editingTeam ? 'Edit Team' : 'Add Team' }}
         </v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-form ref="formRef" @submit.prevent="handleSave">
@@ -290,7 +321,16 @@ async function handleGenerate() {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Delete Team</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           Are you sure you want to delete "{{ deletingTeam?.name }}"?
@@ -308,7 +348,16 @@ async function handleGenerate() {
       <v-card class="pa-2">
         <v-card-title class="text-uppercase dialog-title">Generate Seed Teams</v-card-title>
         <v-card-text>
-          <v-alert v-if="generalError" type="error" variant="tonal" density="compact" closable role="alert" class="mb-3" @click:close="clearErrors()">
+          <v-alert
+            v-if="generalError"
+            type="error"
+            variant="tonal"
+            density="compact"
+            closable
+            role="alert"
+            class="mb-3"
+            @click:close="clearErrors()"
+          >
             {{ generalError }}
           </v-alert>
           <v-text-field
@@ -335,22 +384,22 @@ async function handleGenerate() {
 
 <style scoped>
 .data-table-card {
-    border: 1px solid var(--ks-border);
+  border: 1px solid var(--ks-border);
 }
 
 .styled-table thead tr {
-    background-color: rgb(var(--v-theme-surface-bright));
+  background-color: rgb(var(--v-theme-surface-bright));
 }
 
 .styled-table tbody tr.team-row {
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .styled-table tbody tr.team-row:hover {
-    background-color: var(--ks-border-subtle);
+  background-color: var(--ks-border-subtle);
 }
 
 .team-expanded-cell {
-    background-color: rgb(var(--v-theme-surface-bright));
+  background-color: rgb(var(--v-theme-surface-bright));
 }
 </style>

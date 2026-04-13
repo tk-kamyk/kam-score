@@ -16,7 +16,7 @@ const teamStore = useTeamStore()
 
 function teamName(teamId?: string | null): string {
   if (!teamId) return ''
-  return teamStore.teams.find(t => t.id === teamId)?.name ?? ''
+  return teamStore.teams.find((t) => t.id === teamId)?.name ?? ''
 }
 </script>
 
@@ -40,8 +40,21 @@ function teamName(teamId?: string | null): string {
             <td class="text-medium-emphasis">{{ volunteer.contact || '—' }}</td>
             <td class="text-medium-emphasis">{{ teamName(volunteer.teamId) }}</td>
             <td class="text-right">
-              <v-btn icon="mdi-pencil" variant="text" size="small" :aria-label="'Edit volunteer ' + volunteer.name" @click="emit('edit', volunteer)" />
-              <v-btn icon="mdi-delete" variant="text" size="small" color="error" :aria-label="'Delete volunteer ' + volunteer.name" @click="emit('delete', volunteer)" />
+              <v-btn
+                icon="mdi-pencil"
+                variant="text"
+                size="small"
+                :aria-label="'Edit volunteer ' + volunteer.name"
+                @click="emit('edit', volunteer)"
+              />
+              <v-btn
+                icon="mdi-delete"
+                variant="text"
+                size="small"
+                color="error"
+                :aria-label="'Delete volunteer ' + volunteer.name"
+                @click="emit('delete', volunteer)"
+              />
             </td>
           </tr>
         </tbody>
