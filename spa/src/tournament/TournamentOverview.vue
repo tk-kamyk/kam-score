@@ -5,6 +5,7 @@ import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { scheduleQueryUpdate } from '@/composables/queryBatch'
 import { parseErrorDetail } from '@/api/errors'
 import TournamentBreadcrumb from '@/tournament/TournamentBreadcrumb.vue'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
@@ -54,7 +55,7 @@ watch(validTabs, (tabs) => {
 })
 
 watch(activeTab, (tab) => {
-  router.replace({ query: { ...route.query, tab } })
+  scheduleQueryUpdate(router, 'tab', tab)
   if (tab === 'overview') {
     standingsStore.fetchFinalStandings(props.id)
   }

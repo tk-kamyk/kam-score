@@ -103,7 +103,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // API Container App (defined before SPA so FQDN is available)
 // ──────────────────────────────────────────────
 
-resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
+resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: 'kam-score-api'
   location: location
   identity: {
@@ -196,6 +196,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
       scale: {
         minReplicas: 0
         maxReplicas: 3
+        cooldownPeriod: 1800
         rules: [
           {
             name: 'http-scale'
@@ -218,7 +219,7 @@ resource apiApp 'Microsoft.App/containerApps@2024-03-01' = {
 // SPA Container App
 // ──────────────────────────────────────────────
 
-resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
+resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
   name: 'kam-score-spa'
   location: location
   identity: {
@@ -261,6 +262,7 @@ resource spaApp 'Microsoft.App/containerApps@2024-03-01' = {
       scale: {
         minReplicas: 0
         maxReplicas: 2
+        cooldownPeriod: 1800
         rules: [
           {
             name: 'http-scale'
