@@ -100,6 +100,20 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 }
 
 // ──────────────────────────────────────────────
+// Managed Certificate for SPA custom domain
+// ──────────────────────────────────────────────
+
+resource spaCert 'Microsoft.App/managedEnvironments/managedCertificates@2024-03-01' = {
+  parent: containerAppEnv
+  name: 'cert-score-REDACTED-SHARED-RG'
+  location: location
+  properties: {
+    subjectName: 'score.REDACTED-SHARED-RG.com'
+    domainControlValidation: 'CNAME'
+  }
+}
+
+// ──────────────────────────────────────────────
 // API Container App (defined before SPA so FQDN is available)
 // ──────────────────────────────────────────────
 
@@ -188,6 +202,10 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
             }
             {
               name: 'Cors__AllowedOrigins__0'
+              value: 'https://score.REDACTED-SHARED-RG.com'
+            }
+            {
+              name: 'Cors__AllowedOrigins__1'
               value: 'https://REDACTED-SPA.${containerAppEnv.properties.defaultDomain}'
             }
           ]
@@ -234,6 +252,13 @@ resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
       ingress: {
         external: true
         targetPort: 80
+        customDomains: [
+          {
+            name: 'score.REDACTED-SHARED-RG.com'
+            certificateId: spaCert.id
+            bindingType: 'SniEnabled'
+          }
+        ]
       }
       registries: [
         {
