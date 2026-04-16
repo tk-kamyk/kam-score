@@ -3,6 +3,7 @@ using KamSquare.KamScore.Api.Filters;
 using KamSquare.KamScore.Api.Middleware;
 using KamSquare.KamScore.Infrastructure.DependencyInjection;
 using KamSquare.KamScore.Infrastructure.Options;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,18 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
             .AllowAnyHeader()
             .AllowAnyMethod();
+    });
+});
+
+// Rate limiting
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddFixedWindowLimiter("auth", limiter =>
+    {
+        limiter.PermitLimit = 10;
+        limiter.Window = TimeSpan.FromMinutes(1);
+        limiter.QueueLimit = 0;
     });
 });
 
@@ -66,6 +79,7 @@ app.Use(async (context, next) =>
 // Middleware pipeline
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseCors();
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
