@@ -16,4 +16,5 @@ export interface TournamentDto {
   teamCount?: number
   courtCount?: number
   sourceTournamentId?: string
+  ownerDisplayName?: string
 }

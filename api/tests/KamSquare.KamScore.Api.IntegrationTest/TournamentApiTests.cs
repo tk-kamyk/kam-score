@@ -440,6 +440,62 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task GetTournaments_ShouldIncludeOwnerDisplayName()
+    {
+        var client = _factory.CreateClient();
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "admin");
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync())
+            .Returns(new[] { tournament });
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result![0].OwnerDisplayName.Should().Be("Administrator");
+    }
+
+    [Fact]
+    public async Task GetTournament_ShouldIncludeOwnerDisplayName()
+    {
+        var client = _factory.CreateClient();
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "admin");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}");
+
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.OwnerDisplayName.Should().Be("Administrator");
+    }
+
+    [Fact]
+    public async Task GetTournament_UnknownOwner_ShouldFallBackToOwnerId()
+    {
+        var client = _factory.CreateClient();
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}");
+
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.OwnerDisplayName.Should().Be("alice");
+    }
+
+    [Fact]
+    public async Task GetTournaments_UnknownOwner_ShouldFallBackToOwnerId()
+    {
+        var client = _factory.CreateClient();
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "alice");
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync())
+            .Returns(new[] { tournament });
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result![0].OwnerDisplayName.Should().Be("alice");
+    }
+
+    [Fact]
     public async Task DeleteTournament_Owner_ShouldAlsoDeleteAllRelatedEntities()
     {
         var client = _factory.CreateAuthenticatedClient("alice");

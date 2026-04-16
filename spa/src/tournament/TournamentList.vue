@@ -80,6 +80,15 @@ function navigateToTournament(id: string) {
           <v-card-subtitle class="mt-1">{{ tournament.discipline }}</v-card-subtitle>
           <v-card-text class="pt-3 d-flex flex-row justify-space-between">
             <div class="d-flex flex-wrap ga-1">
+              <v-chip size="small" variant="outlined" prepend-icon="mdi-account" color="primary">
+                {{ tournament.ownerDisplayName ?? 'Unknown' }}
+              </v-chip>
+              <v-chip size="small" variant="outlined" prepend-icon="mdi-account-group-outline">
+                {{ tournament.teamCount ?? 0 }} teams
+              </v-chip>
+              <v-chip size="small" variant="outlined" prepend-icon="mdi-volleyball">
+                {{ tournament.courtCount ?? 0 }} courts
+              </v-chip>
               <v-chip
                 v-if="tournament.gameLength"
                 size="small"
@@ -87,12 +96,6 @@ function navigateToTournament(id: string) {
                 prepend-icon="mdi-clock"
               >
                 {{ tournament.gameLength }} min
-              </v-chip>
-              <v-chip size="small" variant="outlined" prepend-icon="mdi-account-group-outline">
-                {{ tournament.teamCount ?? 0 }} teams
-              </v-chip>
-              <v-chip size="small" variant="outlined" prepend-icon="mdi-volleyball">
-                {{ tournament.courtCount ?? 0 }} courts
               </v-chip>
             </div>
             <div>
@@ -171,6 +174,7 @@ function navigateToTournament(id: string) {
 
 .tournament-card-title {
   letter-spacing: 1px;
+  white-space: pre-wrap;
 }
 
 .empty-icon {

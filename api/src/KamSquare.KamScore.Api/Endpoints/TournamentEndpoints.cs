@@ -8,6 +8,7 @@ using KamSquare.KamScore.Domain.Exceptions;
 using KamSquare.KamScore.Domain.ValueObjects;
 using KamSquare.KamScore.Api.Helpers;
 using KamSquare.KamScore.Infrastructure.Options;
+using Microsoft.Extensions.Options;
 
 namespace KamSquare.KamScore.Api.Endpoints;
 
@@ -32,12 +33,15 @@ public static class TournamentEndpoints
         ITeamRepository teamRepository,
         ICourtRepository courtRepository,
         ICurrentUserService currentUser,
+        IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
+        var displayNames = userOptions.Value.Entries.ToDictionary(u => u.Username, u => u.DisplayName);
         var allTournaments = await repository.GetAllAsync();
         var dtos = allTournaments.Select(tournament =>
         {
             var dto = mapper.Map<TournamentDto>(tournament);
+            dto = dto with { OwnerDisplayName = ResolveOwnerDisplayName(dto.OwnerId, displayNames) };
             if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
             {
                 dto = HideTournamentCode(dto);
@@ -63,6 +67,7 @@ public static class TournamentEndpoints
         ITeamRepository teamRepository,
         ICourtRepository courtRepository,
         ICurrentUserService currentUser,
+        IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
         var tournament = await repository.GetByIdAsync(id);
@@ -73,6 +78,8 @@ public static class TournamentEndpoints
         }
 
         var dto = mapper.Map<TournamentDto>(tournament);
+        var displayNames = userOptions.Value.Entries.ToDictionary(u => u.Username, u => u.DisplayName);
+        dto = dto with { OwnerDisplayName = ResolveOwnerDisplayName(dto.OwnerId, displayNames) };
 
         if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
         {
@@ -186,5 +193,13 @@ public static class TournamentEndpoints
     private static TournamentDto HideTournamentCode(TournamentDto dto)
     {
         return dto with { TournamentCode = null };
+    }
+
+    private static string ResolveOwnerDisplayName(string? ownerId, Dictionary<string, string> displayNames)
+    {
+        if (string.IsNullOrEmpty(ownerId))
+            return "Unknown";
+
+        return displayNames.TryGetValue(ownerId, out var displayName) ? displayName : ownerId;
     }
 }
