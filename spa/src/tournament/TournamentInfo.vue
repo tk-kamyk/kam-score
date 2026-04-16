@@ -86,6 +86,10 @@ function handleDelete() {
           </tr>
         </thead>
         <tbody>
+          <tr v-if="tournament.ownerDisplayName">
+            <th scope="row" class="font-weight-bold">Owner</th>
+            <td>{{ tournament.ownerDisplayName }}</td>
+          </tr>
           <tr>
             <th scope="row" class="font-weight-bold">Discipline</th>
             <td>{{ tournament.discipline }}</td>

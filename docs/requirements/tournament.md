@@ -12,6 +12,7 @@
 - It should be possible to create, edit, and delete tournaments
 - It should be possible to view details of a tournament
 - It should be possible to view a list of all tournaments for all users (anonymous and authenticated)
+- The tournament owner is shown on the tournament list and tournament details page
 - Tournament codes are only visible to the tournament owner
 - Only the tournament owner can edit or delete their tournaments
 

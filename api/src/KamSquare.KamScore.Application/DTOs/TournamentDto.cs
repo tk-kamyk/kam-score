@@ -12,4 +12,5 @@ public record TournamentDto(
     DateTime? LastModified = null,
     int? TeamCount = null,
     int? CourtCount = null,
-    string? SourceTournamentId = null);
+    string? SourceTournamentId = null,
+    string? OwnerDisplayName = null);
