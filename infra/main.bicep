@@ -200,7 +200,7 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
       scale: {
         minReplicas: 0
         maxReplicas: 3
-        cooldownPeriod: 1800
+        cooldownPeriod: 900
         rules: [
           {
             name: 'http-scale'
@@ -272,7 +272,7 @@ resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
       scale: {
         minReplicas: 0
         maxReplicas: 2
-        cooldownPeriod: 1800
+        cooldownPeriod: 900
         rules: [
           {
             name: 'http-scale'
