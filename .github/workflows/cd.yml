@@ -166,7 +166,9 @@ jobs:
       - name: Build SPA for Static Web App
         working-directory: spa
         env:
-          VITE_API_BASE_URL: ${{ steps.free-infra.outputs.apiUrl }}
+          # client.ts uses VITE_API_BASE_URL as the FULL base (host + /api prefix).
+          # Bicep's apiUrl output is the host only, so append /api here.
+          VITE_API_BASE_URL: ${{ steps.free-infra.outputs.apiUrl }}/api
         run: npm run build-only
 
       - name: Deploy SPA to Static Web App
