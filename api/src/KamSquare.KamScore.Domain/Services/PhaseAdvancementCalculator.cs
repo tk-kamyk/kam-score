@@ -1,4 +1,6 @@
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Domain.Enums;
+using KamSquare.KamScore.Domain.Services.Formats;
 using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Services;
@@ -18,20 +20,21 @@ public static class PhaseAdvancementCalculator
             return [];
 
         if (phase.Levels.Count == 0)
-            return QualifyFromStandings(phase.GroupWinners, phase.TotalTeamsProceeding, groupStandings);
+            return QualifyFromStandings(phase.Format, phase.GroupWinners, phase.TotalTeamsProceeding, groupStandings);
 
         var result = new List<string>();
         foreach (var level in phase.Levels.OrderBy(l => l.Order))
         {
             var levelGroupIds = phase.Groups.Where(g => g.LevelId == level.Id).Select(g => g.Id).ToHashSet();
             var levelStandings = groupStandings.Where(gs => levelGroupIds.Contains(gs.GroupId)).ToList();
-            result.AddRange(QualifyFromStandings(phase.GroupWinners, phase.TotalTeamsProceeding, levelStandings));
+            result.AddRange(QualifyFromStandings(phase.Format, phase.GroupWinners, phase.TotalTeamsProceeding, levelStandings));
         }
 
         return result;
     }
 
     private static List<string> QualifyFromStandings(
+        PhaseFormat format,
         int? groupWinners,
         int? totalTeamsProceeding,
         List<(string GroupId, List<Standing> Standings)> groupStandings)
@@ -51,7 +54,7 @@ public static class PhaseAdvancementCalculator
                 .SelectMany(gs => gs.Standings)
                 .ToList();
 
-            return RankCrossGroup(allStandings)
+            return PhaseFormatStrategy.For(format).RankCrossGroup(allStandings)
                 .Take(totalTeamsProceeding!.Value)
                 .Select(s => s.TeamId)
                 .ToList();
@@ -75,7 +78,7 @@ public static class PhaseAdvancementCalculator
                 .Where(s => !qualifyingIds.Contains(s.TeamId))
                 .ToList();
 
-            var ranked = RankCrossGroup(remaining);
+            var ranked = PhaseFormatStrategy.For(format).RankCrossGroup(remaining);
             var slotsToFill = totalTeamsProceeding.Value - qualifyingIds.Count;
 
             foreach (var standing in ranked.Take(slotsToFill))
@@ -95,18 +98,18 @@ public static class PhaseAdvancementCalculator
     public static List<string> CalculateSeeding(
         List<string> qualifyingTeamIds,
         List<(string GroupId, List<Standing> Standings)> groupStandings,
-        Phase? phase = null)
+        Phase phase)
     {
         var qualifyingSet = qualifyingTeamIds.ToHashSet();
 
-        if (phase is null || phase.Levels.Count == 0)
+        if (phase.Levels.Count == 0)
         {
             var qualifyingStandings = groupStandings
                 .SelectMany(gs => gs.Standings)
                 .Where(s => qualifyingSet.Contains(s.TeamId))
                 .ToList();
 
-            return RankCrossGroup(qualifyingStandings)
+            return PhaseFormatStrategy.For(phase.Format).RankCrossGroup(qualifyingStandings)
                 .Select(s => s.TeamId)
                 .ToList();
         }
@@ -121,7 +124,7 @@ public static class PhaseAdvancementCalculator
                 .Where(s => qualifyingSet.Contains(s.TeamId))
                 .ToList();
 
-            result.AddRange(RankCrossGroup(levelStandings).Select(s => s.TeamId));
+            result.AddRange(PhaseFormatStrategy.For(phase.Format).RankCrossGroup(levelStandings).Select(s => s.TeamId));
         }
 
         return result;
@@ -144,21 +147,5 @@ public static class PhaseAdvancementCalculator
             return phase.GroupWinners.Value * phase.Groups.Count;
 
         return null;
-    }
-
-    /// <summary>
-    /// Ranks standings from multiple groups together using cross-group comparison criteria:
-    /// points desc → set difference desc → point difference desc.
-    /// No direct result tiebreaker across groups.
-    /// </summary>
-    private static List<Standing> RankCrossGroup(List<Standing> standings)
-    {
-        return standings
-            .OrderByDescending(s => s.Points ?? 0)
-            .ThenByDescending(s => s.SetDifference ?? 0)
-            .ThenByDescending(s => s.PointDifference ?? 0)
-            .ThenByDescending(s => s.Wins)
-            .ThenBy(s => s.Losses)
-            .ToList();
     }
 }
