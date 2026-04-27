@@ -223,4 +223,47 @@ public class PhaseCompletionServiceTests
         A.CallTo(() => _gameRepository.GetByPhaseIdAsync(TournamentId, "phase-1"))
             .MustNotHaveHappened();
     }
+
+    [Fact]
+    public async Task CompletePhase_Custom_seedsGroupWinnersIntoTopLevelOfNextPhase()
+    {
+        var structure = TournamentStructure.Create(TournamentId);
+
+        var sourcePhase = structure.AddPhase("Custom", PhaseFormat.Custom, numberOfGroups: 2,
+            totalTeamsProceeding: 6);
+        sourcePhase.Id = "phase-1";
+        sourcePhase.Groups[0].Id = "group-a";
+        sourcePhase.Groups[0].AddTeam("a1");
+        sourcePhase.Groups[0].AddTeam("a2");
+        sourcePhase.Groups[0].AddTeam("a3");
+        sourcePhase.Groups[0].SetManualStandingOrder(["a1", "a2", "a3"]);
+        sourcePhase.Groups[1].Id = "group-b";
+        sourcePhase.Groups[1].AddTeam("b1");
+        sourcePhase.Groups[1].AddTeam("b2");
+        sourcePhase.Groups[1].AddTeam("b3");
+        sourcePhase.Groups[1].SetManualStandingOrder(["b1", "b2", "b3"]);
+        sourcePhase.Activate();
+
+        var nextPhase = structure.AddPhase("Finals", PhaseFormat.RoundRobin, numberOfGroups: 1,
+            numberOfLevels: 2);
+        nextPhase.Id = "phase-2";
+
+        await _sut.CompletePhaseAsync(TournamentId, "phase-1", structure);
+
+        // Seeding cross-group ranks the 6 teams as [a1, b1, a2, b2, a3, b3]
+        // (Custom format: position-major across groups, group-stable on ties).
+        // DistributeAcrossLevels then chunks 3-per-level into 2 levels:
+        //   Level 1 chunk = [a1, b1, a2]
+        //   Level 2 chunk = [b2, a3, b3]
+        // Each level has one group, so SnakeDraftIntoGroups stores the chunk
+        // verbatim in that group.
+        var orderedLevels = nextPhase.Levels.OrderBy(l => l.Order).ToList();
+        var level1Group = nextPhase.Groups.Single(g => g.LevelId == orderedLevels[0].Id);
+        var level2Group = nextPhase.Groups.Single(g => g.LevelId == orderedLevels[1].Id);
+
+        level1Group.TeamIds.Should().HaveCount(3);
+        level2Group.TeamIds.Should().HaveCount(3);
+        level1Group.TeamIds.Should().Equal("a1", "b1", "a2");
+        level2Group.TeamIds.Should().Equal("b2", "a3", "b3");
+    }
 }

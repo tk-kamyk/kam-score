@@ -68,6 +68,31 @@ public class PhaseAdvancementCalculatorTests
     }
 
     [Fact]
+    public void CalculateQualifyingTeamIds_CustomFormat_BothSet_GroupWinnersPlusBestRemaining()
+    {
+        // Custom format dispatches "best remaining" through CustomStandingsRanker.RankCrossGroup,
+        // which orders by manual Position (group-stable on ties) — not by stats.
+        var phase = Phase.Create("Custom", PhaseFormat.Custom, 1, 2,
+            groupWinners: 1, totalTeamsProceeding: 4);
+        phase.Groups[0].AddTeam("a1");
+        phase.Groups[0].AddTeam("a2");
+        phase.Groups[0].AddTeam("a3");
+        phase.Groups[0].SetManualStandingOrder(["a1", "a2", "a3"]);
+        phase.Groups[1].AddTeam("b1");
+        phase.Groups[1].AddTeam("b2");
+        phase.Groups[1].AddTeam("b3");
+        phase.Groups[1].SetManualStandingOrder(["b1", "b2", "b3"]);
+
+        var groupStandings = phase.CalculateAllGroupStandings([]);
+
+        var result = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
+
+        // Group winners: a1, b1. Best remaining (by position-major across groups): a2, b2.
+        result.Should().HaveCount(4);
+        result.Should().BeEquivalentTo(["a1", "b1", "a2", "b2"]);
+    }
+
+    [Fact]
     public void CalculateQualifyingTeamIds_BothNull_ReturnsEmpty()
     {
         var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2);
@@ -132,6 +157,7 @@ public class PhaseAdvancementCalculatorTests
     [Fact]
     public void CalculateSeeding_RanksAllTeamsTogether()
     {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2);
         var groupStandings = new List<(string, List<Standing>)>
         {
             ("g1", [MakeStanding("t1", 1, 6, 5, 10, 3), MakeStanding("t2", 2, 4, 2, 5, 2)]),
@@ -139,7 +165,7 @@ public class PhaseAdvancementCalculatorTests
         };
 
         var result = PhaseAdvancementCalculator.CalculateSeeding(
-            ["t1", "t5", "t2", "t6"], groupStandings);
+            ["t1", "t5", "t2", "t6"], groupStandings, phase);
 
         result.Should().HaveCount(4);
         // t1: 6pts, 5sd, 10pd — best
@@ -155,15 +181,80 @@ public class PhaseAdvancementCalculatorTests
     [Fact]
     public void CalculateSeeding_OnlyIncludesQualifyingTeams()
     {
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2);
         var groupStandings = new List<(string, List<Standing>)>
         {
             ("g1", [MakeStanding("t1", 1, 6), MakeStanding("t2", 2, 4), MakeStanding("t3", 3, 0)])
         };
 
-        var result = PhaseAdvancementCalculator.CalculateSeeding(["t1", "t2"], groupStandings);
+        var result = PhaseAdvancementCalculator.CalculateSeeding(["t1", "t2"], groupStandings, phase);
 
         result.Should().HaveCount(2);
         result.Should().NotContain("t3");
+    }
+
+    [Fact]
+    public void CalculateSeeding_CustomFormat_NoLevels_OrdersByPositionAcrossGroups()
+    {
+        var phase = Phase.Create("Custom", PhaseFormat.Custom, 1, 2, totalTeamsProceeding: 6);
+        phase.Groups[0].AddTeam("a1");
+        phase.Groups[0].AddTeam("a2");
+        phase.Groups[0].AddTeam("a3");
+        phase.Groups[0].SetManualStandingOrder(["a1", "a2", "a3"]);
+        phase.Groups[1].AddTeam("b1");
+        phase.Groups[1].AddTeam("b2");
+        phase.Groups[1].AddTeam("b3");
+        phase.Groups[1].SetManualStandingOrder(["b1", "b2", "b3"]);
+
+        var groupStandings = phase.CalculateAllGroupStandings([]);
+        // Hand-built adversarial group-sequential order — what the unfixed
+        // implementation used to emit. Isolates CalculateSeeding from any
+        // ordering CalculateQualifyingTeamIds might already produce.
+        var qualifyingIds = new List<string> { "a1", "a2", "a3", "b1", "b2", "b3" };
+
+        var result = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, phase);
+
+        result.Should().Equal("a1", "b1", "a2", "b2", "a3", "b3");
+    }
+
+    [Fact]
+    public void CalculateSeeding_CustomFormat_WithLevels_OrdersByPositionWithinEachLevel()
+    {
+        var phase = Phase.Create("Custom", PhaseFormat.Custom, 1, 2,
+            groupWinners: 2, numberOfLevels: 2);
+
+        var level1Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[0].Id).ToList();
+        var level2Groups = phase.Groups.Where(g => g.LevelId == phase.Levels[1].Id).ToList();
+
+        level1Groups[0].AddTeam("L1-A1");
+        level1Groups[0].AddTeam("L1-A2");
+        level1Groups[0].SetManualStandingOrder(["L1-A1", "L1-A2"]);
+        level1Groups[1].AddTeam("L1-B1");
+        level1Groups[1].AddTeam("L1-B2");
+        level1Groups[1].SetManualStandingOrder(["L1-B1", "L1-B2"]);
+
+        level2Groups[0].AddTeam("L2-A1");
+        level2Groups[0].AddTeam("L2-A2");
+        level2Groups[0].SetManualStandingOrder(["L2-A1", "L2-A2"]);
+        level2Groups[1].AddTeam("L2-B1");
+        level2Groups[1].AddTeam("L2-B2");
+        level2Groups[1].SetManualStandingOrder(["L2-B1", "L2-B2"]);
+
+        var groupStandings = phase.CalculateAllGroupStandings([]);
+        // Hand-built adversarial level-sequential / within-level group-sequential
+        // order — isolates CalculateSeeding from CalculateQualifyingTeamIds.
+        var qualifyingIds = new List<string>
+        {
+            "L1-A1", "L1-A2", "L1-B1", "L1-B2",
+            "L2-A1", "L2-A2", "L2-B1", "L2-B2",
+        };
+
+        var result = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, phase);
+
+        // Within each level, position-1 teams must come before position-2 teams.
+        result.Should().Equal(
+            "L1-A1", "L1-B1", "L1-A2", "L1-B2",
+            "L2-A1", "L2-B1", "L2-A2", "L2-B2");
     }
 
     // --- GetExpectedTeamCount ---
