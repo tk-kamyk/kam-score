@@ -68,3 +68,12 @@ app.use(createPinia())
 app.use(router)
 app.use(vuetify)
 app.mount('#app')
+
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {
+      // Registration failure is non-fatal — PWA install affordance is degraded
+      // but the app still works.
+    })
+  })
+}

@@ -1,3 +1,4 @@
+using System.Threading.RateLimiting;
 using KamSquare.KamScore.Api.Endpoints;
 using KamSquare.KamScore.Api.Filters;
 using KamSquare.KamScore.Api.Middleware;
@@ -24,17 +25,42 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Rate limiting
+// Rate limiting — per-client-IP fixed window so one attacker can't drain a global bucket.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddFixedWindowLimiter("auth", limiter =>
+    options.AddPolicy("auth", httpContext =>
     {
-        limiter.PermitLimit = 10;
-        limiter.Window = TimeSpan.FromMinutes(1);
-        limiter.QueueLimit = 0;
+        var partitionKey = ResolveClientPartitionKey(httpContext);
+        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        });
     });
 });
+
+// Behind App Service / Container Apps the platform front end APPENDS the real
+// client IP as the LAST X-Forwarded-For entry; earlier entries are
+// attacker-supplied and ignored. We do not enable UseForwardedHeaders so the
+// connection IP elsewhere remains the trusted edge IP.
+static string ResolveClientPartitionKey(HttpContext httpContext)
+{
+    var xForwardedFor = httpContext.Request.Headers["X-Forwarded-For"].ToString();
+    if (!string.IsNullOrEmpty(xForwardedFor))
+    {
+        var lastComma = xForwardedFor.LastIndexOf(',');
+        var lastEntry = lastComma >= 0 ? xForwardedFor[(lastComma + 1)..] : xForwardedFor;
+        var trimmed = lastEntry.Trim();
+        if (!string.IsNullOrEmpty(trimmed))
+        {
+            return trimmed;
+        }
+    }
+
+    return httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+}
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();

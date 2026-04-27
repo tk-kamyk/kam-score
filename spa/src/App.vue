@@ -3,6 +3,7 @@ import { useAuthStore } from '@/auth/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFeatureFlags } from '@/composables/useFeatureFlags'
 import LoginDialog from '@/auth/LoginDialog.vue'
+import PwaInstallHint from '@/components/PwaInstallHint.vue'
 
 const auth = useAuthStore()
 const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = useSnackbar()
@@ -59,6 +60,8 @@ useFeatureFlags().fetch()
     >
       {{ snackbarMessage }}
     </v-snackbar>
+
+    <PwaInstallHint />
   </v-app>
 </template>
 

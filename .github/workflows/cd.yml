@@ -109,3 +109,79 @@ jobs:
           parameters: >
             apiImage=${{ steps.acr.outputs.loginServer }}/kam-score-api:${{ github.sha }}
             spaImage=${{ steps.acr.outputs.loginServer }}/kam-score-spa:${{ github.sha }}
+
+  deploy-free:
+    name: Deploy (Free tier — App Service + Static Web App)
+    needs: [api-build-test, spa-build-test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy free-tier infrastructure
+        id: free-infra
+        uses: azure/arm-deploy@v2
+        with:
+          resourceGroupName: ${{ vars.RESOURCE_GROUP }}
+          deploymentName: kam-score-free-${{ github.sha }}
+          template: infra/main-free.bicep
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish API
+        run: dotnet publish api/src/KamSquare.KamScore.Api/KamSquare.KamScore.Api.csproj -c Release -o ./api-publish
+
+      - name: Zip API publish output
+        run: cd api-publish && zip -r ../api-publish.zip .
+
+      - name: Deploy API to App Service (Free)
+        run: >
+          az webapp deploy
+          --resource-group ${{ vars.RESOURCE_GROUP }}
+          --name kam-score-api-free
+          --src-path api-publish.zip
+          --type zip
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: spa/package-lock.json
+
+      - name: Install SPA dependencies
+        working-directory: spa
+        run: npm ci
+
+      - name: Build SPA for Static Web App
+        working-directory: spa
+        env:
+          VITE_API_BASE_URL: ${{ steps.free-infra.outputs.apiUrl }}
+        run: npm run build-only
+
+      - name: Deploy SPA to Static Web App
+        run: |
+          set -euo pipefail
+          TOKEN=$(az staticwebapp secrets list \
+            --name kam-score-spa-free \
+            --resource-group ${{ vars.RESOURCE_GROUP }} \
+            --query 'properties.apiKey' -o tsv)
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: Failed to retrieve SWA deployment token" >&2
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          npx --yes @azure/static-web-apps-cli@latest deploy ./spa/dist \
+            --deployment-token "$TOKEN" \
+            --env production \
+            --no-use-keychain
