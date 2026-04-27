@@ -147,6 +147,71 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
           identity: managedIdentity.id
         }
         {
+          name: 'admin-role'
+          keyVaultUrl: '${keyVaultUri}/ADMIN-ROLE'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'dtu-username'
+          keyVaultUrl: '${keyVaultUri}/DTU-USERNAME'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'dtu-password'
+          keyVaultUrl: '${keyVaultUri}/DTU-PASSWORD'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'dtu-displayname'
+          keyVaultUrl: '${keyVaultUri}/DTU-DISPLAYNAME'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'dtu-role'
+          keyVaultUrl: '${keyVaultUri}/DTU-ROLE'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'ksv-username'
+          keyVaultUrl: '${keyVaultUri}/KSV-USERNAME'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'ksv-password'
+          keyVaultUrl: '${keyVaultUri}/KSV-PASSWORD'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'ksv-displayname'
+          keyVaultUrl: '${keyVaultUri}/KSV-DISPLAYNAME'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'ksv-role'
+          keyVaultUrl: '${keyVaultUri}/KSV-ROLE'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'cph-username'
+          keyVaultUrl: '${keyVaultUri}/CPH-USERNAME'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'cph-password'
+          keyVaultUrl: '${keyVaultUri}/CPH-PASSWORD'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'cph-displayname'
+          keyVaultUrl: '${keyVaultUri}/CPH-DISPLAYNAME'
+          identity: managedIdentity.id
+        }
+        {
+          name: 'cph-role'
+          keyVaultUrl: '${keyVaultUri}/CPH-ROLE'
+          identity: managedIdentity.id
+        }
+        {
           name: 'cosmos-connection-string'
           value: cosmosConnectionString
         }
@@ -181,6 +246,58 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
             {
               name: 'Users__Entries__0__DisplayName'
               secretRef: 'admin-displayname'
+            }
+            {
+              name: 'Users__Entries__0__Role'
+              secretRef: 'admin-role'
+            }
+            {
+              name: 'Users__Entries__1__Username'
+              secretRef: 'dtu-username'
+            }
+            {
+              name: 'Users__Entries__1__Password'
+              secretRef: 'dtu-password'
+            }
+            {
+              name: 'Users__Entries__1__DisplayName'
+              secretRef: 'dtu-displayname'
+            }
+            {
+              name: 'Users__Entries__1__Role'
+              secretRef: 'dtu-role'
+            }
+            {
+              name: 'Users__Entries__2__Username'
+              secretRef: 'ksv-username'
+            }
+            {
+              name: 'Users__Entries__2__Password'
+              secretRef: 'ksv-password'
+            }
+            {
+              name: 'Users__Entries__2__DisplayName'
+              secretRef: 'ksv-displayname'
+            }
+            {
+              name: 'Users__Entries__2__Role'
+              secretRef: 'ksv-role'
+            }
+            {
+              name: 'Users__Entries__3__Username'
+              secretRef: 'cph-username'
+            }
+            {
+              name: 'Users__Entries__3__Password'
+              secretRef: 'cph-password'
+            }
+            {
+              name: 'Users__Entries__3__DisplayName'
+              secretRef: 'cph-displayname'
+            }
+            {
+              name: 'Users__Entries__3__Role'
+              secretRef: 'cph-role'
             }
             {
               name: 'CosmosDb__ConnectionString'

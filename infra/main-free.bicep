@@ -151,6 +151,58 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
           value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-DISPLAYNAME/)'
         }
         {
+          name: 'Users__Entries__0__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-ROLE/)'
+        }
+        {
+          name: 'Users__Entries__1__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__1__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__1__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__1__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-ROLE/)'
+        }
+        {
+          name: 'Users__Entries__2__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__2__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__2__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__2__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-ROLE/)'
+        }
+        {
+          name: 'Users__Entries__3__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__3__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__3__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__3__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-ROLE/)'
+        }
+        {
           name: 'CosmosDb__ConnectionString'
           value: cosmosConnectionString
         }
