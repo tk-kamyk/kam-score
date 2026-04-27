@@ -43,9 +43,10 @@ const allManualStandingsSet = computed(() => {
   })
 })
 
-const canComplete = computed(() =>
-  props.phase.status === 'InProgress' &&
-  (isCustom.value ? allManualStandingsSet.value : allGamesCompleted.value),
+const canComplete = computed(
+  () =>
+    props.phase.status === 'InProgress' &&
+    (isCustom.value ? allManualStandingsSet.value : allGamesCompleted.value),
 )
 
 const canResetOrDeleteGames = computed(() => {

@@ -20,6 +20,14 @@ export default tseslint.config(
     },
   },
   {
+    files: ['public/service-worker.js'],
+    languageOptions: {
+      globals: {
+        ...globals.serviceworker,
+      },
+    },
+  },
+  {
     files: ['**/*.vue'],
     languageOptions: {
       parserOptions: {
