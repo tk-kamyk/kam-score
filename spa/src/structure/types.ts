@@ -9,6 +9,7 @@ export interface GroupDto {
   name: string
   levelId?: string
   teamIds?: string[]
+  manualStandingOrder?: string[]
 }
 
 export interface PhaseDto {
@@ -42,6 +43,7 @@ export const PHASE_FORMATS = [
   { value: 'PlayoffWithPlacement', title: 'Playoff with Placement' },
   { value: 'DoubleElimination', title: 'Double Elimination' },
   { value: 'DoubleEliminationVd', title: 'Double Elimination (VD)' },
+  { value: 'Custom', title: 'Custom (manual standings)' },
 ] as const
 
 export function formatPhaseFormat(format: string): string {

@@ -164,4 +164,66 @@ public class ScheduleGenerationServiceTests
 
         structure.GetPhase(PhaseId).Status.Should().Be(PhaseStatus.Scheduled);
     }
+
+    // --- Custom phase activation ---
+
+    private static TournamentStructure CreateCustomStructure(int teamCount = 2)
+    {
+        var structure = TournamentStructure.Create(TournamentId);
+        var phase = structure.AddPhase("Custom", PhaseFormat.Custom, numberOfGroups: 1);
+        phase.Id = PhaseId;
+        phase.Groups[0].Id = "group-1";
+        for (var i = 1; i <= teamCount; i++)
+            phase.Groups[0].AddTeam($"team-{i}");
+        return structure;
+    }
+
+    [Fact]
+    public async Task Custom_Activates_phase_without_games_courts_or_start_time()
+    {
+        var tournament = CreateTournament(gameLength: null);
+        var structure = CreateCustomStructure();
+
+        var saved = await _sut.GenerateAndScheduleAsync(
+            tournament, TournamentId, PhaseId, structure);
+
+        saved.Should().BeEmpty();
+        structure.GetPhase(PhaseId).Status.Should().Be(PhaseStatus.InProgress);
+        A.CallTo(() => _gameRepository.CreateBatchAsync(A<IEnumerable<Game>>._))
+            .MustNotHaveHappened();
+        A.CallTo(() => _courtRepository.GetByTournamentIdAsync(TournamentId))
+            .MustNotHaveHappened();
+        A.CallTo(() => _structureRepository.UpdateAsync(structure)).MustHaveHappened();
+    }
+
+    [Fact]
+    public async Task Custom_Throws_when_any_group_has_no_teams()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateCustomStructure(teamCount: 0);
+
+        var act = async () => await _sut.GenerateAndScheduleAsync(
+            tournament, TournamentId, PhaseId, structure);
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .Where(e => e.Errors.Any(f => f.PropertyName == "Teams"));
+    }
+
+    [Fact]
+    public async Task Custom_Phase_becomes_Scheduled_when_previous_phase_progression_is_unresolved()
+    {
+        var tournament = CreateTournament();
+
+        var structure = TournamentStructure.Create(TournamentId);
+        structure.AddPhase("Groups", PhaseFormat.RoundRobin, 1,
+            groupWinners: 1, startTime: new TimeOnly(9, 0));
+        var phase2 = structure.AddPhase("Custom Finals", PhaseFormat.Custom, 1);
+        phase2.Id = PhaseId;
+        phase2.Groups[0].Id = "g-2";
+        phase2.Groups[0].AddTeam("t-1");
+
+        await _sut.GenerateAndScheduleAsync(tournament, TournamentId, PhaseId, structure);
+
+        structure.GetPhase(PhaseId).Status.Should().Be(PhaseStatus.Scheduled);
+    }
 }

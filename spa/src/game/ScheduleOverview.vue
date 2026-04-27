@@ -80,14 +80,31 @@ function requestAction(action: PhaseAction, phase: PhaseDto) {
   pendingAction.value = action
 }
 
+const actionPhaseIsCustom = computed(() => {
+  if (!actionPhaseId.value) return false
+  return phases.value.find((p) => p.id === actionPhaseId.value)?.format === 'Custom'
+})
+
 const actionConfig = computed(() => {
-  const configs: Record<PhaseAction, { title: string; message: string; label: string; color: string }> = {
-    delete: {
-      title: 'Delete Games',
-      message: `Are you sure you want to delete all games for "${actionPhaseName.value}"? You can regenerate them afterwards.`,
-      label: 'Delete',
-      color: 'error',
-    },
+  const deleteConfig = actionPhaseIsCustom.value
+    ? {
+        title: 'Reset Phase',
+        message: `Reset "${actionPhaseName.value}"? Manual standings will be cleared and the phase will return to a state where teams can be edited.`,
+        label: 'Reset',
+        color: 'error',
+      }
+    : {
+        title: 'Delete Games',
+        message: `Are you sure you want to delete all games for "${actionPhaseName.value}"? You can regenerate them afterwards.`,
+        label: 'Delete',
+        color: 'error',
+      }
+
+  const configs: Record<
+    PhaseAction,
+    { title: string; message: string; label: string; color: string }
+  > = {
+    delete: deleteConfig,
     complete: {
       title: 'Complete Phase',
       message: `Complete "${actionPhaseName.value}"? Teams will advance to the next phase based on standings.`,
@@ -118,12 +135,13 @@ async function runAction() {
 
   const handlers: Record<PhaseAction, () => Promise<void>> = {
     delete: async () => {
+      const wasCustom = actionPhaseIsCustom.value
       await gameStore.deleteGames(props.tournamentId, phaseId)
       await Promise.all([
         gameStore.fetchGames(props.tournamentId),
         structureStore.fetchStructure(props.tournamentId),
       ])
-      showSuccess('Games deleted')
+      showSuccess(wasCustom ? 'Phase reset' : 'Games deleted')
     },
     complete: async () => {
       completing.value = phaseId
@@ -167,13 +185,15 @@ async function runAction() {
 
 async function handleGenerate(phaseId: string) {
   generating.value = phaseId
+  const phase = phases.value.find((p) => p.id === phaseId)
+  const successMessage = phase?.format === 'Custom' ? 'Phase started' : 'Schedule generated'
   try {
     await gameStore.generateSchedule(props.tournamentId, phaseId)
     await Promise.all([
       structureStore.fetchStructure(props.tournamentId),
       gameStore.fetchGames(props.tournamentId),
     ])
-    showSuccess('Schedule generated')
+    showSuccess(successMessage)
   } catch (error) {
     showError(parseErrorDetail(error) ?? 'Failed to generate schedule')
   } finally {

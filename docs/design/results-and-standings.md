@@ -51,6 +51,25 @@ Teams not yet eliminated default to the worst position.
 - Teams eliminated in the same LB round share the same position
 - Grand Final winner = 1st, loser = 2nd
 
+## Custom (manual standings)
+
+**Storage model** — standings ordering is kept as `Group.ManualStandingOrder : List<string>`. Index `i` corresponds to position `i + 1`. The list is authoritative; the `Standing` value object is projected from it on every read with all stats fields (`Points`, `Wins`, `SetDifference`, …) left as `null` / `0`.
+
+**Ranking flow** — `CustomStandingsRanker.Calculate(Group)` emits standings by walking `ManualStandingOrder`. `RankCrossGroup` is a **stable sort by `Position` ascending** — ties across groups (e.g. every group's 1st-place team) are resolved by the order standings were supplied. This deliberately overrides the default `RankCrossGroup` shape used by games-based formats (which sort by `Points ?? 0` → `SetDifference ?? 0` → …) because those defaults would tie every team at zero.
+
+**Strategy contract** — `CustomStrategy.CalculateStandings(games, group)` satisfies the normal `IPhaseFormatStrategy` shape by ignoring `games` and delegating to `CustomStandingsRanker.Calculate(group)`. `GenerateGames` returns an empty list; `ValidateTeams` is a no-op; `SupportsRefereeAssignment` is `false`.
+
+**Invariants on ManualStandingOrder (enforced by `Group.SetManualStandingOrder`)**:
+- Count equals `TeamIds.Count`
+- No duplicates
+- Every listed ID is in `TeamIds`
+
+Any violation throws `ArgumentException`; `ManualStandingsService` translates that to FluentValidation's `ValidationException` so the API returns HTTP 400.
+
+**Cascading clears** — `Group.AddTeam` / `RemoveTeam` / `ClearTeams` / `ReplaceTeamIds` all call `ClearManualStandingOrder` so a stale ordering can never reference a team that is no longer in the group. `Phase.Update` clears every group's ordering when the phase's `Format` changes.
+
+**Final-standings handling** — `StandingsEndpoints.RankGroups` builds a transient filtered `Group` (real-team-only `TeamIds` and `ManualStandingOrder`) before calling the strategy, so the same code path works for all formats including Custom.
+
 ## Progression Highlighting math
 
 Let `groupsInScope` = number of groups in the level (or phase if no levels).

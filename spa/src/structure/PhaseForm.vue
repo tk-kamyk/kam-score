@@ -210,6 +210,16 @@ async function handleSave() {
             :error-messages="fieldErrors('format')"
             @update:model-value="clearFieldError('format')"
           />
+          <v-alert
+            v-if="form.format === 'Custom'"
+            type="info"
+            variant="tonal"
+            density="compact"
+            class="mt-1 mb-3"
+          >
+            No games will be created for this phase. Once all teams are assigned, you'll be able to
+            enter standings manually for each group.
+          </v-alert>
           <v-switch
             v-if="!phase && !levelsRequired"
             v-model="useLevels"

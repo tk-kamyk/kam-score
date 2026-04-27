@@ -27,8 +27,38 @@ const emit = defineEmits<{
   'open-result': [game: GameDto]
 }>()
 
+const isCustom = computed(() => props.phase.format === 'Custom')
+
 const allGamesCompleted = computed(
   () => props.games.length > 0 && props.games.every((g) => g.status === 'Completed'),
+)
+
+const allManualStandingsSet = computed(() => {
+  const groups = props.phase.groups ?? []
+  if (groups.length === 0) return false
+  return groups.every((g) => {
+    const teamCount = g.teamIds?.length ?? 0
+    const orderCount = g.manualStandingOrder?.length ?? 0
+    return teamCount > 0 && teamCount === orderCount
+  })
+})
+
+const canComplete = computed(() =>
+  props.phase.status === 'InProgress' &&
+  (isCustom.value ? allManualStandingsSet.value : allGamesCompleted.value),
+)
+
+const canResetOrDeleteGames = computed(() => {
+  if (props.phase.status === 'Completed' || props.phase.status === 'New') return false
+  return isCustom.value ? true : props.games.length > 0
+})
+
+const resetOrDeleteLabel = computed(() => (isCustom.value ? 'Reset Phase' : 'Delete Games'))
+
+const emptyStateMessage = computed(() =>
+  isCustom.value
+    ? 'Custom phase — manage standings on the Standings tab.'
+    : 'No games generated for this phase yet.',
 )
 
 const selectedGroupGames = computed(() => {
@@ -65,13 +95,13 @@ const selectedGroupName = computed(() => {
       </template>
 
       <v-alert v-else class="mt-4 mb-4" type="info" variant="tonal" density="compact">
-        No games generated for this phase yet.
+        {{ emptyStateMessage }}
       </v-alert>
     </v-card-text>
 
     <template v-if="isOwner" #actions>
       <v-btn
-        v-if="games.length === 0"
+        v-if="phase.status === 'New' && !isCustom"
         color="primary"
         variant="elevated"
         prepend-icon="mdi-calendar-clock"
@@ -80,37 +110,45 @@ const selectedGroupName = computed(() => {
       >
         Generate &amp; Schedule
       </v-btn>
-      <template v-else>
-        <v-btn
-          v-if="phase.status === 'InProgress' && allGamesCompleted"
-          color="primary"
-          variant="elevated"
-          prepend-icon="mdi-check-circle-outline"
-          :loading="completing"
-          @click="emit('complete')"
-        >
-          Complete Phase
-        </v-btn>
-        <v-btn
-          v-if="phase.status === 'Completed'"
-          color="warning"
-          variant="elevated"
-          prepend-icon="mdi-restart"
-          :loading="reopening"
-          @click="emit('reopen')"
-        >
-          Reopen Phase
-        </v-btn>
-        <v-btn
-          v-if="phase.status !== 'Completed'"
-          color="error"
-          variant="elevated"
-          prepend-icon="mdi-delete"
-          @click="emit('delete')"
-        >
-          Delete Games
-        </v-btn>
-      </template>
+      <v-btn
+        v-if="phase.status === 'New' && isCustom"
+        color="primary"
+        variant="elevated"
+        prepend-icon="mdi-play"
+        :loading="generating"
+        @click="emit('generate')"
+      >
+        Start phase
+      </v-btn>
+      <v-btn
+        v-if="canComplete"
+        color="primary"
+        variant="elevated"
+        prepend-icon="mdi-check-circle-outline"
+        :loading="completing"
+        @click="emit('complete')"
+      >
+        Complete Phase
+      </v-btn>
+      <v-btn
+        v-if="phase.status === 'Completed'"
+        color="warning"
+        variant="elevated"
+        prepend-icon="mdi-restart"
+        :loading="reopening"
+        @click="emit('reopen')"
+      >
+        Reopen Phase
+      </v-btn>
+      <v-btn
+        v-if="canResetOrDeleteGames"
+        color="error"
+        variant="elevated"
+        :prepend-icon="isCustom ? 'mdi-restart' : 'mdi-delete'"
+        @click="emit('delete')"
+      >
+        {{ resetOrDeleteLabel }}
+      </v-btn>
     </template>
   </CollapsiblePhaseCard>
 </template>

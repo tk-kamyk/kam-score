@@ -21,8 +21,8 @@ public class DoubleEliminationVdStrategy : IPhaseFormatStrategy
     public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
         => DoubleEliminationVdGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
 
-    public List<Standing> CalculateStandings(List<Game> games, List<string> teamIds)
-        => DoubleEliminationVdStandingsRanker.Calculate(games, teamIds);
+    public List<Standing> CalculateStandings(List<Game> games, Group group)
+        => DoubleEliminationVdStandingsRanker.Calculate(games, group.TeamIds);
 
     public List<Standing> RankCrossGroup(List<Standing> standings)
         => DoubleEliminationVdStandingsRanker.RankCrossGroup(standings);

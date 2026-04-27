@@ -2,6 +2,8 @@
 import { onMounted, ref, computed, watch } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
+import { useGameStore } from '@/game/store'
+import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { parseErrorDetail } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
@@ -18,6 +20,8 @@ const props = defineProps<{
 
 const structureStore = useStructureStore()
 const teamStore = useTeamStore()
+const gameStore = useGameStore()
+const { phaseGames } = useGamesByPhase()
 const { showSuccess, showError } = useSnackbar()
 const {
   expanded: expandedPhases,
@@ -30,11 +34,17 @@ const editingPhase = ref<PhaseDto | null>(null)
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
 
+const hasGamesForEditing = computed(() => {
+  const id = editingPhase.value?.id
+  return !!id && phaseGames(id).length > 0
+})
+
 onMounted(async () => {
   await Promise.all([
     structureStore.fetchStructure(props.tournamentId),
     teamStore.fetchTeams(props.tournamentId),
     teamStore.fetchPlaceholders(props.tournamentId),
+    gameStore.fetchGames(props.tournamentId),
   ])
 })
 
@@ -47,6 +57,7 @@ watch(
       structureStore.fetchStructure(props.tournamentId),
       teamStore.fetchTeams(props.tournamentId),
       teamStore.fetchPlaceholders(props.tournamentId),
+      gameStore.fetchGames(props.tournamentId),
     ])
   },
 )
@@ -124,7 +135,7 @@ async function handleDeletePhase(phaseId: string) {
       v-model="showPhaseForm"
       :tournament-id="tournamentId"
       :phase="editingPhase"
-      :has-games="editingPhase !== null && editingPhase.status !== 'New'"
+      :has-games="hasGamesForEditing"
       @saved="handlePhaseSaved"
     />
   </div>

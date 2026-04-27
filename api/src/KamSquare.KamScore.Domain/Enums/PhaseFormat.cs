@@ -6,5 +6,6 @@ public enum PhaseFormat
     PlayoffElimination,
     PlayoffWithPlacement,
     DoubleElimination,
-    DoubleEliminationVd
+    DoubleEliminationVd,
+    Custom
 }

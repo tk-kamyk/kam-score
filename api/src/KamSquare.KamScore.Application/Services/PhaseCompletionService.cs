@@ -35,10 +35,23 @@ public class PhaseCompletionService
             throw new ValidationException(
                 [new ValidationFailure("Status", "Phase must be in progress to complete.")]);
 
-        var phaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, phaseId)).ToList();
-        if (phaseGames.Count == 0 || phaseGames.Any(g => g.Status != GameStatus.Completed))
-            throw new ValidationException(
-                [new ValidationFailure("Games", "All games must be completed before completing the phase.")]);
+        List<Game> phaseGames;
+        if (phase.Format == PhaseFormat.Custom)
+        {
+            if (phase.Groups.Any(g => g.ManualStandingOrder.Count != g.TeamIds.Count))
+                throw new ValidationException(
+                    [new ValidationFailure("Standings",
+                        "All groups must have complete manual standings before completing the phase.")]);
+            phaseGames = [];
+        }
+        else
+        {
+            phaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, phaseId)).ToList();
+            if (phaseGames.Count == 0 || phaseGames.Any(g => g.Status != GameStatus.Completed))
+                throw new ValidationException(
+                    [new ValidationFailure("Games",
+                        "All games must be completed before completing the phase.")]);
+        }
 
         structure.CompletePhase(phaseId);
 
@@ -111,9 +124,17 @@ public class PhaseCompletionService
         Phase completedPhase,
         List<Team> placeholders)
     {
-        var phaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, completedPhase.Id)).ToList();
-        if (phaseGames.Count == 0)
-            return;
+        List<Game> phaseGames;
+        if (completedPhase.Format == PhaseFormat.Custom)
+        {
+            phaseGames = [];
+        }
+        else
+        {
+            phaseGames = (await _gameRepository.GetByPhaseIdAsync(tournamentId, completedPhase.Id)).ToList();
+            if (phaseGames.Count == 0)
+                return;
+        }
 
         var groupStandings = completedPhase.CalculateAllGroupStandings(phaseGames);
 
@@ -222,7 +243,8 @@ public class PhaseCompletionService
     /// Deletes all games for a phase and resets the phase to <c>New</c> if
     /// it was Scheduled or InProgress. Encapsulates the "games deleted →
     /// phase status drops back" cross-entity rule that otherwise leaked into
-    /// the game-delete endpoint.
+    /// the game-delete endpoint. For Custom phases (which have no games)
+    /// this acts as a "reset" — it also clears any manual standings.
     /// </summary>
     public async Task DeletePhaseGamesAsync(
         TournamentStructure structure,
@@ -235,6 +257,11 @@ public class PhaseCompletionService
 
         if (phase.Status is PhaseStatus.Scheduled or PhaseStatus.InProgress)
         {
+            if (phase.Format == PhaseFormat.Custom)
+            {
+                foreach (var group in phase.Groups)
+                    group.ClearManualStandingOrder();
+            }
             structure.ResetPhase(phaseId);
             await _structureRepository.UpdateAsync(structure);
         }

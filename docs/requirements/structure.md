@@ -17,7 +17,7 @@
 - Phase defines a part of tournament
 - Phase is represented by:
     - name
-    - format of the games (round robin, play-off elimination, play-off with placement games, double elimination)
+    - format of the games (round robin, play-off elimination, play-off with placement games, double elimination, custom)
     - number of groups (specified on creation, auto-named A, B, C...)
     - group winners (optional) — how many teams per group qualify automatically to the next phase
     - total teams proceeding (optional) — total number of teams qualifying from this phase (a combined ranking is built: group winners on top, then remaining teams, cutoff applied at total)
@@ -25,6 +25,12 @@
 - Phases are ordered sequentially (1, 2, 3...) and automatically reordered when one is deleted
 - Teams are assigned to groups via auto-assign (snake draft based on team level for first phase, random for later phases) or manually
 - Manual assignment can override auto-assign; retriggering auto-assign resets manual edits
+- **Custom format** — for phases where games are played outside the system:
+    - No games are generated, scheduled, or recorded against the phase
+    - When `Custom` is selected in the phase form, an information message is shown: "No games will be created for this phase. Once all teams are assigned, you'll be able to enter standings manually for each group."
+    - The phase is started from the same action used for other formats (labelled "Start phase" instead of "Generate games"); there is no `Scheduled` intermediate state arising from game generation
+    - The owner enters the final standings per group manually; progression to the next phase uses those manually entered positions (see [results-and-standings.md](./results-and-standings.md) and [phase-advancement.md](./phase-advancement.md))
+    - Number of groups, levels, `GroupWinners`, `TotalTeamsProceeding`, and seeding behave identically to other formats
 - In each phase, each position after the game is played is assigned a unique identifier, e.g. phaseA-groupA-position1
 - Output from one phase (positions after the games) is input (seeded teams) to another phase
 - Phase edit is a view dedicated to the authenticated users

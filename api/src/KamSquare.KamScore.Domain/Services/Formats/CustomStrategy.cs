@@ -3,21 +3,26 @@ using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Domain.Services.Formats;
 
-public class PlayoffWithPlacementStrategy : IPhaseFormatStrategy
+/// <summary>
+/// Phase format for matches played outside the system. Does not generate games;
+/// standings are derived from <see cref="Group.ManualStandingOrder"/> entered by
+/// the owner.
+/// </summary>
+public class CustomStrategy : IPhaseFormatStrategy
 {
     public bool SupportsRefereeAssignment => false;
 
     public void ValidateTeams(List<Group> groups)
     {
-        // No format-specific team count constraints
+        // No format-specific team count constraints for custom.
     }
 
     public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
-        => PlayoffWithPlacementGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
+        => CustomGenerator.Generate();
 
     public List<Standing> CalculateStandings(List<Game> games, Group group)
-        => PlayoffWithPlacementStandingsRanker.Calculate(games, group.TeamIds);
+        => CustomStandingsRanker.Calculate(group);
 
     public List<Standing> RankCrossGroup(List<Standing> standings)
-        => PlayoffWithPlacementStandingsRanker.RankCrossGroup(standings);
+        => CustomStandingsRanker.RankCrossGroup(standings);
 }

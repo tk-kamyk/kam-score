@@ -922,4 +922,45 @@ public class PhaseApiTests : IClassFixture<KamScoreWebApplicationFactory>
         SetupTournamentAndStructure(tournament, structure);
         return (tournament, phase1, phase2);
     }
+
+    // --- Custom phase format ---
+
+    [Fact]
+    public async Task AddPhase_Custom_ShouldCreate()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Manual Phase", "Custom", NumberOfGroups: 2);
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<PhaseDto>();
+        result!.Format.Should().Be("Custom");
+        result.Groups.Should().HaveCount(2);
+        result.Status.Should().Be("New");
+    }
+
+    [Fact]
+    public async Task UpdatePhase_CustomToRoundRobin_ClearsManualStandings()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateTestStructure(tournament.Id);
+        var phase = structure.AddPhase("Manual", PhaseFormat.Custom, 1);
+        phase.Groups[0].AddTeam("t1");
+        phase.Groups[0].AddTeam("t2");
+        phase.Groups[0].ManualStandingOrder = ["t2", "t1"];
+        SetupTournamentAndStructure(tournament, structure);
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var dto = new PhaseDto(null, "Manual", "RoundRobin");
+        var response = await client.PutAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        phase.Groups[0].ManualStandingOrder.Should().BeEmpty();
+    }
 }

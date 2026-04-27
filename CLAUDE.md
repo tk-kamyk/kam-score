@@ -1,5 +1,18 @@
 # CLAUDE.md
 
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## MANDATORY: Agent Team and Entry Point
+
+All substantive work in this project runs through the **`agentic-dev-team` plugin** (source: https://github.com/bdfinst/agentic-dev-team).
+
+- **Entry point is `/agentic-dev-team:orchestrator`.** If the user types bare `/orchestrator`, treat it as `/agentic-dev-team:orchestrator` — invoke the plugin orchestrator Skill immediately, do NOT search the repo or interpret the token as freeform text. If a request arrives in plain English without any slash command, still invoke the orchestrator first. Do not improvise a different agent lineup, do not do semantic reviews inline.
+- **Every gate uses the team** — requirements drafting and review (Gate 1), BDD (Gate 2), failing tests (Gate 4), implementation (Gate 5), pre-handoff review (`/code-review --changed`), cleanup (Gate 7). Gate 1 is not exempt.
+- **Model routing, three-phase workflow, progress files under `memory/`, and agent-capability matrix** all come from the plugin — read its docs rather than duplicating them here.
+- **This project does NOT use `nwave-ai`.** Remove any `nwave-ai`-branded hooks or skills that appear in user- or project-level settings — they break agent dispatch.
+
+---
+
 ## MANDATORY: Development Process
 
 **STOP.** For every feature, bug fix, or change — follow these gates IN ORDER.
@@ -7,40 +20,37 @@ Do NOT skip gates. Do NOT start coding before Gate 4.
 I MUST REFUSE to proceed if a gate is incomplete. No exceptions. No "I'll come back to it."
 If the user asks to skip a gate, remind them of this rule and ask which gate output they want to produce first.
 
-**MANDATORY: Wait for user approval between gates.** After completing each gate, STOP and present the output to the user. Do NOT proceed to the next gate until the user explicitly confirms. This applies to every gate transition (1→2, 2→3, 3→4, etc.).
-
 ### Gate 1: Requirements
-- Read the relevant file(s) under `docs/requirements/` (see "Requirements & Design Docs" below for the split layout)
-- Implementation details (formulas, exact bracket sequences, algorithms) live in the paired `docs/design/<same-name>.md` — consult it when the *requirements* file says "see design"
+- Read relevant `docs/requirements/*.md`
 - Ignore anything under a `TBC` header
 - If the requirement is missing or unclear, ASK the user
-- If chat reveals requirement changes, UPDATE the requirements file (and the paired design doc if implementation detail is also changing)
+- If chat reveals requirement changes, UPDATE the requirements file
 
 ### Gate 2: BDD Specification
 - Write/update Gherkin scenarios in `docs/bdd/*.feature`
-- **Keep scenarios behavioural, not exhaustive.** BDD describes user-visible behaviour; per-format math, algorithmic edge cases, and position formulas belong in unit tests
-- Use **`Scenario Outline` with `Examples`** whenever you'd otherwise write near-identical scenarios that vary only in input (e.g. state × operation matrices, access-control matrices, per-format smoke tests)
-- Avoid asserting on exact error copy (`And the error message contains "..."`); assert on HTTP status and error code/field instead — unit tests can check messages
-- Do NOT duplicate coverage that already exists in xUnit; if a Domain unit test covers it, the BDD file only needs a behavioural smoke scenario
+- Each scenario must map to a testable behavior
 - Get user confirmation before proceeding
 
 ### Gate 3: Mocked UI (frontend features only — skip for pure backend work)
-- Build the Vue component(s) with hardcoded/mock data matching the BDD scenarios
-- No API calls yet
-- Feature flags are **optional** (see "Feature Flags" below) — only gate behind a flag if the feature will be partially merged while still in development
+- Build the React component with hardcoded/mock data
+- No API calls yet — use static data matching the BDD scenarios
 - Show the user for feedback
+- Feature flags are **optional** (see "Feature Flags" below) — only gate behind a flag if the feature will be partially merged while still in development
 
 ### Gate 4: Failing Tests
-- Write xUnit tests that express the BDD scenarios AND any implementation-detail cases stripped from BDD (per-format math, tiebreakers, etc.)
-- See "Test layout" under Code Standards for which test project each case belongs to
+- Write xUnit tests that express the BDD scenarios
+- Domain unit tests for business logic
+- Integration tests for API endpoints
 - Create skeleton implementation classes (entities, DTOs, validators, repositories, endpoints) that throw `NotImplementedException` — the solution MUST compile
-- ALL tests must FAIL at **runtime** (red), not at compile time
-- Run `dotnet build api/KamScore.slnx` to confirm compilation, then `dotnet test api/KamScore.slnx` to confirm failures
+- ALL tests must FAIL at **runtime** (red), not at compile time, before implementation
+- Run `dotnet test api/Continia.Card.slnx` to confirm failures
+- **Self-review before handoff**: run `/agentic-dev-team:code-review --changed` against the Gate 4 changes and address findings before asking the user to review.
 
 ### Gate 5: API Implementation
 - Implement domain logic, services, endpoints
 - Run `dotnet test api/KamScore.slnx` — ALL tests must PASS (green)
 - If any test fails, fix implementation (not the test) unless the test is wrong
+- **Self-review before handoff**: run `/agentic-dev-team:code-review --changed` against every coding-gate output (Gate 4 tests and Gate 5 implementation). Address the findings BEFORE presenting the work for human approval. Only once the self-review is clean (or remaining findings are deliberately accepted with a stated reason) do you ask the user to review.
 
 ### Gate 6: Connect UI to API (skip if no frontend component)
 - Replace mock data with real API calls
@@ -55,6 +65,26 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 ### Gate 8: Feature Flag Removal (optional — only if you added one in Gate 3)
 - Remove the flag from appsettings and drop the `isEnabled` / `v-if` guard in the frontend
 - The underlying feature-flag *mechanism* (see "Feature Flags") stays as boilerplate
+
+---
+
+## Documentation Standards
+
+The project separates documentation into three intent-scoped directories, forming a progressive-detail ladder. The table below is the top-level map; detailed authoring rules for each directory live in its own `_index.md`.
+
+| Directory | Intent | Writing style | Audience | Authoring rules |
+|---|---|---|---|---|
+| `docs/requirements/` | WHAT & WHY | Plain-language rule list | Product, delivery, auditors, non-developer IT | [_index.md](docs/requirements/_index.md) |
+| `docs/bdd/` | HOW users experience it | Representative scenarios, not exhaustive | QA, delivery, stakeholders | [_index.md](docs/bdd/_index.md) |
+| `docs/design/` | HOW the system is shaped | Brief intro + requirement-mirrored response | Engineering, reviewers | [_index.md](docs/design/_index.md) |
+
+**Placement heuristic** — when a sentence could plausibly live in more than one place:
+
+> If a sentence explains **what the system must do or satisfy** → requirements.
+> If a sentence explains **how the system is shaped** or **why this shape** → design, under the requirement it serves.
+> If a sentence describes **what a user observes** → BDD.
+
+**Writing order** — requirement changes land in `docs/requirements/` first, then BDD, then design. Edge cases go to design, not BDD. Every BDD scenario and every design-side entry is tagged with its governing requirement ID.
 
 ---
 

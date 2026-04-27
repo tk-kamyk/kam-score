@@ -41,6 +41,13 @@ To modify structure, **delete games first**.
 
 - Cannot record a result when either team is unassigned (null team ID, e.g. unresolved playoff placeholders) — returns HTTP 400
 
+## Custom phase prerequisites
+
+- A `Custom` phase can be started without a tournament game length, a phase start time, or any courts configured (no games are scheduled)
+- A `Custom` phase can be started only when every group has at least one team assigned — same rule as other formats
+- Manual standings for a group can only be edited while the phase is `InProgress`; the order must list every team currently in the group exactly once
+- Completing a `Custom` phase requires every group to have a complete manual standings order
+
 ## Referential integrity
 
 - Cannot delete a team that is assigned to any group or referenced in any game

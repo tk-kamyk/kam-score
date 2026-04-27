@@ -69,6 +69,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<TournamentCopyService>();
         services.AddScoped<BracketAdvancementService>();
         services.AddScoped<VolunteerService>();
+        services.AddScoped<ManualStandingsService>();
         services.AddHttpContextAccessor();
 
         // AutoMapper
