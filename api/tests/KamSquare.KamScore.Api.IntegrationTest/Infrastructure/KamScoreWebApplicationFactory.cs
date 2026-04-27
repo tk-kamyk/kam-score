@@ -31,8 +31,7 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:ExpirationMinutes"] = "480",
                 ["Users:Entries:0:Username"] = "admin",
                 ["Users:Entries:0:Password"] = "admin123",
-                ["Users:Entries:0:DisplayName"] = "Administrator",
-                ["FeatureFlags:CopyTournamentStructure"] = "true"
+                ["Users:Entries:0:DisplayName"] = "Administrator"
             });
         });
 

@@ -98,17 +98,11 @@ public static class TournamentEndpoints
         ITournamentRepository repository,
         ITournamentStructureRepository structureRepository,
         TournamentCopyService copyService,
-        IConfiguration configuration,
         ICurrentUserService currentUser,
         IMapper mapper)
     {
         if (!string.IsNullOrEmpty(request.SourceTournamentId))
         {
-            var flags = configuration.GetSection(FeatureFlagOptions.SectionName)
-                .Get<Dictionary<string, bool>>() ?? [];
-            if (!flags.GetValueOrDefault("CopyTournamentStructure"))
-                return Results.BadRequest("Copy tournament structure feature is not enabled.");
-
             var copied = await copyService.CopyAsync(
                 request.SourceTournamentId, request.Name, currentUser.UserId!);
             var copiedDto = mapper.Map<TournamentDto>(copied);
