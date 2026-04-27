@@ -785,4 +785,30 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
         games[0].GroupName.Should().Be(group.Name);
         games[0].LevelName.Should().Be(level.Name);
     }
+
+    // --- Custom format ---
+
+    [Fact]
+    public async Task GenerateAndSchedule_Custom_ActivatesPhaseWithoutCreatingGames()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Manual", PhaseFormat.Custom, numberOfGroups: 1);
+        phase.Groups[0].AddTeam("team1");
+        phase.Groups[0].AddTeam("team2");
+        var teams = CreateTeams(tournament.Id, 2);
+        SetupFakes(tournament, structure, CreateCourts(tournament.Id, 0), teams);
+
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/structure/phases/{phase.Id}/generate-schedule", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var games = await response.Content.ReadFromJsonAsync<List<GameDto>>();
+        games.Should().BeEmpty();
+        phase.Status.Should().Be(PhaseStatus.InProgress);
+        A.CallTo(() => _factory.FakeGameRepository.CreateBatchAsync(A<IEnumerable<Game>>._))
+            .MustNotHaveHappened();
+    }
 }

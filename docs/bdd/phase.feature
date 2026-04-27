@@ -3,6 +3,7 @@ Feature: Phase Management
   # Phase-state restrictions live in phase-state-restrictions.feature.
   # Progression & placeholders live in progression.feature.
   # Levels live in levels.feature.
+  # Custom phase format (manual standings) lives in custom-phase.feature.
 
   Scenario: Owner creates phases and they are sequentially ordered
     Given the user owns a tournament with a structure

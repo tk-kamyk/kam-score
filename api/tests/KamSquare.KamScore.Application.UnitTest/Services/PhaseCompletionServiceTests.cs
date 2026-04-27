@@ -160,4 +160,67 @@ public class PhaseCompletionServiceTests
         result.Status.Should().Be(PhaseStatus.InProgress);
         A.CallTo(() => _structureRepository.UpdateAsync(structure)).MustHaveHappened();
     }
+
+    // --- Custom phase completion ---
+
+    private static TournamentStructure CreateCustomPhaseStructure(
+        bool withCompleteOrderings,
+        PhaseStatus status = PhaseStatus.InProgress)
+    {
+        var structure = TournamentStructure.Create(TournamentId);
+        var phase = structure.AddPhase("Custom", PhaseFormat.Custom, 1);
+        phase.Id = "phase-1";
+        phase.Groups[0].Id = "group-1";
+        phase.Groups[0].AddTeam("team-1");
+        phase.Groups[0].AddTeam("team-2");
+
+        if (withCompleteOrderings)
+            phase.Groups[0].SetManualStandingOrder(["team-2", "team-1"]);
+
+        switch (status)
+        {
+            case PhaseStatus.InProgress:
+                phase.Activate();
+                break;
+            case PhaseStatus.Completed:
+                phase.Activate();
+                phase.Complete();
+                break;
+        }
+
+        return structure;
+    }
+
+    [Fact]
+    public async Task CompletePhase_Custom_throws_when_any_group_has_incomplete_order()
+    {
+        var structure = CreateCustomPhaseStructure(withCompleteOrderings: false);
+
+        var act = async () => await _sut.CompletePhaseAsync(TournamentId, "phase-1", structure);
+
+        await act.Should().ThrowAsync<ValidationException>()
+            .Where(e => e.Errors.Any(f => f.PropertyName == "Standings"));
+    }
+
+    [Fact]
+    public async Task CompletePhase_Custom_marks_completed_when_all_groups_have_order()
+    {
+        var structure = CreateCustomPhaseStructure(withCompleteOrderings: true);
+
+        var result = await _sut.CompletePhaseAsync(TournamentId, "phase-1", structure);
+
+        result.Status.Should().Be(PhaseStatus.Completed);
+        A.CallTo(() => _structureRepository.UpdateAsync(structure)).MustHaveHappened();
+    }
+
+    [Fact]
+    public async Task CompletePhase_Custom_doesNotQueryGamesRepository()
+    {
+        var structure = CreateCustomPhaseStructure(withCompleteOrderings: true);
+
+        await _sut.CompletePhaseAsync(TournamentId, "phase-1", structure);
+
+        A.CallTo(() => _gameRepository.GetByPhaseIdAsync(TournamentId, "phase-1"))
+            .MustNotHaveHappened();
+    }
 }

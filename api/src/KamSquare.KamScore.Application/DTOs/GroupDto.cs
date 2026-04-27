@@ -4,4 +4,5 @@ public record GroupDto(
     string? Id,
     string Name,
     string? LevelId = null,
-    List<string>? TeamIds = null);
+    List<string>? TeamIds = null,
+    List<string>? ManualStandingOrder = null);

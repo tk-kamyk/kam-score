@@ -30,6 +30,13 @@ public class ScheduleGenerationService
         TournamentStructure structure)
     {
         var phase = structure.GetPhase(phaseId);
+
+        if (phase.Format == PhaseFormat.Custom)
+        {
+            await ActivateCustomPhaseAsync(phase, phaseId, structure);
+            return [];
+        }
+
         var courts = (await _courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
 
         await ValidateGenerationPrerequisitesAsync(tournament, phase, courts, tournamentId, phaseId);
@@ -53,24 +60,37 @@ public class ScheduleGenerationService
 
         if (phase.Status == PhaseStatus.New)
         {
-            var previousPhase = structure.GetPreviousPhase(phaseId);
-            var hasUnresolvedDependency = previousPhase is not null
-                && previousPhase.HasProgressionConfig
-                && previousPhase.Status != PhaseStatus.Completed;
-
-            if (hasUnresolvedDependency)
-            {
-                structure.SchedulePhase(phaseId);
-            }
-            else
-            {
-                structure.ActivatePhase(phaseId);
-            }
-
+            TransitionOutOfNew(structure, phase, phaseId);
             await _structureRepository.UpdateAsync(structure);
         }
 
         return savedGames;
+    }
+
+    private async Task ActivateCustomPhaseAsync(Phase phase, string phaseId, TournamentStructure structure)
+    {
+        if (phase.Groups.Count == 0 || phase.Groups.Any(g => g.TeamIds.Count == 0))
+            throw new ValidationException(
+                [new ValidationFailure("Teams", "Phase groups must have teams assigned.")]);
+
+        if (phase.Status == PhaseStatus.New)
+        {
+            TransitionOutOfNew(structure, phase, phaseId);
+            await _structureRepository.UpdateAsync(structure);
+        }
+    }
+
+    private static void TransitionOutOfNew(TournamentStructure structure, Phase phase, string phaseId)
+    {
+        var previousPhase = structure.GetPreviousPhase(phaseId);
+        var hasUnresolvedDependency = previousPhase is not null
+            && previousPhase.HasProgressionConfig
+            && previousPhase.Status != PhaseStatus.Completed;
+
+        if (hasUnresolvedDependency)
+            structure.SchedulePhase(phaseId);
+        else
+            structure.ActivatePhase(phaseId);
     }
 
     private async Task ValidateGenerationPrerequisitesAsync(

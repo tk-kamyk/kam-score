@@ -41,6 +41,15 @@
 - Grand Final winner = 1st, loser = 2nd
 - Teams not yet eliminated default to the worst position
 
+### Custom (manual standings)
+- Standings are entered by the owner as an ordered team list per group (1st, 2nd, 3rd …); position is derived from order
+- Per-team stats (wins, points, set difference, etc.) are not entered and are displayed as blank
+- Entry is only allowed when the owner is authenticated **and** the phase is `InProgress`; reopening a completed Custom phase returns it to `InProgress` so edits resume
+- Saving standings for a group fully replaces the previous ordering for that group; each group is saved independently
+- An order is only valid if it lists every team currently assigned to the group exactly once (no duplicates, no foreign IDs, no partial orderings)
+- If the group's team list changes (team added or removed), any previously saved ordering for that group is cleared
+- Cross-group ranking (used for "best remaining" and seeding) orders teams by their manually entered position; ties across groups are resolved by group order
+
 ## Progression Highlighting
 
 - When a phase has progression config (`groupWinners` and/or `totalTeamsProceeding`), standings rows are visually highlighted to indicate qualification status

@@ -3,9 +3,11 @@ import { computed } from 'vue'
 import type { PhaseDto } from '@/structure/types'
 import type { GameDto } from '@/game/types'
 import type { StandingDto } from '@/standings/types'
+import { useTeamStore } from '@/team/store'
 import CollapsiblePhaseCard from '@/components/CollapsiblePhaseCard.vue'
 import PhaseGroupTabs from '@/components/PhaseGroupTabs.vue'
 import StandingsGroup from '@/standings/StandingsGroup.vue'
+import StandingsGroupManualEdit from '@/standings/StandingsGroupManualEdit.vue'
 import StandingsGames from '@/standings/StandingsGames.vue'
 
 const props = defineProps<{
@@ -14,13 +16,49 @@ const props = defineProps<{
   standings: StandingDto[]
   expanded: boolean
   selectedGroupId: string | null
+  isOwner: boolean
+  savingManualStandings?: boolean
 }>()
 
 const emit = defineEmits<{
   'toggle-phase': []
   'select-group': [groupId: string]
   'open-result': [game: GameDto]
+  'save-manual-standings': [payload: { groupId: string; orderedTeamIds: string[] }]
 }>()
+
+const teamStore = useTeamStore()
+
+const isCustomFormat = computed(() => props.phase.format === 'Custom')
+
+const canEditManualStandings = computed(
+  () => isCustomFormat.value && props.isOwner && props.phase.status === 'InProgress',
+)
+
+const selectedGroup = computed(() => {
+  if (!props.selectedGroupId) return null
+  return (props.phase.groups ?? []).find((g) => g.id === props.selectedGroupId) ?? null
+})
+
+const teamsInSelectedGroup = computed(() => {
+  const group = selectedGroup.value
+  if (!group) return []
+  const byId = new Map(teamStore.teams.map((t) => [t.id, t]))
+  return (group.teamIds ?? []).map((id) => {
+    const team = byId.get(id)
+    return { id, name: team?.name ?? id }
+  })
+})
+
+const manualInitialOrder = computed(() => props.standings.map((s) => s.teamId))
+
+function handleManualSave(orderedTeamIds: string[]) {
+  if (!props.selectedGroupId) return
+  emit('save-manual-standings', {
+    groupId: props.selectedGroupId,
+    orderedTeamIds,
+  })
+}
 
 const selectedGroupGames = computed(() => {
   if (!props.selectedGroupId) return []
@@ -76,7 +114,16 @@ const numberOfGroupsInScope = computed(() => {
           <h4 class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase">
             Standings
           </h4>
+          <StandingsGroupManualEdit
+            v-if="isCustomFormat"
+            :teams="teamsInSelectedGroup"
+            :initial-order="manualInitialOrder"
+            :editable="canEditManualStandings"
+            :saving="savingManualStandings"
+            @save="handleManualSave"
+          />
           <StandingsGroup
+            v-else
             :standings="standings"
             :phase-format="phase.format"
             :group-winners="phase.groupWinners"
@@ -85,19 +132,23 @@ const numberOfGroupsInScope = computed(() => {
           />
         </div>
 
-        <div v-if="selectedGroupGames.length > 0">
-          <h4 class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase">
-            Games
-          </h4>
-          <StandingsGames
-            :games="selectedGroupGames"
-            @open-result="(game) => emit('open-result', game)"
-          />
-        </div>
+        <template v-if="!isCustomFormat">
+          <div v-if="selectedGroupGames.length > 0">
+            <h4
+              class="text-title-small text-md-title-medium mb-2 mb-md-4 text-center text-uppercase"
+            >
+              Games
+            </h4>
+            <StandingsGames
+              :games="selectedGroupGames"
+              @open-result="(game) => emit('open-result', game)"
+            />
+          </div>
 
-        <v-alert v-else class="mt-4" type="info" variant="tonal" density="compact">
-          No games generated for this group yet.
-        </v-alert>
+          <v-alert v-else class="mt-4" type="info" variant="tonal" density="compact">
+            No games generated for this group yet.
+          </v-alert>
+        </template>
       </template>
     </v-card-text>
   </CollapsiblePhaseCard>

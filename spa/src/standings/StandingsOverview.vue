@@ -3,9 +3,12 @@ import { onMounted, ref, computed, watch } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useStandingsStore } from '@/standings/store'
+import { useTeamStore } from '@/team/store'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import { useGroupSelection } from '@/composables/useGroupSelection'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
+import { useSnackbar } from '@/composables/useSnackbar'
+import { useFormErrors } from '@/composables/useFormErrors'
 import type { GameDto } from '@/game/types'
 import SectionHeader from '@/components/SectionHeader.vue'
 import StandingsPhaseCard from '@/standings/StandingsPhaseCard.vue'
@@ -20,6 +23,9 @@ const props = defineProps<{
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
 const standingsStore = useStandingsStore()
+const teamStore = useTeamStore()
+const { showSuccess, showError } = useSnackbar()
+const { handleError } = useFormErrors()
 const {
   expanded: expandedPhases,
   toggle: togglePhaseBase,
@@ -77,6 +83,7 @@ watch(
     await Promise.all([
       structureStore.fetchStructure(props.tournamentId),
       gameStore.fetchGames(props.tournamentId),
+      teamStore.fetchTeams(props.tournamentId),
     ])
     for (const [phaseId, groupId] of selectedGroups.value) {
       standingsStore.fetchStandings(props.tournamentId, phaseId, groupId)
@@ -91,10 +98,29 @@ function openResultDialog(game: GameDto) {
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
 
+async function handleSaveManualStandings(
+  phaseId: string,
+  payload: { groupId: string; orderedTeamIds: string[] },
+) {
+  try {
+    await standingsStore.saveManualStandings(
+      props.tournamentId,
+      phaseId,
+      payload.groupId,
+      payload.orderedTeamIds,
+    )
+    await structureStore.fetchStructure(props.tournamentId)
+    showSuccess('Standings saved')
+  } catch (error) {
+    if (!handleError(error)) showError('Failed to save standings')
+  }
+}
+
 onMounted(async () => {
   await Promise.all([
     structureStore.fetchStructure(props.tournamentId),
     gameStore.fetchGames(props.tournamentId),
+    teamStore.fetchTeams(props.tournamentId),
   ])
 
   // Auto-select first group for expanded phases if not already selected
@@ -136,9 +162,12 @@ onMounted(async () => {
         :standings="standingsStore.getStandings(phase.id!, selectedGroups.get(phase.id!) ?? '')"
         :expanded="expandedPhases.has(phase.id!)"
         :selected-group-id="selectedGroups.get(phase.id!) ?? null"
+        :is-owner="isOwner"
+        :saving-manual-standings="standingsStore.saving"
         @toggle-phase="togglePhase(phase.id!)"
         @select-group="(groupId) => selectGroup(phase.id!, groupId)"
         @open-result="openResultDialog"
+        @save-manual-standings="(payload) => handleSaveManualStandings(phase.id!, payload)"
       />
     </div>
 

@@ -10,6 +10,7 @@ public static class StandingsCalculator
     public static List<Standing> Calculate(PhaseFormat format, List<Game> games, List<string> teamIds)
     {
         var strategy = PhaseFormatStrategy.For(format);
-        return strategy.CalculateStandings(games, teamIds);
+        var transientGroup = new Group { TeamIds = teamIds.ToList() };
+        return strategy.CalculateStandings(games, transientGroup);
     }
 }

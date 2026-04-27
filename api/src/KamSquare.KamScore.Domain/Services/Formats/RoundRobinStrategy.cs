@@ -15,8 +15,8 @@ public class RoundRobinStrategy : IPhaseFormatStrategy
     public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
         => RoundRobinGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
 
-    public List<Standing> CalculateStandings(List<Game> games, List<string> teamIds)
-        => RoundRobinStandingsRanker.Calculate(games, teamIds);
+    public List<Standing> CalculateStandings(List<Game> games, Group group)
+        => RoundRobinStandingsRanker.Calculate(games, group.TeamIds);
 
     public List<Standing> RankCrossGroup(List<Standing> standings)
         => RoundRobinStandingsRanker.RankCrossGroup(standings);

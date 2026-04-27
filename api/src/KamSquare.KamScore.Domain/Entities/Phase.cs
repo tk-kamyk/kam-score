@@ -67,11 +67,19 @@ public class Phase
     public void Update(string name, PhaseFormat format, int? groupWinners, int? totalTeamsProceeding,
         TimeOnly? startTime)
     {
+        var formatChanged = Format != format;
+
         Name = name;
         Format = format;
         GroupWinners = groupWinners;
         TotalTeamsProceeding = totalTeamsProceeding;
         StartTime = startTime;
+
+        if (formatChanged)
+        {
+            foreach (var group in Groups)
+                group.ClearManualStandingOrder();
+        }
     }
 
     public bool HasProgressionConfig => GroupWinners is not null || TotalTeamsProceeding is not null;
@@ -138,7 +146,7 @@ public class Phase
         var group = Groups.FirstOrDefault(g => g.Id == groupId)
             ?? throw new NotFoundException(nameof(Group), groupId);
         var strategy = PhaseFormatStrategy.For(Format);
-        return strategy.CalculateStandings(groupGames, group.TeamIds);
+        return strategy.CalculateStandings(groupGames, group);
     }
 
     public List<(string GroupId, List<Standing> Standings)> CalculateAllGroupStandings(List<Game> phaseGames)
@@ -148,7 +156,7 @@ public class Phase
             .Select(g =>
             {
                 var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                return (g.Id, strategy.CalculateStandings(groupGames, g.TeamIds));
+                return (g.Id, strategy.CalculateStandings(groupGames, g));
             })
             .ToList();
     }

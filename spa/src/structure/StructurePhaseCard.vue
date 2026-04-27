@@ -42,10 +42,13 @@ const previousPhaseId = computed(() => {
 
 const isCompleted = computed(() => props.phase.status === 'Completed')
 const isActivated = computed(() => props.phase.status !== 'New')
+const isCustom = computed(() => props.phase.format === 'Custom')
 const structureLockReason = computed(() => {
   if (props.phase.status === 'Completed') return 'Reopen the phase first'
   if (props.phase.status === 'Scheduled' || props.phase.status === 'InProgress')
-    return 'Delete games first to edit structure'
+    return isCustom.value
+      ? 'Reset the phase first to edit structure'
+      : 'Delete games first to edit structure'
   return ''
 })
 

@@ -6,9 +6,12 @@
 
 - Each phase has a status: `New` (default), `InProgress`, `Completed`
 - **New → InProgress**: for the first phase, this happens when games are generated; for subsequent phases, when the previous phase completes (placeholder IDs are resolved to real team IDs)
+    - For a `Custom` phase, the owner triggers the transition directly from the same action used for generation (no games are created); all groups must have at least one team assigned
 - **InProgress → Completed**: owner explicitly marks the phase as complete via the Schedule tab
 - Completing a phase requires all games in the phase to have results recorded
+    - For a `Custom` phase, completion instead requires that every group has a complete manual standings order (every assigned team included exactly once)
 - Reopening a completed phase reverts it to `InProgress` and reverses placeholder resolution in the next phase (real IDs swapped back to placeholder IDs, next phase reverts to `New`)
+    - Reopening a `Custom` phase also unlocks the manual standings for re-editing; re-completing triggers placeholder resolution again with the updated order
 
 ## Progression
 
@@ -24,6 +27,7 @@
     7. Setting either to 0 explicitly marks the phase as final — no teams advance, but the phase is recognized as having progression config for final standings calculation
 - All qualifying teams are ranked together in a single seeding order using standings criteria — this produces Seed 1, Seed 2, ..., Seed N
 - Seeded teams are assigned to the next phase's groups via snake draft
+- When the completing phase uses the `Custom` format, the qualifying set and seeding order are derived from the manually entered positions per group; no other standings criteria apply
 
 ## Placeholder teams
 

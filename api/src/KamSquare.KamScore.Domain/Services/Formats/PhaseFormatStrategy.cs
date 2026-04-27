@@ -11,6 +11,7 @@ public static class PhaseFormatStrategy
         PhaseFormat.PlayoffWithPlacement => new PlayoffWithPlacementStrategy(),
         PhaseFormat.DoubleElimination => new DoubleEliminationStrategy(),
         PhaseFormat.DoubleEliminationVd => new DoubleEliminationVdStrategy(),
+        PhaseFormat.Custom => new CustomStrategy(),
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, $"Unsupported phase format: {format}")
     };
 }

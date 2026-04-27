@@ -1,5 +1,8 @@
+using FluentValidation;
+using KamSquare.KamScore.Api.Helpers;
 using KamSquare.KamScore.Application.DTOs;
 using KamSquare.KamScore.Application.Interfaces;
+using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
@@ -16,6 +19,9 @@ public static class StandingsEndpoints
 
         group.MapGet("/standings", GetStandings);
         group.MapGet("/final-standings", GetFinalStandings);
+
+        group.MapPut("/standings", UpdateManualStandings)
+            .RequireAuthorization();
 
         return group;
     }
@@ -127,8 +133,14 @@ public static class StandingsEndpoints
             .Select(g =>
             {
                 var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                var realTeamIds = g.TeamIds.Where(id => realTeamLookup.ContainsKey(id)).ToList();
-                return strategy.CalculateStandings(groupGames, realTeamIds);
+                var realGroup = new Group
+                {
+                    Id = g.Id,
+                    LevelId = g.LevelId,
+                    TeamIds = g.TeamIds.Where(id => realTeamLookup.ContainsKey(id)).ToList(),
+                    ManualStandingOrder = g.ManualStandingOrder.Where(id => realTeamLookup.ContainsKey(id)).ToList()
+                };
+                return strategy.CalculateStandings(groupGames, realGroup);
             })
             .SelectMany(s => s)
             .ToList();
@@ -149,5 +161,47 @@ public static class StandingsEndpoints
         {
             result.Add(new FinalStandingDto(i + 1, ranked[i].TeamId, ranked[i].TeamName, levelName));
         }
+    }
+
+    private static async Task<IResult> UpdateManualStandings(
+        string tournamentId,
+        UpdateManualStandingsDto request,
+        ITournamentRepository tournamentRepository,
+        ITournamentStructureRepository structureRepository,
+        ITeamRepository teamRepository,
+        ManualStandingsService manualStandingsService,
+        IValidator<UpdateManualStandingsDto> validator,
+        ICurrentUserService currentUser)
+    {
+        await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        var validation = await validator.ValidateAsync(request);
+        if (!validation.IsValid)
+            throw new ValidationException(validation.Errors);
+
+        var structure = await structureRepository.GetByTournamentIdAsync(tournamentId)
+            ?? throw new NotFoundException(nameof(TournamentStructure), tournamentId);
+
+        var standings = await manualStandingsService.UpdateAsync(
+            tournamentId, request.PhaseId, request.GroupId, request.OrderedTeamIds, structure);
+
+        var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
+        var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);
+
+        return Results.Ok(standings.Select(s => new StandingDto(
+            s.TeamId,
+            teamLookup.GetValueOrDefault(s.TeamId),
+            s.Position,
+            s.GamesPlayed,
+            s.Wins,
+            s.Draws,
+            s.Losses,
+            s.Points,
+            s.SetsWon,
+            s.SetsLost,
+            s.SetDifference,
+            s.PointsWon,
+            s.PointsLost,
+            s.PointDifference)));
     }
 }

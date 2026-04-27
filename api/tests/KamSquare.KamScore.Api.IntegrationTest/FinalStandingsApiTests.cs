@@ -318,4 +318,31 @@ public class FinalStandingsApiTests : IClassFixture<KamScoreWebApplicationFactor
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    [Fact]
+    public async Task GetFinalStandings_CustomLastPhase_ReturnsManuallyEnteredOrder()
+    {
+        var tournament = CreateTestTournament();
+        var structure = TournamentStructure.Create(tournament.Id);
+        var phase = structure.AddPhase("Manual Finals", PhaseFormat.Custom, 1);
+        phase.Status = PhaseStatus.Completed;
+        phase.Groups[0].TeamIds.AddRange(["team1", "team2", "team3"]);
+        // Owner-entered order: team3 first, team1 second, team2 third.
+        phase.Groups[0].ManualStandingOrder = ["team3", "team1", "team2"];
+
+        var teams = CreateTeams(tournament.Id, "Eagles", "Hawks", "Wolves");
+
+        SetupFakes(tournament, structure, teams, games: []);
+
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/final-standings");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<FinalStandingDto>>();
+        result.Should().HaveCount(3);
+        result![0].TeamId.Should().Be("team3");
+        result[0].Position.Should().Be(1);
+        result[1].TeamId.Should().Be("team1");
+        result[2].TeamId.Should().Be("team2");
+    }
 }
