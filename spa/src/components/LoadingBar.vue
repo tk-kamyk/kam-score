@@ -40,11 +40,11 @@ onUnmounted(clearTimer)
     <v-progress-linear indeterminate :color="color ?? 'primary'" :aria-label="ariaLabel" />
     <div
       v-if="showHint"
-      class="text-caption text-medium-emphasis mt-1"
+      class="text-caption text-medium-emphasis mt-1 text-center"
       role="status"
       aria-live="polite"
     >
-      On a slow day, this may take a minute. Please wait.
+      This may take a moment. Please wait.
     </div>
   </div>
 </template>
