@@ -6,6 +6,7 @@ import { useRefereeDialog } from '@/composables/useRefereeDialog'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 import RefereeAssignDialog from '@/game/RefereeAssignDialog.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -62,7 +63,7 @@ onMounted(loadGames)
 
 <template>
   <div class="pa-3">
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
+    <LoadingBar :loading="loading" class="mb-2" />
 
     <v-table v-if="games.length > 0" density="compact" class="court-games-table">
       <thead>

@@ -4,8 +4,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { parseErrorDetail } from '@/api/errors'
+import { getErrorMessage } from '@/api/errors'
 import TournamentCreateDialog from '@/tournament/TournamentCreateDialog.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const router = useRouter()
@@ -34,7 +35,7 @@ async function handleCreated(dto: TournamentDto) {
     showSuccess('Tournament created')
     router.push({ name: 'tournament', params: { id: created.id } })
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to create tournament')
+    showError(getErrorMessage(error, 'Failed to create tournament'))
   } finally {
     creating.value = false
   }
@@ -65,7 +66,7 @@ function navigateToTournament(id: string) {
       </v-btn>
     </div>
 
-    <v-progress-linear v-if="tournamentStore.loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="tournamentStore.loading" class="mb-4" />
 
     <v-row>
       <v-col v-for="tournament in sortedTournaments" :key="tournament.id" cols="12" md="6">

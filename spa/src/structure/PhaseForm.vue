@@ -3,6 +3,7 @@ import { ref, watch, computed } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { getErrorMessage } from '@/api/errors'
 import { PHASE_FORMATS } from '@/structure/types'
 import type { PhaseDto } from '@/structure/types'
 import type { VForm } from 'vuetify/components'
@@ -165,7 +166,9 @@ async function handleSave() {
     emit('saved')
   } catch (error) {
     if (!handleError(error)) {
-      showError(props.phase ? 'Failed to update phase' : 'Failed to create phase')
+      showError(
+        getErrorMessage(error, props.phase ? 'Failed to update phase' : 'Failed to create phase'),
+      )
     }
   }
 }

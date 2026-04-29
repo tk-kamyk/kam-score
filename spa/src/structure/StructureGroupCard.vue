@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { getErrorMessage } from '@/api/errors'
 import type { GroupDto } from '@/structure/types'
 import type { VForm } from 'vuetify/components'
 
@@ -51,7 +52,7 @@ async function handleRename() {
     await structureStore.fetchStructure(props.tournamentId)
   } catch (error) {
     if (!handleError(error)) {
-      showError('Failed to rename group')
+      showError(getErrorMessage(error, 'Failed to rename group'))
     }
   }
 }
@@ -63,7 +64,7 @@ async function handleDelete() {
     showSuccess('Group deleted')
   } catch (error) {
     if (!handleError(error)) {
-      showError('Failed to delete group')
+      showError(getErrorMessage(error, 'Failed to delete group'))
     }
   }
 }

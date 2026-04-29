@@ -2,7 +2,8 @@
 import { ref, watch, computed } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { parseErrorDetail } from '@/api/errors'
+import { getErrorMessage } from '@/api/errors'
+import LoadingBar from '@/components/LoadingBar.vue'
 import type { GameDto, RefereeCandidateDto } from '@/game/types'
 
 const props = defineProps<{
@@ -47,7 +48,7 @@ async function loadCandidates() {
       return a.isPlaceholder ? -1 : 1
     })
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to load referee candidates')
+    showError(getErrorMessage(error, 'Failed to load referee candidates'))
   } finally {
     loading.value = false
   }
@@ -72,7 +73,7 @@ async function submit() {
     emit('assigned')
     close()
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to assign referee')
+    showError(getErrorMessage(error, 'Failed to assign referee'))
   } finally {
     submitting.value = false
   }
@@ -102,7 +103,7 @@ function gameSummary(): string {
           {{ gameSummary() }}
         </div>
 
-        <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-3" />
+        <LoadingBar :loading="loading" class="mb-3" />
 
         <v-autocomplete
           v-if="!loading"

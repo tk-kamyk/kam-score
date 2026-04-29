@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { FinalStandingDto } from '@/standings/types'
 import SectionHeader from '@/components/SectionHeader.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 
 const props = defineProps<{
   data: FinalStandingDto[]
@@ -30,7 +31,7 @@ const hasData = computed(() => props.data.length > 0)
   <div v-if="hasData || loading" class="mt-8">
     <SectionHeader title="Final Standings" />
 
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="loading" class="mb-4" />
 
     <div v-if="hasData" class="d-flex flex-column flex-md-row flex-wrap ga-8">
       <div v-for="level in levels" :key="level.name ?? 'flat'" class="level-col">

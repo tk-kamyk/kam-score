@@ -2,6 +2,8 @@
 import { ref, onMounted, computed } from 'vue'
 import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import LoadingBar from '@/components/LoadingBar.vue'
+import { getErrorMessage } from '@/api/errors'
 import type { VolunteerAvailabilityDto } from '@/volunteer/types'
 
 const props = defineProps<{
@@ -39,8 +41,8 @@ async function loadVolunteers() {
       props.shiftGroup,
       props.shiftTime,
     )
-  } catch {
-    showError('Failed to load volunteers')
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to load volunteers'))
   } finally {
     loading.value = false
   }
@@ -57,8 +59,8 @@ async function handleAssign(volunteerId: string) {
     await loadVolunteers()
     showSuccess('Volunteer assigned')
     dirty.value = true
-  } catch {
-    showError('Failed to assign volunteer')
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to assign volunteer'))
   }
 }
 
@@ -73,8 +75,8 @@ async function handleUnassign(volunteerId: string) {
     await loadVolunteers()
     showSuccess('Volunteer removed')
     dirty.value = true
-  } catch {
-    showError('Failed to remove volunteer')
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to remove volunteer'))
   }
 }
 </script>
@@ -86,7 +88,7 @@ async function handleUnassign(volunteerId: string) {
         {{ dialogTitle }}
       </v-card-title>
       <v-card-text class="pa-0">
-        <v-progress-linear v-if="loading" indeterminate color="primary" />
+        <LoadingBar :loading="loading" />
 
         <v-list density="compact">
           <v-list-item

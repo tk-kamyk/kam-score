@@ -9,10 +9,12 @@ import { useGroupSelection } from '@/composables/useGroupSelection'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { getErrorMessage } from '@/api/errors'
 import type { GameDto } from '@/game/types'
 import SectionHeader from '@/components/SectionHeader.vue'
 import StandingsPhaseCard from '@/standings/StandingsPhaseCard.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -112,7 +114,7 @@ async function handleSaveManualStandings(
     await structureStore.fetchStructure(props.tournamentId)
     showSuccess('Standings saved')
   } catch (error) {
-    if (!handleError(error)) showError('Failed to save standings')
+    if (!handleError(error)) showError(getErrorMessage(error, 'Failed to save standings'))
   }
 }
 
@@ -142,7 +144,7 @@ onMounted(async () => {
   <div>
     <SectionHeader title="Groups" />
 
-    <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="gameStore.loading" class="mb-4" />
 
     <v-alert
       v-if="phases.length === 0 && !structureStore.loading"

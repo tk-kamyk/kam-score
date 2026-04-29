@@ -5,11 +5,12 @@ import { useTeamStore } from '@/team/store'
 import { useGameStore } from '@/game/store'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { parseErrorDetail } from '@/api/errors'
+import { getErrorMessage } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import SectionHeader from '@/components/SectionHeader.vue'
 import StructurePhaseCard from '@/structure/StructurePhaseCard.vue'
 import PhaseForm from '@/structure/PhaseForm.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 import type { PhaseDto } from '@/structure/types'
 
 const props = defineProps<{
@@ -84,7 +85,7 @@ async function handleDeletePhase(phaseId: string) {
     showSuccess('Phase deleted')
     await teamStore.fetchPlaceholders(props.tournamentId)
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to delete phase')
+    showError(getErrorMessage(error, 'Failed to delete phase'))
   }
 }
 </script>
@@ -97,14 +98,7 @@ async function handleDeletePhase(phaseId: string) {
       </v-btn>
     </SectionHeader>
 
-    <v-progress-linear
-      v-if="structureStore.loading"
-      indeterminate
-      color="primary"
-      class="mb-4"
-      role="status"
-      aria-label="Loading structure"
-    />
+    <LoadingBar :loading="structureStore.loading" class="mb-4" aria-label="Loading structure" />
 
     <div v-if="phases.length > 0" class="phases-list">
       <StructurePhaseCard

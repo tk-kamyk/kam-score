@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { useTournamentStore } from '@/tournament/store'
 import type { TournamentDto } from '@/tournament/types'
 import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 import { buildGameConditions } from '@/tournament/gameConditionsUtils'
 
 const model = defineModel<boolean>({ required: true })
@@ -71,7 +72,7 @@ function handleCreate() {
       <v-card-title id="create-tournament-dialog-title" class="text-uppercase dialog-title"
         >Create Tournament</v-card-title
       >
-      <v-progress-linear v-if="props.loading" indeterminate color="primary" />
+      <LoadingBar :loading="!!props.loading" />
       <v-card-text>
         <v-text-field v-model="newTournament.name" label="Name" autofocus />
         <v-select

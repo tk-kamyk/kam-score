@@ -6,7 +6,7 @@ import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { scheduleQueryUpdate } from '@/composables/queryBatch'
-import { parseErrorDetail } from '@/api/errors'
+import { getErrorMessage } from '@/api/errors'
 import TournamentBreadcrumb from '@/tournament/TournamentBreadcrumb.vue'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import FinalStandings from '@/standings/FinalStandings.vue'
@@ -17,6 +17,7 @@ import StructureDetail from '@/structure/StructureDetail.vue'
 import ScheduleOverview from '@/game/ScheduleOverview.vue'
 import StandingsOverview from '@/standings/StandingsOverview.vue'
 import VolunteerList from '@/volunteer/VolunteerList.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 import type { TournamentDto } from '@/tournament/types'
 
 const props = defineProps<{ id: string }>()
@@ -87,7 +88,7 @@ async function handleUpdate(dto: TournamentDto) {
     await tournamentStore.updateTournament(props.id, dto)
     showSuccess('Tournament updated')
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to update tournament')
+    showError(getErrorMessage(error, 'Failed to update tournament'))
   }
 }
 
@@ -100,7 +101,7 @@ async function handleDelete() {
     showSuccess('Tournament deleted')
     router.push({ name: 'home' })
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to delete tournament')
+    showError(getErrorMessage(error, 'Failed to delete tournament'))
   } finally {
     deleting.value = false
   }
@@ -111,12 +112,7 @@ async function handleDelete() {
   <div>
     <TournamentBreadcrumb :items="breadcrumbItems" @navigate="activeTab = 'overview'" />
 
-    <v-progress-linear
-      v-if="tournamentStore.loading"
-      indeterminate
-      color="primary"
-      aria-label="Loading tournament"
-    />
+    <LoadingBar :loading="tournamentStore.loading" aria-label="Loading tournament" />
 
     <template v-if="tournament">
       <h2 class="section-title text-title-medium text-md-title-large text-lg-headline-medium mb-6">

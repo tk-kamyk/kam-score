@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import SectionHeader from '@/components/SectionHeader.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
 import { buildGameConditions, formatPointsPerSet } from '@/tournament/gameConditionsUtils'
 import { formatDate } from '@/tournament/dateUtils'
@@ -170,7 +171,7 @@ function handleDelete() {
       <v-card-title id="delete-tournament-dialog-title" class="text-uppercase dialog-title"
         >Delete Tournament</v-card-title
       >
-      <v-progress-linear v-if="props.deleting" indeterminate color="error" />
+      <LoadingBar :loading="!!props.deleting" color="error" />
       <v-card-text id="delete-warning-text">
         Are you sure you want to delete "{{ tournament.name }}"? This action cannot be undone.
       </v-card-text>
