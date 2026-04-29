@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/auth/store'
 import { useSnackbar } from '@/composables/useSnackbar'
+import { getErrorMessage } from '@/api/errors'
 
 const auth = useAuthStore()
 const { showError } = useSnackbar()
@@ -16,8 +17,8 @@ async function handleLogin() {
     await auth.login({ username: username.value, password: password.value })
     username.value = ''
     password.value = ''
-  } catch {
-    showError('Invalid username or password')
+  } catch (error) {
+    showError(getErrorMessage(error, 'Invalid username or password'))
   } finally {
     loading.value = false
   }

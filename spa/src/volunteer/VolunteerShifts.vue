@@ -3,6 +3,8 @@ import { onMounted, ref, watch } from 'vue'
 import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import VolunteerAssignDialog from '@/volunteer/VolunteerAssignDialog.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
+import { getErrorMessage } from '@/api/errors'
 
 const props = defineProps<{
   tournamentId: string
@@ -46,20 +48,15 @@ async function handleUnassign(
     )
     await volunteerStore.fetchShifts(props.tournamentId)
     showSuccess('Volunteer removed from shift')
-  } catch {
-    showError('Failed to remove volunteer')
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to remove volunteer'))
   }
 }
 </script>
 
 <template>
   <div>
-    <v-progress-linear
-      v-if="volunteerStore.shiftsLoading"
-      indeterminate
-      color="primary"
-      class="mb-4"
-    />
+    <LoadingBar :loading="volunteerStore.shiftsLoading" class="mb-4" />
 
     <div class="shift-groups">
       <v-card

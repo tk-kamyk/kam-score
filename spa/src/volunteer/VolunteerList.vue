@@ -7,6 +7,7 @@ import { useFormErrors } from '@/composables/useFormErrors'
 import SectionHeader from '@/components/SectionHeader.vue'
 import VolunteerShifts from '@/volunteer/VolunteerShifts.vue'
 import VolunteerListTable from '@/volunteer/VolunteerListTable.vue'
+import { getErrorMessage } from '@/api/errors'
 import type { VolunteerDto } from '@/volunteer/types'
 import type { VForm } from 'vuetify/components'
 
@@ -89,7 +90,10 @@ async function handleSave() {
   } catch (error) {
     if (!handleError(error)) {
       showError(
-        editingVolunteer.value ? 'Failed to update volunteer' : 'Failed to create volunteer',
+        getErrorMessage(
+          error,
+          editingVolunteer.value ? 'Failed to update volunteer' : 'Failed to create volunteer',
+        ),
       )
     }
   }
@@ -104,7 +108,7 @@ async function handleDelete() {
     showSuccess('Volunteer deleted')
   } catch (error) {
     if (!handleError(error)) {
-      showError('Failed to delete volunteer')
+      showError(getErrorMessage(error, 'Failed to delete volunteer'))
     }
   }
 }

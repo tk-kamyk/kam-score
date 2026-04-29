@@ -3,6 +3,7 @@ import { ref, nextTick } from 'vue'
 import { useStructureStore } from '@/structure/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { getErrorMessage } from '@/api/errors'
 import type { LevelDto } from '@/structure/types'
 import type { VForm } from 'vuetify/components'
 
@@ -49,7 +50,7 @@ async function handleRename() {
     renameBtnRef.value?.$el?.focus()
   } catch (error) {
     if (!handleError(error)) {
-      showError('Failed to rename level')
+      showError(getErrorMessage(error, 'Failed to rename level'))
     }
   }
 }

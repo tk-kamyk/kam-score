@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { VolunteerDto } from '@/volunteer/types'
 import { useTeamStore } from '@/team/store'
+import LoadingBar from '@/components/LoadingBar.vue'
 
 defineProps<{
   volunteers: VolunteerDto[]
@@ -22,7 +23,7 @@ function teamName(teamId?: string | null): string {
 
 <template>
   <div>
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="loading" class="mb-4" />
 
     <v-card v-if="volunteers.length > 0" class="data-table-card">
       <v-table density="comfortable" class="styled-table">

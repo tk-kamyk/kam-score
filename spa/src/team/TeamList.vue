@@ -8,6 +8,8 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import TeamFormDialog from '@/team/TeamFormDialog.vue'
 import GenerateSeedTeamsDialog from '@/team/GenerateSeedTeamsDialog.vue'
 import TeamSchedule from '@/team/TeamSchedule.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
+import { getErrorMessage } from '@/api/errors'
 import type { TeamDto } from '@/team/types'
 
 const props = defineProps<{
@@ -96,7 +98,12 @@ async function handleSave(team: TeamDto) {
     showFormDialog.value = false
   } catch (error) {
     if (!formDialog.value?.handleError(error)) {
-      showError(editingTeam.value ? 'Failed to update team' : 'Failed to create team')
+      showError(
+        getErrorMessage(
+          error,
+          editingTeam.value ? 'Failed to update team' : 'Failed to create team',
+        ),
+      )
     }
   }
 }
@@ -109,7 +116,7 @@ async function handleDelete() {
     showSuccess('Team deleted')
   } catch (error) {
     if (!deleteDialog.value?.handleError(error)) {
-      showError('Failed to delete team')
+      showError(getErrorMessage(error, 'Failed to delete team'))
     }
   }
 }
@@ -121,7 +128,7 @@ async function handleGenerate(count: number) {
     showSuccess(`Generated ${generated.length} seed teams`)
   } catch (error) {
     if (!generateDialog.value?.handleError(error)) {
-      showError('Failed to generate seed teams')
+      showError(getErrorMessage(error, 'Failed to generate seed teams'))
     }
   }
 }
@@ -147,7 +154,7 @@ async function handleGenerate(count: number) {
       </div>
     </SectionHeader>
 
-    <v-progress-linear v-if="teamStore.loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="teamStore.loading" class="mb-4" />
 
     <v-card v-if="teamStore.teams.length > 0" class="data-table-card">
       <v-table density="comfortable" class="styled-table">

@@ -4,7 +4,7 @@ import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
 import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
-import { parseErrorDetail } from '@/api/errors'
+import { getErrorMessage } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
 import { useGroupSelection } from '@/composables/useGroupSelection'
 import { useGamesByPhase } from '@/composables/useGamesByPhase'
@@ -14,6 +14,7 @@ import SectionHeader from '@/components/SectionHeader.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import SchedulePhaseCard from '@/game/SchedulePhaseCard.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -178,7 +179,7 @@ async function runAction() {
     pendingAction.value = null
   } catch (error) {
     if (!actionDialog.value?.handleError(error)) {
-      showError(`Failed to ${action} phase`)
+      showError(getErrorMessage(error, `Failed to ${action} phase`))
     }
   }
 }
@@ -195,7 +196,7 @@ async function handleGenerate(phaseId: string) {
     ])
     showSuccess(successMessage)
   } catch (error) {
-    showError(parseErrorDetail(error) ?? 'Failed to generate schedule')
+    showError(getErrorMessage(error, 'Failed to generate schedule'))
   } finally {
     generating.value = null
   }
@@ -245,7 +246,7 @@ watch(
   <div>
     <SectionHeader title="Schedule" />
 
-    <v-progress-linear v-if="gameStore.loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="gameStore.loading" class="mb-4" />
 
     <v-alert
       v-if="phases.length === 0 && !structureStore.loading"

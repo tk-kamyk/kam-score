@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import AddGroupDialog from '@/structure/AddGroupDialog.vue'
 import StructureGroupItem from '@/structure/StructureGroupItem.vue'
 import StructureLevelHeader from '@/structure/StructureLevelHeader.vue'
+import { getErrorMessage } from '@/api/errors'
 import type { PhaseDto } from '@/structure/types'
 import type { TeamDto } from '@/team/types'
 
@@ -76,7 +77,7 @@ async function handleAddGroup(name: string) {
     await structureStore.fetchStructure(props.tournamentId)
   } catch (error) {
     if (!addGroupDialog.value?.handleError(error)) {
-      showError('Failed to add group')
+      showError(getErrorMessage(error, 'Failed to add group'))
     }
   }
 }
@@ -88,7 +89,7 @@ async function handleAutoAssign() {
     showSuccess('Teams auto-assigned')
   } catch (error) {
     if (!autoAssignDialog.value?.handleError(error)) {
-      showError('Failed to auto-assign teams')
+      showError(getErrorMessage(error, 'Failed to auto-assign teams'))
     }
   }
 }

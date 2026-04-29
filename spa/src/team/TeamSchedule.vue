@@ -4,6 +4,7 @@ import apiClient from '@/api/client'
 import type { GameDto } from '@/game/types'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
 
 const props = defineProps<{
   tournamentId: string
@@ -144,7 +145,7 @@ function formatTime(startTime?: string): string {
 
 <template>
   <div class="pa-3">
-    <v-progress-linear v-if="loading" indeterminate color="primary" class="mb-2" />
+    <LoadingBar :loading="loading" class="mb-2" />
 
     <template v-if="games.length > 0">
       <div class="d-flex align-center justify-end mb-2">

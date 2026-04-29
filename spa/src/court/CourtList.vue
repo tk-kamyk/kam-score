@@ -8,6 +8,8 @@ import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import CourtFormDialog from '@/court/CourtFormDialog.vue'
 import GenerateCourtsDialog from '@/court/GenerateCourtsDialog.vue'
 import CourtGames from '@/court/CourtGames.vue'
+import LoadingBar from '@/components/LoadingBar.vue'
+import { getErrorMessage } from '@/api/errors'
 import type { CourtDto } from '@/court/types'
 
 const props = defineProps<{
@@ -86,7 +88,12 @@ async function handleSave(court: CourtDto) {
     showFormDialog.value = false
   } catch (error) {
     if (!formDialog.value?.handleError(error)) {
-      showError(editingCourt.value ? 'Failed to update court' : 'Failed to create court')
+      showError(
+        getErrorMessage(
+          error,
+          editingCourt.value ? 'Failed to update court' : 'Failed to create court',
+        ),
+      )
     }
   }
 }
@@ -99,7 +106,7 @@ async function handleDelete() {
     showSuccess('Court deleted')
   } catch (error) {
     if (!deleteDialog.value?.handleError(error)) {
-      showError('Failed to delete court')
+      showError(getErrorMessage(error, 'Failed to delete court'))
     }
   }
 }
@@ -111,7 +118,7 @@ async function handleGenerate(count: number) {
     showSuccess(`Generated ${generated.length} courts`)
   } catch (error) {
     if (!generateDialog.value?.handleError(error)) {
-      showError('Failed to generate courts')
+      showError(getErrorMessage(error, 'Failed to generate courts'))
     }
   }
 }
@@ -137,7 +144,7 @@ async function handleGenerate(count: number) {
       </div>
     </SectionHeader>
 
-    <v-progress-linear v-if="courtStore.loading" indeterminate color="primary" class="mb-4" />
+    <LoadingBar :loading="courtStore.loading" class="mb-4" />
 
     <v-card v-if="courtStore.courts.length > 0" class="data-table-card">
       <v-table density="comfortable" class="styled-table">

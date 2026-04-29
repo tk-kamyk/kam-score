@@ -4,6 +4,7 @@ import { useGameStore } from '@/game/store'
 import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { getErrorMessage } from '@/api/errors'
 import type { GameDto, SetResultDto } from '@/game/types'
 
 const props = defineProps<{
@@ -99,7 +100,9 @@ async function submit() {
     close()
   } catch (error) {
     if (!handleError(error)) {
-      showError('Failed to record result. Check the tournament code and try again.')
+      showError(
+        getErrorMessage(error, 'Failed to record result. Check the tournament code and try again.'),
+      )
     }
   } finally {
     submitting.value = false
