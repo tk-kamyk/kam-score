@@ -22,7 +22,8 @@ public static class GameEndpoints
         group.MapPost("/structure/phases/{phaseId}/generate-schedule", GenerateAndSchedule)
             .RequireAuthorization();
         group.MapGet("/games", GetGames);
-        group.MapPut("/games/{gameId}/result", RecordResult);
+        group.MapPut("/games/{gameId}/result", RecordResult)
+            .RequireRateLimiting("public");
         group.MapPut("/games/{gameId}/referee", AssignReferee)
             .RequireAuthorization();
         group.MapGet("/games/{gameId}/referee-candidates", GetRefereeCandidates)
