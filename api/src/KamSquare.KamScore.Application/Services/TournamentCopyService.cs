@@ -102,6 +102,8 @@ public class TournamentCopyService
             sourcePhase.StartTime,
             numberOfLevels);
 
+        CopyLevelAndGroupNames(sourcePhase, newPhase);
+
         // Assign teams to groups
         if (newPhase.Order == 1)
         {
@@ -168,5 +170,37 @@ public class TournamentCopyService
         if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
             return false;
         return true;
+    }
+
+    private static void CopyLevelAndGroupNames(Phase source, Phase target)
+    {
+        var sourceLevels = source.Levels.OrderBy(l => l.Order).ToList();
+        var targetLevels = target.Levels.OrderBy(l => l.Order).ToList();
+        var levelPairs = Math.Min(sourceLevels.Count, targetLevels.Count);
+        for (var i = 0; i < levelPairs; i++)
+        {
+            targetLevels[i].Update(sourceLevels[i].Name);
+        }
+
+        if (target.Levels.Count == 0)
+        {
+            var pairs = Math.Min(source.Groups.Count, target.Groups.Count);
+            for (var i = 0; i < pairs; i++)
+            {
+                target.Groups[i].Update(source.Groups[i].Name);
+            }
+            return;
+        }
+
+        for (var i = 0; i < levelPairs; i++)
+        {
+            var sourceGroups = source.Groups.Where(g => g.LevelId == sourceLevels[i].Id).ToList();
+            var targetGroups = target.Groups.Where(g => g.LevelId == targetLevels[i].Id).ToList();
+            var pairs = Math.Min(sourceGroups.Count, targetGroups.Count);
+            for (var j = 0; j < pairs; j++)
+            {
+                targetGroups[j].Update(sourceGroups[j].Name);
+            }
+        }
     }
 }
