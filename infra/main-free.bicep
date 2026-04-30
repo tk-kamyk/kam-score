@@ -241,9 +241,51 @@ resource apiFtpBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies
 }
 
 // ──────────────────────────────────────────────
+// Keep-warm pinger (Consumption Logic App)
+//
+// F1 App Service has no Always On, so the API cold-starts after ~20 min of
+// inactivity. This Logic App pings /api/health every 15 minutes to keep the
+// app warm. 2 built-in executions per run × 2,880 runs/month = 5,760/month;
+// the Consumption free tier covers 4,000/month, so the overage is a few
+// cents per month. Endpoint is rate-limited (60 req/min/IP) so this caller
+// cannot drain the bucket for real users.
+// ──────────────────────────────────────────────
+
+resource keepWarm 'Microsoft.Logic/workflows@2019-05-01' = {
+  name: 'kam-score-keepwarm-free'
+  location: location
+  properties: {
+    state: 'Enabled'
+    definition: {
+      '$schema': 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#'
+      contentVersion: '1.0.0.0'
+      triggers: {
+        Recurrence: {
+          type: 'Recurrence'
+          recurrence: {
+            frequency: 'Minute'
+            interval: 15
+          }
+        }
+      }
+      actions: {
+        Ping_API_Health: {
+          type: 'Http'
+          inputs: {
+            method: 'GET'
+            uri: 'https://${apiApp.properties.defaultHostName}/api/health/'
+          }
+        }
+      }
+    }
+  }
+}
+
+// ──────────────────────────────────────────────
 // Outputs
 // ──────────────────────────────────────────────
 
 output apiUrl string = 'https://${apiApp.properties.defaultHostName}'
 output spaUrl string = 'https://${staticWebApp.properties.defaultHostname}'
 output logAnalyticsWorkspaceId string = logAnalytics.id
+output keepWarmWorkflowId string = keepWarm.id
