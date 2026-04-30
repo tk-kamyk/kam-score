@@ -1,12 +1,6 @@
 @description('Location for all resources')
 param location string = resourceGroup().location
 
-@description('Full API container image path with tag')
-param apiImage string
-
-@description('Full SPA container image path with tag')
-param spaImage string
-
 @description('Resource group containing shared resources (Key Vault, Cosmos DB, ACR)')
 param sharedResourceGroup string = 'REDACTED-SHARED-RG'
 
@@ -16,8 +10,11 @@ param cosmosAccountName string = 'REDACTED-COSMOS'
 @description('Name of the existing Key Vault')
 param keyVaultName string = 'REDACTED-KV'
 
-@description('Name of the existing Container Registry')
+@description('Name of the existing Container Registry (unused by hosting; required by shared-rg-access module)')
 param acrName string = 'REDACTED-ACR'
+
+@description('Linux runtime stack identifier for the API App Service')
+param dotnetLinuxFxVersion string = 'DOTNETCORE|10.0'
 
 @description('Unique suffix for deployment names (auto-generated)')
 param deploymentSuffix string = utcNow('yyyyMMddHHmmss')
@@ -31,14 +28,8 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existi
   scope: resourceGroup(sharedResourceGroup)
 }
 
-resource acr 'Microsoft.ContainerRegistry/registries@2023-07-01' existing = {
-  name: acrName
-  scope: resourceGroup(sharedResourceGroup)
-}
-
 var cosmosConnectionString = cosmosAccount.listConnectionStrings().connectionStrings[0].connectionString
 var keyVaultUri = 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/secrets'
-var acrLoginServer = acr.properties.loginServer
 
 // ──────────────────────────────────────────────
 // Log Analytics Workspace
@@ -82,267 +73,57 @@ module sharedAccess 'modules/shared-rg-access.bicep' = {
 }
 
 // ──────────────────────────────────────────────
-// Container App Environment
+// Static Web App (SPA) — declared before the API so its hostname
+// can be auto-wired into the API CORS allow-list.
 // ──────────────────────────────────────────────
 
-resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: 'kam-score-env'
-  location: location
-  properties: {
-    appLogsConfiguration: {
-      destination: 'log-analytics'
-      logAnalyticsConfiguration: {
-        customerId: logAnalytics.properties.customerId
-        sharedKey: logAnalytics.listKeys().primarySharedKey
-      }
-    }
-  }
-}
-
-// ──────────────────────────────────────────────
-// API Container App (defined before SPA so FQDN is available)
-// ──────────────────────────────────────────────
-
-resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
-  name: 'REDACTED-API'
-  location: location
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '${managedIdentity.id}': {}
-    }
-  }
-  properties: {
-    managedEnvironmentId: containerAppEnv.id
-    configuration: {
-      ingress: {
-        external: false
-        targetPort: 8080
-      }
-      registries: [
-        {
-          server: acrLoginServer
-          identity: managedIdentity.id
-        }
-      ]
-      secrets: [
-        {
-          name: 'jwt-secret'
-          keyVaultUrl: '${keyVaultUri}/JWT-SECRET'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-username'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-password'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-displayname'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-role'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-username'
-          keyVaultUrl: '${keyVaultUri}/DTU-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-password'
-          keyVaultUrl: '${keyVaultUri}/DTU-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-displayname'
-          keyVaultUrl: '${keyVaultUri}/DTU-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-role'
-          keyVaultUrl: '${keyVaultUri}/DTU-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-username'
-          keyVaultUrl: '${keyVaultUri}/KSV-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-password'
-          keyVaultUrl: '${keyVaultUri}/KSV-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-displayname'
-          keyVaultUrl: '${keyVaultUri}/KSV-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-role'
-          keyVaultUrl: '${keyVaultUri}/KSV-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-username'
-          keyVaultUrl: '${keyVaultUri}/CPH-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-password'
-          keyVaultUrl: '${keyVaultUri}/CPH-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-displayname'
-          keyVaultUrl: '${keyVaultUri}/CPH-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-role'
-          keyVaultUrl: '${keyVaultUri}/CPH-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cosmos-connection-string'
-          value: cosmosConnectionString
-        }
-      ]
-    }
-    template: {
-      containers: [
-        {
-          name: 'api'
-          image: apiImage
-          resources: {
-            cpu: json('0.5')
-            memory: '1Gi'
-          }
-          env: [
-            {
-              name: 'ASPNETCORE_ENVIRONMENT'
-              value: 'Production'
-            }
-            {
-              name: 'Jwt__Secret'
-              secretRef: 'jwt-secret'
-            }
-            {
-              name: 'Users__Entries__0__Username'
-              secretRef: 'admin-username'
-            }
-            {
-              name: 'Users__Entries__0__Password'
-              secretRef: 'admin-password'
-            }
-            {
-              name: 'Users__Entries__0__DisplayName'
-              secretRef: 'admin-displayname'
-            }
-            {
-              name: 'Users__Entries__0__Role'
-              secretRef: 'admin-role'
-            }
-            {
-              name: 'Users__Entries__1__Username'
-              secretRef: 'dtu-username'
-            }
-            {
-              name: 'Users__Entries__1__Password'
-              secretRef: 'dtu-password'
-            }
-            {
-              name: 'Users__Entries__1__DisplayName'
-              secretRef: 'dtu-displayname'
-            }
-            {
-              name: 'Users__Entries__1__Role'
-              secretRef: 'dtu-role'
-            }
-            {
-              name: 'Users__Entries__2__Username'
-              secretRef: 'ksv-username'
-            }
-            {
-              name: 'Users__Entries__2__Password'
-              secretRef: 'ksv-password'
-            }
-            {
-              name: 'Users__Entries__2__DisplayName'
-              secretRef: 'ksv-displayname'
-            }
-            {
-              name: 'Users__Entries__2__Role'
-              secretRef: 'ksv-role'
-            }
-            {
-              name: 'Users__Entries__3__Username'
-              secretRef: 'cph-username'
-            }
-            {
-              name: 'Users__Entries__3__Password'
-              secretRef: 'cph-password'
-            }
-            {
-              name: 'Users__Entries__3__DisplayName'
-              secretRef: 'cph-displayname'
-            }
-            {
-              name: 'Users__Entries__3__Role'
-              secretRef: 'cph-role'
-            }
-            {
-              name: 'CosmosDb__ConnectionString'
-              secretRef: 'cosmos-connection-string'
-            }
-            {
-              name: 'Cors__AllowedOrigins__0'
-              value: 'https://score.REDACTED-SHARED-RG.com'
-            }
-            {
-              name: 'Cors__AllowedOrigins__1'
-              value: 'https://REDACTED-SPA.${containerAppEnv.properties.defaultDomain}'
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 3
-        cooldownPeriod: 300
-        rules: [
-          {
-            name: 'http-scale'
-            http: {
-              metadata: {
-                concurrentRequests: '30'
-              }
-            }
-          }
-        ]
-      }
-    }
-  }
-  dependsOn: [
-    sharedAccess
-  ]
-}
-
-// ──────────────────────────────────────────────
-// SPA Container App
-// ──────────────────────────────────────────────
-
-resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
+resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   name: 'REDACTED-SPA'
   location: location
+  sku: {
+    name: 'Free'
+    tier: 'Free'
+  }
+  properties: {
+    provider: 'None'
+  }
+}
+
+// Custom domain binding. Requires the CNAME record at score.REDACTED-SHARED-RG.com
+// to already point at the SWA's default hostname before validation succeeds.
+resource swaCustomDomain 'Microsoft.Web/staticSites/customDomains@2023-12-01' = {
+  parent: staticWebApp
+  name: 'score.REDACTED-SHARED-RG.com'
+  properties: {
+    validationMethod: 'cname-delegation'
+  }
+}
+
+// ──────────────────────────────────────────────
+// App Service Plan — Linux Free (F1)
+// ──────────────────────────────────────────────
+
+resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
+  name: 'kam-score-plan'
+  location: location
+  kind: 'linux'
+  sku: {
+    name: 'F1'
+    tier: 'Free'
+  }
+  properties: {
+    reserved: true
+  }
+}
+
+// ──────────────────────────────────────────────
+// API Web App (deploy-as-code; F1 cannot host custom containers)
+// ──────────────────────────────────────────────
+
+resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
+  name: 'REDACTED-API'
+  location: location
+  kind: 'app,linux'
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
@@ -350,67 +131,175 @@ resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
     }
   }
   properties: {
-    managedEnvironmentId: containerAppEnv.id
-    configuration: {
-      ingress: {
-        external: true
-        targetPort: 80
-        customDomains: [
-          {
-            name: 'score.REDACTED-SHARED-RG.com'
-            bindingType: 'Auto'
-          }
-        ]
-      }
-      registries: [
+    serverFarmId: appServicePlan.id
+    httpsOnly: true
+    keyVaultReferenceIdentity: managedIdentity.id
+    siteConfig: {
+      linuxFxVersion: dotnetLinuxFxVersion
+      ftpsState: 'Disabled'
+      minTlsVersion: '1.2'
+      scmMinTlsVersion: '1.2'
+      appSettings: [
         {
-          server: acrLoginServer
-          identity: managedIdentity.id
+          name: 'ASPNETCORE_ENVIRONMENT'
+          value: 'Production'
+        }
+        {
+          name: 'Jwt__Secret'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/JWT-SECRET/)'
+        }
+        {
+          name: 'Users__Entries__0__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__0__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__0__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__0__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-ROLE/)'
+        }
+        {
+          name: 'Users__Entries__1__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__1__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__1__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__1__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-ROLE/)'
+        }
+        {
+          name: 'Users__Entries__2__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__2__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__2__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__2__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-ROLE/)'
+        }
+        {
+          name: 'Users__Entries__3__Username'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-USERNAME/)'
+        }
+        {
+          name: 'Users__Entries__3__Password'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-PASSWORD/)'
+        }
+        {
+          name: 'Users__Entries__3__DisplayName'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-DISPLAYNAME/)'
+        }
+        {
+          name: 'Users__Entries__3__Role'
+          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-ROLE/)'
+        }
+        {
+          name: 'CosmosDb__ConnectionString'
+          value: cosmosConnectionString
+        }
+        {
+          name: 'Cors__AllowedOrigins__0'
+          value: 'https://${staticWebApp.properties.defaultHostname}'
+        }
+        {
+          name: 'Cors__AllowedOrigins__1'
+          value: 'https://score.REDACTED-SHARED-RG.com'
+        }
+        {
+          name: 'WEBSITE_RUN_FROM_PACKAGE'
+          value: '1'
         }
       ]
-    }
-    template: {
-      containers: [
-        {
-          name: 'spa'
-          image: spaImage
-          resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
-          }
-          env: [
-            {
-              name: 'API_BACKEND_URL'
-              value: 'https://${apiApp.properties.configuration.ingress.fqdn}'
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 2
-        cooldownPeriod: 300
-        rules: [
-          {
-            name: 'http-scale'
-            http: {
-              metadata: {
-                concurrentRequests: '100'
-              }
-            }
-          }
-        ]
-      }
     }
   }
   dependsOn: [
     sharedAccess
   ]
+}
+
+// Deployment uses managed identity + run-from-package; SCM/FTP basic auth
+// would only widen the attack surface, so disable both explicitly.
+resource apiScmBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  parent: apiApp
+  name: 'scm'
+  properties: {
+    allow: false
+  }
+}
+
+resource apiFtpBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies@2023-12-01' = {
+  parent: apiApp
+  name: 'ftp'
+  properties: {
+    allow: false
+  }
+}
+
+// ──────────────────────────────────────────────
+// Keep-warm pinger (Consumption Logic App)
+//
+// F1 App Service has no Always On, so the API cold-starts after ~20 min of
+// inactivity. This Logic App pings /api/health every 15 minutes to keep the
+// app warm. 2 built-in executions per run × 2,880 runs/month = 5,760/month;
+// the Consumption free tier covers 4,000/month, so the overage is a few
+// cents per month. Endpoint is rate-limited (60 req/min/IP) so this caller
+// cannot drain the bucket for real users.
+// ──────────────────────────────────────────────
+
+resource keepWarm 'Microsoft.Logic/workflows@2019-05-01' = {
+  name: 'kam-score-keepwarm'
+  location: location
+  properties: {
+    state: 'Enabled'
+    definition: {
+      '$schema': 'https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#'
+      contentVersion: '1.0.0.0'
+      triggers: {
+        Recurrence: {
+          type: 'Recurrence'
+          recurrence: {
+            frequency: 'Minute'
+            interval: 15
+          }
+        }
+      }
+      actions: {
+        Ping_API_Health: {
+          type: 'Http'
+          inputs: {
+            method: 'GET'
+            uri: 'https://${apiApp.properties.defaultHostName}/api/health/'
+          }
+        }
+      }
+    }
+  }
 }
 
 // ──────────────────────────────────────────────
 // Outputs
 // ──────────────────────────────────────────────
 
-output apiUrl string = 'https://${apiApp.properties.configuration.ingress.fqdn}'
-output spaUrl string = 'https://${spaApp.properties.configuration.ingress.fqdn}'
+output apiUrl string = 'https://${apiApp.properties.defaultHostName}'
+output spaUrl string = 'https://${staticWebApp.properties.defaultHostname}'
+output logAnalyticsWorkspaceId string = logAnalytics.id
+output keepWarmWorkflowId string = keepWarm.id
