@@ -174,9 +174,9 @@ public class StandingsApiTests : IClassFixture<KamScoreWebApplicationFactory>
             $"/api/tournaments/{tournament.Id}/standings?phaseId={phaseId}&groupId={groupId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var standings = await response.Content.ReadFromJsonAsync<List<StandingDto>>();
+        var standings = (await response.Content.ReadFromJsonAsync<List<StandingDto>>())!;
 
-        standings!.First(s => s.TeamId == "team1").Position.Should().Be(1);
+        standings.First(s => s.TeamId == "team1").Position.Should().Be(1);
         standings.First(s => s.TeamId == "team2").Position.Should().Be(2);
         standings.First(s => s.TeamId == "team3").Position.Should().Be(3);
         standings.First(s => s.TeamId == "team4").Position.Should().Be(3);

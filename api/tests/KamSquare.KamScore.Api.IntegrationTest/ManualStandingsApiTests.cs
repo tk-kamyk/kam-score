@@ -84,8 +84,8 @@ public class ManualStandingsApiTests : IClassFixture<KamScoreWebApplicationFacto
             $"/api/tournaments/{tournament.Id}/standings", dto);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var standings = await response.Content.ReadFromJsonAsync<List<StandingDto>>();
-        standings!.Single(s => s.TeamId == "team3").Position.Should().Be(1);
+        var standings = (await response.Content.ReadFromJsonAsync<List<StandingDto>>())!;
+        standings.Single(s => s.TeamId == "team3").Position.Should().Be(1);
         standings.Single(s => s.TeamId == "team3").TeamName.Should().Be("Team 3");
         group.ManualStandingOrder.Should().BeEquivalentTo(
             ["team3", "team1", "team2"], opts => opts.WithStrictOrdering());
