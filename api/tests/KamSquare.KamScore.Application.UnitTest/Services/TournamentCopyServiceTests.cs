@@ -315,8 +315,19 @@ public class TournamentCopyServiceTests
     {
         var source = CreateSourceTournament();
         var structure = TournamentStructure.Create(source.Id);
-        structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2,
+        var phase = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2,
             groupWinners: 2, startTime: new TimeOnly(9, 0), numberOfLevels: 2);
+        var levelTop = phase.Levels.Single(l => l.Order == 1);
+        var levelBottom = phase.Levels.Single(l => l.Order == 2);
+        structure.UpdateLevel(phase.Id, levelTop.Id, "Premier");
+        structure.UpdateLevel(phase.Id, levelBottom.Id, "Challenger");
+        var topGroups = phase.Groups.Where(g => g.LevelId == levelTop.Id).ToList();
+        var bottomGroups = phase.Groups.Where(g => g.LevelId == levelBottom.Id).ToList();
+        structure.UpdateGroup(phase.Id, topGroups[0].Id, "Premier-Pool 1");
+        structure.UpdateGroup(phase.Id, topGroups[1].Id, "Premier-Pool 2");
+        structure.UpdateGroup(phase.Id, bottomGroups[0].Id, "Challenger-Pool 1");
+        structure.UpdateGroup(phase.Id, bottomGroups[1].Id, "Challenger-Pool 2");
+
         var teams = CreateSourceTeams(source.Id, 16);
         var courts = CreateSourceCourts(source.Id);
         SetupFakesForCopy(source, structure, teams, courts);
@@ -326,7 +337,37 @@ public class TournamentCopyServiceTests
         A.CallTo(() => _structureRepository.CreateAsync(
                 A<TournamentStructure>.That.Matches(s =>
                     s.Phases[0].Levels.Count == 2 &&
-                    s.Phases[0].Groups.Count == 4))) // 2 groups per level * 2 levels
+                    s.Phases[0].Groups.Count == 4 &&
+                    s.Phases[0].Levels.OrderBy(l => l.Order).Select(l => l.Name)
+                        .SequenceEqual(new[] { "Premier", "Challenger" }) &&
+                    s.Phases[0].Groups.Any(g => g.Name == "Premier-Pool 1") &&
+                    s.Phases[0].Groups.Any(g => g.Name == "Premier-Pool 2") &&
+                    s.Phases[0].Groups.Any(g => g.Name == "Challenger-Pool 1") &&
+                    s.Phases[0].Groups.Any(g => g.Name == "Challenger-Pool 2"))))
+            .MustHaveHappenedOnceExactly();
+    }
+
+    [Fact]
+    public async Task CopyAsync_WithoutLevels_ShouldCopyGroupNames()
+    {
+        var source = CreateSourceTournament();
+        var structure = TournamentStructure.Create(source.Id);
+        var phase = structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2,
+            groupWinners: 2, startTime: new TimeOnly(9, 0));
+        structure.UpdateGroup(phase.Id, phase.Groups[0].Id, "Pool 1");
+        structure.UpdateGroup(phase.Id, phase.Groups[1].Id, "Pool 2");
+
+        var teams = CreateSourceTeams(source.Id, 8);
+        var courts = CreateSourceCourts(source.Id);
+        SetupFakesForCopy(source, structure, teams, courts);
+
+        await _sut.CopyAsync(source.Id, "Winter Cup", "bob");
+
+        A.CallTo(() => _structureRepository.CreateAsync(
+                A<TournamentStructure>.That.Matches(s =>
+                    s.Phases[0].Groups.Count == 2 &&
+                    s.Phases[0].Groups.Any(g => g.Name == "Pool 1") &&
+                    s.Phases[0].Groups.Any(g => g.Name == "Pool 2"))))
             .MustHaveHappenedOnceExactly();
     }
 }
