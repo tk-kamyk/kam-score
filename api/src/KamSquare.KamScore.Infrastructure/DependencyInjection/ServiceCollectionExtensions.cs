@@ -4,6 +4,7 @@ using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Application.Mappers;
 using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
+using KamSquare.KamScore.Infrastructure.HealthChecks;
 using KamSquare.KamScore.Infrastructure.Options;
 using KamSquare.KamScore.Infrastructure.Persistence;
 using KamSquare.KamScore.Infrastructure.Services;
@@ -58,6 +59,7 @@ public static class ServiceCollectionExtensions
             services.AddScoped<ITournamentStructureRepository, CosmosTournamentStructureRepository>();
             services.AddScoped<IGameRepository, CosmosGameRepository>();
             services.AddScoped<IVolunteerRepository, CosmosVolunteerRepository>();
+            services.AddSingleton<IDatabaseHealthProbe, CosmosDbHealthProbe>();
         }
 
         // Services

@@ -29,17 +29,19 @@ builder.Services.AddCors(options =>
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.AddPolicy("auth", httpContext =>
-    {
-        var partitionKey = ResolveClientPartitionKey(httpContext);
-        return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+    options.AddPolicy("auth", httpContext => PerIpFixedWindow(httpContext, permitLimit: 10));
+    options.AddPolicy("public", httpContext => PerIpFixedWindow(httpContext, permitLimit: 20));
+});
+
+static RateLimitPartition<string> PerIpFixedWindow(HttpContext httpContext, int permitLimit) =>
+    RateLimitPartition.GetFixedWindowLimiter(
+        ResolveClientPartitionKey(httpContext),
+        _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 10,
+            PermitLimit = permitLimit,
             Window = TimeSpan.FromMinutes(1),
             QueueLimit = 0,
         });
-    });
-});
 
 // Behind App Service / Container Apps the platform front end APPENDS the real
 // client IP as the LAST X-Forwarded-For entry; earlier entries are

@@ -16,6 +16,14 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
     public ITournamentStructureRepository FakeStructureRepository { get; } = A.Fake<ITournamentStructureRepository>();
     public IGameRepository FakeGameRepository { get; } = A.Fake<IGameRepository>();
     public IVolunteerRepository FakeVolunteerRepository { get; } = A.Fake<IVolunteerRepository>();
+    public IDatabaseHealthProbe FakeDatabaseHealthProbe { get; } = CreateHealthyProbe();
+
+    private static IDatabaseHealthProbe CreateHealthyProbe()
+    {
+        var probe = A.Fake<IDatabaseHealthProbe>();
+        A.CallTo(() => probe.IsReachableAsync(A<CancellationToken>._)).Returns(true);
+        return probe;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -90,6 +98,15 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(volunteerDescriptor);
             }
             services.AddSingleton(FakeVolunteerRepository);
+
+            // Replace IDatabaseHealthProbe with fake (defaults to "reachable")
+            var probeDescriptor = services.SingleOrDefault(
+                d => d.ServiceType == typeof(IDatabaseHealthProbe));
+            if (probeDescriptor != null)
+            {
+                services.Remove(probeDescriptor);
+            }
+            services.AddSingleton(FakeDatabaseHealthProbe);
 
             // Replace authentication with test auth handler
             services.AddAuthentication(options =>
