@@ -57,7 +57,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 // ──────────────────────────────────────────────
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: 'kam-score-env-container'
+  name: 'kam-score-env'
   location: location
   properties: {
     appLogsConfiguration: {
@@ -75,7 +75,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // ──────────────────────────────────────────────
 
 resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
-  name: 'REDACTED-API-container'
+  name: 'REDACTED-API'
   location: location
   identity: {
     type: 'UserAssigned'
@@ -280,7 +280,7 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
             }
             {
               name: 'Cors__AllowedOrigins__1'
-              value: 'https://REDACTED-SPA-container.${containerAppEnv.properties.defaultDomain}'
+              value: 'https://REDACTED-SPA.${containerAppEnv.properties.defaultDomain}'
             }
           ]
         }
@@ -309,7 +309,7 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
 // ──────────────────────────────────────────────
 
 resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
-  name: 'REDACTED-SPA-container'
+  name: 'REDACTED-SPA'
   location: location
   identity: {
     type: 'UserAssigned'
