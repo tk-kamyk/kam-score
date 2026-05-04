@@ -68,6 +68,7 @@ interface ScheduleEntry {
   type: 'game' | 'break'
   time: string
   game?: GameDto
+  role?: 'Home' | 'Away' | 'Referee'
 }
 
 const teamTimeSlots = computed(() => {
@@ -93,30 +94,39 @@ const groupedGames = computed<PhaseGroup[]>(() => {
   return [...map.values()]
 })
 
-function phaseGroupEntries(phaseGroup: PhaseGroup): ScheduleEntry[] {
-  const gameEntries: ScheduleEntry[] = phaseGroup.games.map((g) => ({
-    type: 'game' as const,
-    time: g.startTime ?? '',
-    game: g,
-  }))
+const entriesByGroup = computed<Map<string, ScheduleEntry[]>>(() => {
+  const result = new Map<string, ScheduleEntry[]>()
+  for (const group of groupedGames.value) {
+    const key = `${group.phaseId}:${group.groupId}`
+    const sortedGames: ScheduleEntry[] = group.games
+      .map((g) => ({
+        type: 'game' as const,
+        time: g.startTime ?? '',
+        game: g,
+        role: teamRole(g),
+      }))
+      .sort((a, b) => a.time.localeCompare(b.time))
 
-  if (!showBreaks.value) {
-    return gameEntries.sort((a, b) => a.time.localeCompare(b.time))
+    if (!showBreaks.value || sortedGames.length === 0) {
+      result.set(key, sortedGames)
+      continue
+    }
+
+    // Find break slots that fall between this group's first and last game
+    const firstTime = sortedGames[0].time
+    const lastTime = sortedGames[sortedGames.length - 1].time
+
+    const breakEntries: ScheduleEntry[] = [...allTimeSlots.value]
+      .filter((slot) => slot >= firstTime && slot <= lastTime && !teamTimeSlots.value.has(slot))
+      .map((slot) => ({ type: 'break' as const, time: slot }))
+
+    result.set(
+      key,
+      [...sortedGames, ...breakEntries].sort((a, b) => a.time.localeCompare(b.time)),
+    )
   }
-
-  // Find break slots that fall between this group's first and last game
-  const sortedGames = [...gameEntries].sort((a, b) => a.time.localeCompare(b.time))
-  if (sortedGames.length === 0) return []
-
-  const firstTime = sortedGames[0].time
-  const lastTime = sortedGames[sortedGames.length - 1].time
-
-  const breakEntries: ScheduleEntry[] = [...allTimeSlots.value]
-    .filter((slot) => slot >= firstTime && slot <= lastTime && !teamTimeSlots.value.has(slot))
-    .map((slot) => ({ type: 'break' as const, time: slot }))
-
-  return [...sortedGames, ...breakEntries].sort((a, b) => a.time.localeCompare(b.time))
-}
+  return result
+})
 
 function teamRole(game: GameDto): 'Home' | 'Away' | 'Referee' {
   if (game.homeTeamId === props.teamId) return 'Home'
@@ -141,6 +151,13 @@ function formatTime(startTime?: string): string {
   const date = new Date(startTime)
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
+
+function groupLabel(group: PhaseGroup): string {
+  const { levelName, groupName } = group
+  if (!levelName) return `Group ${groupName}`
+  if (levelName === groupName) return levelName
+  return `${levelName} - Group ${groupName}`
+}
 </script>
 
 <template>
@@ -159,17 +176,7 @@ function formatTime(startTime?: string): string {
         />
       </div>
 
-      <div v-for="group in groupedGames" :key="`${group.phaseId}:${group.groupId}`" class="mb-5">
-        <h3 class="text-h6 mb-3">
-          {{ group.phaseName }}
-          <span v-if="group.levelName" class="text-medium-emphasis font-weight-regular">
-            — {{ group.levelName }}</span
-          >
-          <span class="text-medium-emphasis font-weight-regular">
-            — Group {{ group.groupName }}</span
-          >
-        </h3>
-
+      <div class="mb-5">
         <v-table density="compact" class="team-schedule-table">
           <thead>
             <tr>
@@ -181,30 +188,40 @@ function formatTime(startTime?: string): string {
             </tr>
           </thead>
           <tbody>
-            <template
-              v-for="entry in phaseGroupEntries(group)"
-              :key="entry.type === 'game' ? entry.game!.id : `break-${entry.time}`"
-            >
-              <tr v-if="entry.type === 'game'">
-                <td>{{ formatTime(entry.game!.startTime) }}</td>
-                <td>{{ entry.game!.courtName ?? '-' }}</td>
-                <td>{{ opponentName(entry.game!) }}</td>
-                <td class="text-center">
-                  <GameResultDisplay
-                    :game="entry.game!"
-                    @enter-result="openResultDialog(entry.game!)"
-                  />
-                </td>
-                <td>
-                  <v-chip size="small" :color="roleColor(teamRole(entry.game!))" variant="tonal">
-                    {{ teamRole(entry.game!) }}
-                  </v-chip>
+            <template v-for="group in groupedGames" :key="`${group.phaseId}:${group.groupId}`">
+              <tr class="phase-group-header">
+                <td colspan="5" class="text-center">
+                  <div>
+                    <strong>{{ group.phaseName }}</strong>
+                  </div>
+                  <div>{{ groupLabel(group) }}</div>
                 </td>
               </tr>
-              <tr v-else class="break-row">
-                <td>{{ formatTime(entry.time) }}</td>
-                <td colspan="4" class="text-medium-emphasis text-italic">Break</td>
-              </tr>
+              <template
+                v-for="entry in entriesByGroup.get(`${group.phaseId}:${group.groupId}`) ?? []"
+                :key="entry.type === 'game' ? entry.game!.id : `break-${entry.time}`"
+              >
+                <tr v-if="entry.type === 'game'">
+                  <td>{{ formatTime(entry.game!.startTime) }}</td>
+                  <td>{{ entry.game!.courtName ?? '-' }}</td>
+                  <td>{{ opponentName(entry.game!) }}</td>
+                  <td class="text-center">
+                    <GameResultDisplay
+                      :game="entry.game!"
+                      @enter-result="openResultDialog(entry.game!)"
+                    />
+                  </td>
+                  <td>
+                    <v-chip size="small" :color="roleColor(entry.role!)" variant="tonal">
+                      {{ entry.role }}
+                    </v-chip>
+                  </td>
+                </tr>
+                <tr v-else class="break-row">
+                  <td>{{ formatTime(entry.time) }}</td>
+                  <td colspan="4" class="text-medium-emphasis text-italic">Break</td>
+                </tr>
+              </template>
             </template>
           </tbody>
         </v-table>
@@ -237,5 +254,13 @@ function formatTime(startTime?: string): string {
 
 .break-row {
   opacity: 0.6;
+}
+
+.phase-group-header td {
+  background: rgba(var(--v-theme-on-surface), 0.04);
+}
+
+.phase-group-header:not(:first-child) td {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 </style>
