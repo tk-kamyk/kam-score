@@ -124,8 +124,8 @@ public class TournamentCopyService
             }
         }
 
-        // Generate and schedule games if prerequisites are met
-        if (!CanGenerateGames(tournament, newPhase, courtIds))
+        // Generate games if there are teams to play and at least one court exists
+        if (!CanGenerateGames(newPhase, courtIds))
             return;
 
         var games = newPhase.GenerateGames(newTournamentId);
@@ -133,12 +133,21 @@ public class TournamentCopyService
             return;
 
         var groupOrder = newPhase.Groups.Select(g => g.Id).ToList();
-        var startDateTime = tournament.StartTime?.Date.Add(newPhase.StartTime!.Value.ToTimeSpan())
-            ?? DateTime.Today.Add(newPhase.StartTime!.Value.ToTimeSpan());
-        GameScheduler.Schedule(games, courtIds, groupOrder, startDateTime, tournament.GameLength!.Value);
 
-        if (newPhase.SupportsRefereeAssignment)
-            RefereeAssigner.Assign(games, tournament.GameLength!.Value);
+        // Schedule and assign referees only when scheduling prerequisites are met
+        if (CanScheduleGames(tournament, newPhase, courtIds))
+        {
+            var startDateTime = (tournament.StartTime?.Date ?? DateTime.Today)
+                .Add(newPhase.StartTime!.Value.ToTimeSpan());
+            GameScheduler.Schedule(games, courtIds, groupOrder, startDateTime, tournament.GameLength!.Value);
+
+            if (newPhase.SupportsRefereeAssignment)
+                RefereeAssigner.Assign(games, tournament.GameLength.Value);
+        }
+        else
+        {
+            CourtAssigner.AssignByGroup(games, courtIds, groupOrder);
+        }
 
         await _gameRepository.CreateBatchAsync(games);
 
@@ -159,15 +168,22 @@ public class TournamentCopyService
         await _tournamentRepository.DeleteAsync(tournamentId, ownerId);
     }
 
-    private static bool CanGenerateGames(Tournament tournament, Phase phase, List<string> courtIds)
+    private static bool CanGenerateGames(Phase phase, List<string> courtIds)
+    {
+        if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
+            return false;
+        if (courtIds.Count == 0)
+            return false;
+        return true;
+    }
+
+    private static bool CanScheduleGames(Tournament tournament, Phase phase, List<string> courtIds)
     {
         if (tournament.GameLength is null or <= 0)
             return false;
         if (phase.StartTime is null)
             return false;
         if (courtIds.Count == 0)
-            return false;
-        if (phase.Groups.Count == 0 || phase.Groups.All(g => g.TeamIds.Count == 0))
             return false;
         return true;
     }

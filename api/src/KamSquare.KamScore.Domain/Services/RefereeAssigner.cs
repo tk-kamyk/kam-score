@@ -89,11 +89,8 @@ public static class RefereeAssigner
         Game targetGame,
         List<Game> allPhaseGames,
         List<Group> phaseGroups,
-        int gameLengthMinutes)
+        int? gameLengthMinutes)
     {
-        if (targetGame.StartTime is null)
-            return [];
-
         // Find the level of the target game's group
         var targetGroup = phaseGroups.FirstOrDefault(g => g.Id == targetGame.GroupId);
         var targetLevelId = targetGroup?.LevelId;
@@ -105,13 +102,25 @@ public static class RefereeAssigner
 
         var allTeamIds = levelGroups.SelectMany(g => g.TeamIds).ToHashSet();
 
+        // When the game has no start time or the tournament has no game length, we
+        // cannot reason about availability windows — return every level/group team
+        // (minus the two playing teams) plus any earlier-round bracket placeholders.
+        if (targetGame.StartTime is null || gameLengthMinutes is null or <= 0)
+        {
+            var unscheduledRealCandidates = allTeamIds
+                .Where(t => t != targetGame.HomeTeamId && t != targetGame.AwayTeamId);
+            var unscheduledPlaceholders = BuildBracketPlaceholders(targetGame, allPhaseGames);
+            return unscheduledRealCandidates.Concat(unscheduledPlaceholders).ToList();
+        }
+
         // Compute slot numbers
         var scheduledGames = allPhaseGames.Where(g => g.StartTime.HasValue).ToList();
         if (scheduledGames.Count == 0)
             return [];
 
         var baseTime = scheduledGames.Min(g => g.StartTime!.Value);
-        int SlotOf(DateTime time) => (int)Math.Round((time - baseTime).TotalMinutes / gameLengthMinutes);
+        var slotMinutes = gameLengthMinutes.Value;
+        int SlotOf(DateTime time) => (int)Math.Round((time - baseTime).TotalMinutes / slotMinutes);
 
         var targetSlot = SlotOf(targetGame.StartTime.Value);
         var nextSlot = targetSlot + 1;

@@ -50,32 +50,6 @@ public class ScheduleGenerationServiceTests
     }
 
     [Fact]
-    public async Task Throws_when_game_length_is_missing()
-    {
-        var tournament = CreateTournament(gameLength: null);
-        var structure = CreateStructure(startTime: new TimeOnly(9, 0));
-
-        var act = async () => await _sut.GenerateAndScheduleAsync(
-            tournament, TournamentId, PhaseId, structure);
-
-        await act.Should().ThrowAsync<ValidationException>()
-            .Where(e => e.Errors.Any(f => f.PropertyName == "GameLength"));
-    }
-
-    [Fact]
-    public async Task Throws_when_phase_start_time_is_missing()
-    {
-        var tournament = CreateTournament();
-        var structure = CreateStructure(startTime: null);
-
-        var act = async () => await _sut.GenerateAndScheduleAsync(
-            tournament, TournamentId, PhaseId, structure);
-
-        await act.Should().ThrowAsync<ValidationException>()
-            .Where(e => e.Errors.Any(f => f.PropertyName == "StartTime"));
-    }
-
-    [Fact]
     public async Task Throws_when_no_courts_exist()
     {
         var tournament = CreateTournament();

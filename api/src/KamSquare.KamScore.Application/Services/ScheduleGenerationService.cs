@@ -49,12 +49,20 @@ public class ScheduleGenerationService
 
         var courtIds = courts.OrderBy(c => c.Name).Select(c => c.Id).ToList();
         var groupOrder = phase.Groups.Select(g => g.Id).ToList();
-        var startDateTime = tournament.StartTime?.Date.Add(phase.StartTime!.Value.ToTimeSpan())
-            ?? DateTime.Today.Add(phase.StartTime!.Value.ToTimeSpan());
-        GameScheduler.Schedule(allGames, courtIds, groupOrder, startDateTime, tournament.GameLength!.Value);
 
-        if (phase.SupportsRefereeAssignment)
-            RefereeAssigner.Assign(allGames, tournament.GameLength!.Value);
+        if (phase.StartTime is not null && tournament.GameLength is > 0)
+        {
+            var startDateTime = (tournament.StartTime?.Date ?? DateTime.Today)
+                .Add(phase.StartTime.Value.ToTimeSpan());
+            GameScheduler.Schedule(allGames, courtIds, groupOrder, startDateTime, tournament.GameLength.Value);
+
+            if (phase.SupportsRefereeAssignment)
+                RefereeAssigner.Assign(allGames, tournament.GameLength.Value);
+        }
+        else
+        {
+            CourtAssigner.AssignByGroup(allGames, courtIds, groupOrder);
+        }
 
         var savedGames = (await _gameRepository.CreateBatchAsync(allGames)).ToList();
 
@@ -97,14 +105,6 @@ public class ScheduleGenerationService
         Tournament tournament, Phase phase, List<Court> courts,
         string tournamentId, string phaseId)
     {
-        if (tournament.GameLength is null or <= 0)
-            throw new ValidationException(
-                [new ValidationFailure("GameLength", "Tournament must have a game length configured.")]);
-
-        if (phase.StartTime is null)
-            throw new ValidationException(
-                [new ValidationFailure("StartTime", "Phase must have a start time configured.")]);
-
         if (courts.Count == 0)
             throw new ValidationException(
                 [new ValidationFailure("Courts", "At least one court is required.")]);

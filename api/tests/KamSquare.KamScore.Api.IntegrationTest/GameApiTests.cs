@@ -245,29 +245,6 @@ public class GameApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
-    public async Task GenerateAndSchedule_NoGameLength_ShouldReturn400()
-    {
-        var tournament = Tournament.Create("Cup", Discipline.Volleyball, "alice");
-        // GameLength is null by default
-        var structure = CreateRoundRobinStructure(tournament.Id);
-        var courts = CreateCourts(tournament.Id);
-        var teams = CreateTeams(tournament.Id);
-
-        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
-        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(tournament.Id)).Returns(structure);
-        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(tournament.Id)).Returns(courts);
-        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(tournament.Id)).Returns(teams);
-
-        var client = _factory.CreateAuthenticatedClient("alice");
-        var phaseId = structure.Phases[0].Id;
-
-        var response = await client.PostAsync(
-            $"/api/tournaments/{tournament.Id}/structure/phases/{phaseId}/generate-schedule", null);
-
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-    }
-
-    [Fact]
     public async Task GetGames_ShouldReturnGamesWithNames()
     {
         var tournament = CreateTestTournament();

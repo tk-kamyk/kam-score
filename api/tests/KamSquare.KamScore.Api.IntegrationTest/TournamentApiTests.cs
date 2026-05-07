@@ -496,6 +496,99 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     }
 
     [Fact]
+    public async Task UpdateTournament_ShouldEnrichResponseWithOwnerDisplayNameAndCounts()
+    {
+        var client = _factory.CreateAuthenticatedClient("admin");
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "admin");
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
+            .Returns(tournament);
+        A.CallTo(() => _factory.FakeRepository.UpdateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeTeamRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(7);
+        A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(tournament.Id))
+            .Returns(3);
+
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, 30, null, null, null);
+
+        var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.OwnerDisplayName.Should().Be("Administrator");
+        result.TeamCount.Should().Be(7);
+        result.CourtCount.Should().Be(3);
+    }
+
+    [Fact]
+    public async Task CreateTournament_ShouldEnrichResponseWithOwnerDisplayNameAndCounts()
+    {
+        var client = _factory.CreateAuthenticatedClient("admin");
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+        A.CallTo(() => _factory.FakeTeamRepository.CountByTournamentIdAsync(A<string>.Ignored))
+            .Returns(2);
+        A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(A<string>.Ignored))
+            .Returns(1);
+
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.OwnerDisplayName.Should().Be("Administrator");
+        result.TeamCount.Should().Be(2);
+        result.CourtCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task CreateTournament_FromSource_ShouldEnrichResponseWithOwnerDisplayNameAndCounts()
+    {
+        var client = _factory.CreateAuthenticatedClient("admin");
+        var source = Tournament.Create("Source Cup", Discipline.Volleyball, "admin");
+        var structure = TournamentStructure.Create(source.Id);
+        var teams = Team.GenerateSeedTeams(4, 1, source.Id);
+        var courts = new List<Court> { Court.Create("Main", source.Id) };
+
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(source.Id))
+            .Returns(source);
+        A.CallTo(() => _factory.FakeStructureRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(structure);
+        A.CallTo(() => _factory.FakeTeamRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(teams);
+        A.CallTo(() => _factory.FakeCourtRepository.GetByTournamentIdAsync(source.Id))
+            .Returns(courts);
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+        A.CallTo(() => _factory.FakeTeamRepository.CreateBatchAsync(A<IEnumerable<Team>>.Ignored))
+            .ReturnsLazily((IEnumerable<Team> t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeCourtRepository.CreateBatchAsync(A<IEnumerable<Court>>.Ignored))
+            .ReturnsLazily((IEnumerable<Court> c) => Task.FromResult(c));
+        A.CallTo(() => _factory.FakeGameRepository.CreateBatchAsync(A<IEnumerable<Game>>.Ignored))
+            .ReturnsLazily((IEnumerable<Game> g) => Task.FromResult(g));
+        A.CallTo(() => _factory.FakeTeamRepository.CountByTournamentIdAsync(A<string>.Ignored))
+            .Returns(4);
+        A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(A<string>.Ignored))
+            .Returns(1);
+
+        var dto = new TournamentDto(null, "Copy Cup", "Volleyball", null, null, null, null, null,
+            SourceTournamentId: source.Id);
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.OwnerDisplayName.Should().Be("Administrator");
+        result.TeamCount.Should().Be(4);
+        result.CourtCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task DeleteTournament_Owner_ShouldAlsoDeleteAllRelatedEntities()
     {
         var client = _factory.CreateAuthenticatedClient("alice");

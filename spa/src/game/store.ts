@@ -32,6 +32,7 @@ export const useGameStore = defineStore('game', () => {
     const { data } = await apiClient.post<GameDto[]>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/generate-schedule`,
     )
+    games.value = [...games.value.filter((g) => g.phaseId !== phaseId), ...data]
     return data
   }
 

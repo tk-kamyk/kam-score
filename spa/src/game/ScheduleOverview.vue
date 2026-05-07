@@ -190,10 +190,7 @@ async function handleGenerate(phaseId: string) {
   const successMessage = phase?.format === 'Custom' ? 'Phase started' : 'Schedule generated'
   try {
     await gameStore.generateSchedule(props.tournamentId, phaseId)
-    await Promise.all([
-      structureStore.fetchStructure(props.tournamentId),
-      gameStore.fetchGames(props.tournamentId),
-    ])
+    await structureStore.fetchStructure(props.tournamentId)
     showSuccess(successMessage)
   } catch (error) {
     showError(getErrorMessage(error, 'Failed to generate schedule'))

@@ -250,24 +250,6 @@ public class TournamentCopyServiceTests
     }
 
     [Fact]
-    public async Task CopyAsync_PhaseWithoutStartTime_ShouldSkipGameGeneration()
-    {
-        var source = CreateSourceTournament();
-        var structure = TournamentStructure.Create(source.Id);
-        structure.AddPhase("Group Stage", PhaseFormat.RoundRobin, 2); // no startTime
-        var teams = CreateSourceTeams(source.Id);
-        var courts = CreateSourceCourts(source.Id);
-        SetupFakesForCopy(source, structure, teams, courts);
-
-        await _sut.CopyAsync(source.Id, "Winter Cup", "bob");
-
-        A.CallTo(() => _structureRepository.CreateAsync(
-                A<TournamentStructure>.That.Matches(s =>
-                    s.Phases[0].Status == PhaseStatus.New)))
-            .MustHaveHappenedOnceExactly();
-    }
-
-    [Fact]
     public async Task CopyAsync_WhenCourtCreationFails_ShouldCleanupTournament()
     {
         var source = CreateSourceTournament();

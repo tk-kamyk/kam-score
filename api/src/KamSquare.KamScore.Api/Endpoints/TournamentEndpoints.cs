@@ -36,25 +36,13 @@ public static class TournamentEndpoints
         IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
-        var displayNames = userOptions.Value.Entries.ToDictionary(u => u.Username, u => u.DisplayName);
+        var displayNames = ResolveDisplayNames(userOptions);
         var allTournaments = await repository.GetAllAsync();
-        var dtos = allTournaments.Select(tournament =>
+
+        var enrichmentTasks = allTournaments.Select(tournament =>
         {
             var dto = mapper.Map<TournamentDto>(tournament);
-            dto = dto with { OwnerDisplayName = ResolveOwnerDisplayName(dto.OwnerId, displayNames) };
-            if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
-            {
-                dto = HideTournamentCode(dto);
-            }
-            return dto;
-        });
-
-        var enrichmentTasks = dtos.Select(async dto =>
-        {
-            var teamCountTask = teamRepository.CountByTournamentIdAsync(dto.Id!);
-            var courtCountTask = courtRepository.CountByTournamentIdAsync(dto.Id!);
-            await Task.WhenAll(teamCountTask, courtCountTask);
-            return dto with { TeamCount = await teamCountTask, CourtCount = await courtCountTask };
+            return EnrichTournamentDtoAsync(dto, tournament, currentUser, displayNames, teamRepository, courtRepository);
         });
         var enrichedDtos = await Task.WhenAll(enrichmentTasks);
 
@@ -78,17 +66,8 @@ public static class TournamentEndpoints
         }
 
         var dto = mapper.Map<TournamentDto>(tournament);
-        var displayNames = userOptions.Value.Entries.ToDictionary(u => u.Username, u => u.DisplayName);
-        dto = dto with { OwnerDisplayName = ResolveOwnerDisplayName(dto.OwnerId, displayNames) };
-
-        if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
-        {
-            dto = HideTournamentCode(dto);
-        }
-
-        var teamCount = await teamRepository.CountByTournamentIdAsync(id);
-        var courtCount = await courtRepository.CountByTournamentIdAsync(id);
-        dto = dto with { TeamCount = teamCount, CourtCount = courtCount };
+        var displayNames = ResolveDisplayNames(userOptions);
+        dto = await EnrichTournamentDtoAsync(dto, tournament, currentUser, displayNames, teamRepository, courtRepository);
 
         return Results.Ok(dto);
     }
@@ -98,42 +77,48 @@ public static class TournamentEndpoints
         ITournamentRepository repository,
         ITournamentStructureRepository structureRepository,
         TournamentCopyService copyService,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
         ICurrentUserService currentUser,
+        IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
+        Tournament created;
         if (!string.IsNullOrEmpty(request.SourceTournamentId))
         {
-            var copied = await copyService.CopyAsync(
+            created = await copyService.CopyAsync(
                 request.SourceTournamentId, request.Name, currentUser.UserId!);
-            var copiedDto = mapper.Map<TournamentDto>(copied);
-            return Results.Created($"/api/tournaments/{copiedDto.Id}", copiedDto);
         }
-
-        var discipline = Enum.Parse<Discipline>(request.Discipline, ignoreCase: true);
-        var tournament = Tournament.Create(request.Name, discipline, currentUser.UserId!);
-
-        if (request.StartTime.HasValue || request.GameLength.HasValue || request.GameConditions is not null)
+        else
         {
-            var gameConditions = request.GameConditions is not null
-                ? mapper.Map<GameConditions>(request.GameConditions)
-                : null;
-            tournament.Update(request.Name, discipline, request.StartTime, request.GameLength, gameConditions);
-        }
+            var discipline = Enum.Parse<Discipline>(request.Discipline, ignoreCase: true);
+            var tournament = Tournament.Create(request.Name, discipline, currentUser.UserId!);
 
-        var created = await repository.CreateAsync(tournament);
+            if (request.StartTime.HasValue || request.GameLength.HasValue || request.GameConditions is not null)
+            {
+                var gameConditions = request.GameConditions is not null
+                    ? mapper.Map<GameConditions>(request.GameConditions)
+                    : null;
+                tournament.Update(request.Name, discipline, request.StartTime, request.GameLength, gameConditions);
+            }
 
-        try
-        {
-            var structure = TournamentStructure.Create(created.Id);
-            await structureRepository.CreateAsync(structure);
-        }
-        catch
-        {
-            await repository.DeleteAsync(created.Id, created.OwnerId);
-            throw;
+            created = await repository.CreateAsync(tournament);
+
+            try
+            {
+                var structure = TournamentStructure.Create(created.Id);
+                await structureRepository.CreateAsync(structure);
+            }
+            catch
+            {
+                await repository.DeleteAsync(created.Id, created.OwnerId);
+                throw;
+            }
         }
 
         var dto = mapper.Map<TournamentDto>(created);
+        var displayNames = ResolveDisplayNames(userOptions);
+        dto = await EnrichTournamentDtoAsync(dto, created, currentUser, displayNames, teamRepository, courtRepository);
 
         return Results.Created($"/api/tournaments/{dto.Id}", dto);
     }
@@ -142,7 +127,10 @@ public static class TournamentEndpoints
         string id,
         TournamentDto request,
         ITournamentRepository repository,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
         ICurrentUserService currentUser,
+        IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
         var tournament = await repository.GetOwnedTournamentAsync(currentUser, id);
@@ -156,6 +144,8 @@ public static class TournamentEndpoints
 
         var updated = await repository.UpdateAsync(tournament);
         var dto = mapper.Map<TournamentDto>(updated);
+        var displayNames = ResolveDisplayNames(userOptions);
+        dto = await EnrichTournamentDtoAsync(dto, updated, currentUser, displayNames, teamRepository, courtRepository);
 
         return Results.Ok(dto);
     }
@@ -195,5 +185,32 @@ public static class TournamentEndpoints
             return "Unknown";
 
         return displayNames.TryGetValue(ownerId, out var displayName) ? displayName : ownerId;
+    }
+
+    private static Dictionary<string, string> ResolveDisplayNames(IOptions<UserOptions> userOptions)
+    {
+        return userOptions.Value.Entries.ToDictionary(u => u.Username, u => u.DisplayName);
+    }
+
+    private static async Task<TournamentDto> EnrichTournamentDtoAsync(
+        TournamentDto dto,
+        Tournament tournament,
+        ICurrentUserService currentUser,
+        Dictionary<string, string> displayNames,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository)
+    {
+        dto = dto with { OwnerDisplayName = ResolveOwnerDisplayName(dto.OwnerId, displayNames) };
+
+        if (!TournamentAuthorizationHelper.HasAdminAccess(tournament, currentUser))
+        {
+            dto = HideTournamentCode(dto);
+        }
+
+        var teamCountTask = teamRepository.CountByTournamentIdAsync(tournament.Id);
+        var courtCountTask = courtRepository.CountByTournamentIdAsync(tournament.Id);
+        await Task.WhenAll(teamCountTask, courtCountTask);
+
+        return dto with { TeamCount = await teamCountTask, CourtCount = await courtCountTask };
     }
 }

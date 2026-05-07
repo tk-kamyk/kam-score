@@ -132,7 +132,7 @@ public static class GameEndpoints
         var phase = structure.GetPhase(game.PhaseId);
         var allPhaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, game.PhaseId)).ToList();
 
-        var candidates = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength!.Value);
+        var candidates = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength);
 
         if (dto.Placeholder is not null)
             game.AssignRefereePlaceholder(dto.Placeholder, candidates);
@@ -167,7 +167,7 @@ public static class GameEndpoints
         var phase = structure.GetPhase(game.PhaseId);
         var allPhaseGames = (await gameRepository.GetByPhaseIdAsync(tournamentId, game.PhaseId)).ToList();
 
-        var candidateIds = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength!.Value);
+        var candidateIds = RefereeAssigner.GetCandidates(game, allPhaseGames, phase.Groups, tournament.GameLength);
 
         var teams = (await teamRepository.GetByTournamentIdAsync(tournamentId)).ToList();
         var teamLookup = teams.ToDictionary(t => t.Id, t => t.Name);

@@ -60,6 +60,12 @@ public class Game : Entity
         LastModified = DateTime.UtcNow;
     }
 
+    public void AssignCourt(string courtId)
+    {
+        CourtId = courtId;
+        LastModified = DateTime.UtcNow;
+    }
+
     public void RecordResult(List<SetResult> sets)
     {
         Sets = sets;

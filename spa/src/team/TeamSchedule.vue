@@ -99,9 +99,10 @@ const entriesByGroup = computed<Map<string, ScheduleEntry[]>>(() => {
   for (const group of groupedGames.value) {
     const key = `${group.phaseId}:${group.groupId}`
     const sortedGames: ScheduleEntry[] = group.games
+      .filter((g) => g.startTime != null)
       .map((g) => ({
         type: 'game' as const,
-        time: g.startTime ?? '',
+        time: g.startTime!,
         game: g,
         role: teamRole(g),
       }))
