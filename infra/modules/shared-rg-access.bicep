@@ -11,7 +11,6 @@ param acrName string
 var keyVaultSecretsUserRole = '4633458b-17de-408a-b874-0445c86b69e6'
 var acrPullRole = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 
-// Reference existing resources in this resource group (REDACTED-SHARED-RG)
 resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' existing = {
   name: keyVaultName
 }
