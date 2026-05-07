@@ -1,0 +1,12 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "resourcePrefix": { "value": "<your-app-prefix>" },
+    "sharedResourceGroup": { "value": "<shared-resource-group-name>" },
+    "cosmosAccountName": { "value": "<cosmos-db-account-name>" },
+    "keyVaultName": { "value": "<key-vault-name>" },
+    "acrName": { "value": "<container-registry-name>" },
+    "customDomainName": { "value": "<custom-domain>" }
+  }
+}

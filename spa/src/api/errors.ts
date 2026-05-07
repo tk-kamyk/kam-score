@@ -33,6 +33,8 @@ export function parseErrorDetail(error: unknown): string | null {
 
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (isTimeoutError(error)) return COLD_START_MESSAGE
+  const validation = parseValidationErrors(error)
+  if (validation && validation.message !== 'Validation failed') return validation.message
   return parseErrorDetail(error) ?? fallback
 }
 

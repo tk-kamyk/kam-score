@@ -37,9 +37,7 @@ public class KamScoreWebApplicationFactory : WebApplicationFactory<Program>
                 ["Jwt:Issuer"] = "KamScore",
                 ["Jwt:Audience"] = "KamScore",
                 ["Jwt:ExpirationMinutes"] = "480",
-                ["Users:Entries:0:Username"] = "admin",
-                ["Users:Entries:0:Password"] = "admin123",
-                ["Users:Entries:0:DisplayName"] = "Administrator"
+                ["Users"] = """[{"username":"admin","password":"admin123","displayName":"Administrator","role":"User"}]"""
             });
         });
 

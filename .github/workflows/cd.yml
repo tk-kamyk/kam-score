@@ -88,8 +88,15 @@ jobs:
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: ${{ vars.RESOURCE_GROUP }}
-          deploymentName: kam-score-${{ github.sha }}
+          deploymentName: infra-${{ github.sha }}
           template: infra/main.bicep
+          parameters: >
+            resourcePrefix=${{ vars.RESOURCE_PREFIX }}
+            sharedResourceGroup=${{ vars.SHARED_RESOURCE_GROUP }}
+            cosmosAccountName=${{ vars.COSMOS_ACCOUNT_NAME }}
+            keyVaultName=${{ vars.KEY_VAULT_NAME }}
+            acrName=${{ vars.ACR_NAME }}
+            customDomainName=${{ vars.CUSTOM_DOMAIN }}
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -106,7 +113,7 @@ jobs:
         run: >
           az webapp deploy
           --resource-group ${{ vars.RESOURCE_GROUP }}
-          --name REDACTED-API
+          --name ${{ vars.RESOURCE_PREFIX }}-api
           --src-path api-publish.zip
           --type zip
 
@@ -133,7 +140,7 @@ jobs:
         run: |
           set -euo pipefail
           TOKEN=$(az staticwebapp secrets list \
-            --name REDACTED-SPA \
+            --name ${{ vars.RESOURCE_PREFIX }}-spa \
             --resource-group ${{ vars.RESOURCE_GROUP }} \
             --query 'properties.apiKey' -o tsv)
           if [ -z "$TOKEN" ]; then
@@ -170,20 +177,26 @@ jobs:
 
       - name: Build and push API image
         run: |
-          docker build -t ${{ steps.acr.outputs.loginServer }}/REDACTED-API:${{ github.sha }} -f api/Dockerfile api/
-          docker push ${{ steps.acr.outputs.loginServer }}/REDACTED-API:${{ github.sha }}
+          docker build -t ${{ steps.acr.outputs.loginServer }}/${{ vars.RESOURCE_PREFIX }}-api:${{ github.sha }} -f api/Dockerfile api/
+          docker push ${{ steps.acr.outputs.loginServer }}/${{ vars.RESOURCE_PREFIX }}-api:${{ github.sha }}
 
       - name: Build and push SPA image
         run: |
-          docker build -t ${{ steps.acr.outputs.loginServer }}/REDACTED-SPA:${{ github.sha }} -f spa/Dockerfile spa/
-          docker push ${{ steps.acr.outputs.loginServer }}/REDACTED-SPA:${{ github.sha }}
+          docker build -t ${{ steps.acr.outputs.loginServer }}/${{ vars.RESOURCE_PREFIX }}-spa:${{ github.sha }} -f spa/Dockerfile spa/
+          docker push ${{ steps.acr.outputs.loginServer }}/${{ vars.RESOURCE_PREFIX }}-spa:${{ github.sha }}
 
       - name: Deploy container infrastructure
         uses: azure/arm-deploy@v2
         with:
           resourceGroupName: ${{ vars.RESOURCE_GROUP }}
-          deploymentName: kam-score-container-${{ github.sha }}
+          deploymentName: infra-container-${{ github.sha }}
           template: infra/main-container.bicep
           parameters: >
-            apiImage=${{ steps.acr.outputs.loginServer }}/REDACTED-API:${{ github.sha }}
-            spaImage=${{ steps.acr.outputs.loginServer }}/REDACTED-SPA:${{ github.sha }}
+            resourcePrefix=${{ vars.RESOURCE_PREFIX }}
+            sharedResourceGroup=${{ vars.SHARED_RESOURCE_GROUP }}
+            cosmosAccountName=${{ vars.COSMOS_ACCOUNT_NAME }}
+            keyVaultName=${{ vars.KEY_VAULT_NAME }}
+            acrName=${{ vars.ACR_NAME }}
+            customDomainName=${{ vars.CUSTOM_DOMAIN }}
+            apiImage=${{ steps.acr.outputs.loginServer }}/${{ vars.RESOURCE_PREFIX }}-api:${{ github.sha }}
+            spaImage=${{ steps.acr.outputs.loginServer }}/${{ vars.RESOURCE_PREFIX }}-spa:${{ github.sha }}
