@@ -6,7 +6,12 @@ import LoginDialog from '@/auth/LoginDialog.vue'
 import PwaInstallHint from '@/components/PwaInstallHint.vue'
 
 const auth = useAuthStore()
-const { show: snackbarShow, message: snackbarMessage, color: snackbarColor } = useSnackbar()
+const {
+  show: snackbarShow,
+  message: snackbarMessage,
+  color: snackbarColor,
+  timeout: snackbarTimeout,
+} = useSnackbar()
 
 useFeatureFlags().fetch()
 </script>
@@ -53,12 +58,15 @@ useFeatureFlags().fetch()
     <v-snackbar
       v-model="snackbarShow"
       :color="snackbarColor"
-      :timeout="3000"
+      :timeout="snackbarTimeout"
       role="status"
       aria-live="polite"
       class="ks-snackbar"
     >
-      {{ snackbarMessage }}
+      <span class="ks-snackbar-message">{{ snackbarMessage }}</span>
+      <template #actions>
+        <v-btn variant="text" @click="snackbarShow = false">Close</v-btn>
+      </template>
     </v-snackbar>
 
     <PwaInstallHint />
@@ -68,6 +76,10 @@ useFeatureFlags().fetch()
 <style scoped>
 .app-bar-border {
   border-bottom: 1px solid var(--ks-border-strong);
+}
+
+.ks-snackbar-message {
+  white-space: pre-line;
 }
 
 .brand-link {

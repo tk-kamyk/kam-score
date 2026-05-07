@@ -33,9 +33,27 @@ export function parseErrorDetail(error: unknown): string | null {
 
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (isTimeoutError(error)) return COLD_START_MESSAGE
+
   const validation = parseValidationErrors(error)
-  if (validation && validation.message !== 'Validation failed') return validation.message
-  return parseErrorDetail(error) ?? fallback
+  if (validation) {
+    const messages = Object.values(validation.fieldErrors).flat()
+    const hasCustomDetail = validation.message !== 'Validation failed'
+    if (messages.length > 0) {
+      const header = hasCustomDetail ? validation.message : fallback
+      const bullets = messages.map((m) => `• ${m}`).join('\n')
+      return `${header}\n${bullets}`
+    }
+    if (hasCustomDetail) return validation.message
+  }
+
+  const detail = parseErrorDetail(error)
+  if (detail) return detail
+
+  const axiosError = error as AxiosError<ProblemDetails>
+  const title = axiosError?.response?.data?.title
+  if (title) return title
+
+  return fallback
 }
 
 export function parseValidationErrors(error: unknown): ValidationErrors | null {
