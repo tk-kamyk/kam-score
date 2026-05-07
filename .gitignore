@@ -89,6 +89,14 @@ docker-compose.override.yml
 appsettings.*.local.json
 
 ## =========================
+## Infrastructure parameters
+## =========================
+
+infra/parameters*.json
+!infra/parameters.example.json
+!infra/parameters.container.example.json
+
+## =========================
 ## OS files
 ## =========================
 

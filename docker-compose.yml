@@ -9,14 +9,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - CosmosDb__ConnectionString=${COSMOSDB_CONNECTION_STRING}
       - Jwt__Secret=${JWT_SECRET}
-      - Users__Entries__0__Username=${USERS_0_USERNAME}
-      - Users__Entries__0__Password=${USERS_0_PASSWORD}
-      - Users__Entries__0__DisplayName=${USERS_0_DISPLAYNAME}
-      - Users__Entries__0__Role=${USERS_0_ROLE}
-      - Users__Entries__1__Username=${USERS_1_USERNAME}
-      - Users__Entries__1__Password=${USERS_1_PASSWORD}
-      - Users__Entries__1__DisplayName=${USERS_1_DISPLAYNAME}
-      - Users__Entries__1__Role=${USERS_1_ROLE}
+      - Users=${USERS}
       - Cors__AllowedOrigins__0=http://localhost:3000
 
   spa:

@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using FluentValidation;
 using KamSquare.KamScore.Application.Interfaces;
 using KamSquare.KamScore.Application.Mappers;
@@ -32,7 +33,15 @@ public static class ServiceCollectionExtensions
                 "Jwt:Secret must be at least 32 characters.")
             .ValidateOnStart();
         services.AddOptions<UserOptions>()
-            .Bind(configuration.GetSection(UserOptions.SectionName))
+            .Configure<IConfiguration>((opts, cfg) =>
+            {
+                var json = cfg[UserOptions.SectionName];
+                if (string.IsNullOrWhiteSpace(json)) return;
+                var entries = JsonSerializer.Deserialize<List<UserEntry>>(
+                    json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (entries is not null) opts.Entries = entries;
+            })
             .Validate(o => o.Entries.Count > 0, "At least one user entry is required.")
             .ValidateOnStart();
         services.Configure<CosmosDbOptions>(configuration.GetSection(CosmosDbOptions.SectionName));

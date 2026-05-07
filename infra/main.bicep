@@ -1,17 +1,23 @@
 @description('Location for all resources')
 param location string = resourceGroup().location
 
+@description('Prefix for all app-scoped resources (e.g. logs, identity, api, spa)')
+param resourcePrefix string
+
 @description('Resource group containing shared resources (Key Vault, Cosmos DB, ACR)')
-param sharedResourceGroup string = 'kam-square'
+param sharedResourceGroup string
 
 @description('Name of the existing Cosmos DB account')
-param cosmosAccountName string = 'kam-square-cosmos'
+param cosmosAccountName string
 
 @description('Name of the existing Key Vault')
-param keyVaultName string = 'kam-square-kv'
+param keyVaultName string
 
 @description('Name of the existing Container Registry (unused by hosting; required by shared-rg-access module)')
-param acrName string = 'kamsquareacr'
+param acrName string
+
+@description('Custom domain for the Static Web App (e.g. score.example.com)')
+param customDomainName string
 
 @description('Linux runtime stack identifier for the API App Service')
 param dotnetLinuxFxVersion string = 'DOTNETCORE|10.0'
@@ -20,7 +26,7 @@ param dotnetLinuxFxVersion string = 'DOTNETCORE|10.0'
 param deploymentSuffix string = utcNow('yyyyMMddHHmmss')
 
 // ──────────────────────────────────────────────
-// Existing resources in kam-square RG
+// Existing resources in shared RG
 // ──────────────────────────────────────────────
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
@@ -36,7 +42,7 @@ var keyVaultUri = 'https://${keyVaultName}${environment().suffixes.keyvaultDns}/
 // ──────────────────────────────────────────────
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
-  name: 'kam-score-logs'
+  name: '${resourcePrefix}-logs'
   location: location
   properties: {
     sku: {
@@ -54,7 +60,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 // ──────────────────────────────────────────────
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
-  name: 'kam-score-identity'
+  name: '${resourcePrefix}-identity'
   location: location
 }
 
@@ -78,7 +84,7 @@ module sharedAccess 'modules/shared-rg-access.bicep' = {
 // ──────────────────────────────────────────────
 
 resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
-  name: 'kam-score-spa'
+  name: '${resourcePrefix}-spa'
   location: location
   sku: {
     name: 'Free'
@@ -89,11 +95,11 @@ resource staticWebApp 'Microsoft.Web/staticSites@2023-12-01' = {
   }
 }
 
-// Custom domain binding. Requires the CNAME record at score.kam-square.com
-// to already point at the SWA's default hostname before validation succeeds.
+// Custom domain binding. Requires the CNAME record to already point
+// at the SWA's default hostname before validation succeeds.
 resource swaCustomDomain 'Microsoft.Web/staticSites/customDomains@2023-12-01' = {
   parent: staticWebApp
-  name: 'score.kam-square.com'
+  name: customDomainName
   properties: {
     validationMethod: 'cname-delegation'
   }
@@ -104,7 +110,7 @@ resource swaCustomDomain 'Microsoft.Web/staticSites/customDomains@2023-12-01' = 
 // ──────────────────────────────────────────────
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
-  name: 'kam-score-plan'
+  name: '${resourcePrefix}-plan'
   location: location
   kind: 'linux'
   sku: {
@@ -120,8 +126,39 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-12-01' = {
 // API Web App (deploy-as-code; F1 cannot host custom containers)
 // ──────────────────────────────────────────────
 
+var baseAppSettings = [
+  {
+    name: 'ASPNETCORE_ENVIRONMENT'
+    value: 'Production'
+  }
+  {
+    name: 'Jwt__Secret'
+    value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/JWT-SECRET/)'
+  }
+  {
+    name: 'Users'
+    value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/USERS/)'
+  }
+  {
+    name: 'CosmosDb__ConnectionString'
+    value: cosmosConnectionString
+  }
+  {
+    name: 'Cors__AllowedOrigins__0'
+    value: 'https://${staticWebApp.properties.defaultHostname}'
+  }
+  {
+    name: 'Cors__AllowedOrigins__1'
+    value: 'https://${customDomainName}'
+  }
+  {
+    name: 'WEBSITE_RUN_FROM_PACKAGE'
+    value: '1'
+  }
+]
+
 resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
-  name: 'kam-score-api'
+  name: '${resourcePrefix}-api'
   location: location
   kind: 'app,linux'
   identity: {
@@ -139,96 +176,7 @@ resource apiApp 'Microsoft.Web/sites@2023-12-01' = {
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
       scmMinTlsVersion: '1.2'
-      appSettings: [
-        {
-          name: 'ASPNETCORE_ENVIRONMENT'
-          value: 'Production'
-        }
-        {
-          name: 'Jwt__Secret'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/JWT-SECRET/)'
-        }
-        {
-          name: 'Users__Entries__0__Username'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-USERNAME/)'
-        }
-        {
-          name: 'Users__Entries__0__Password'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-PASSWORD/)'
-        }
-        {
-          name: 'Users__Entries__0__DisplayName'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-DISPLAYNAME/)'
-        }
-        {
-          name: 'Users__Entries__0__Role'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/ADMIN-ROLE/)'
-        }
-        {
-          name: 'Users__Entries__1__Username'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-USERNAME/)'
-        }
-        {
-          name: 'Users__Entries__1__Password'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-PASSWORD/)'
-        }
-        {
-          name: 'Users__Entries__1__DisplayName'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-DISPLAYNAME/)'
-        }
-        {
-          name: 'Users__Entries__1__Role'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/DTU-ROLE/)'
-        }
-        {
-          name: 'Users__Entries__2__Username'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-USERNAME/)'
-        }
-        {
-          name: 'Users__Entries__2__Password'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-PASSWORD/)'
-        }
-        {
-          name: 'Users__Entries__2__DisplayName'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-DISPLAYNAME/)'
-        }
-        {
-          name: 'Users__Entries__2__Role'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/KSV-ROLE/)'
-        }
-        {
-          name: 'Users__Entries__3__Username'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-USERNAME/)'
-        }
-        {
-          name: 'Users__Entries__3__Password'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-PASSWORD/)'
-        }
-        {
-          name: 'Users__Entries__3__DisplayName'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-DISPLAYNAME/)'
-        }
-        {
-          name: 'Users__Entries__3__Role'
-          value: '@Microsoft.KeyVault(SecretUri=${keyVaultUri}/CPH-ROLE/)'
-        }
-        {
-          name: 'CosmosDb__ConnectionString'
-          value: cosmosConnectionString
-        }
-        {
-          name: 'Cors__AllowedOrigins__0'
-          value: 'https://${staticWebApp.properties.defaultHostname}'
-        }
-        {
-          name: 'Cors__AllowedOrigins__1'
-          value: 'https://score.kam-square.com'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-      ]
+      appSettings: baseAppSettings
     }
   }
   dependsOn: [
@@ -266,7 +214,7 @@ resource apiFtpBasicAuth 'Microsoft.Web/sites/basicPublishingCredentialsPolicies
 // ──────────────────────────────────────────────
 
 resource keepWarm 'Microsoft.Logic/workflows@2019-05-01' = {
-  name: 'kam-score-keepwarm'
+  name: '${resourcePrefix}-keepwarm'
   location: location
   properties: {
     state: 'Enabled'

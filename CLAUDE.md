@@ -350,9 +350,7 @@ Secrets are **not** stored in appsettings files.
 ```bash
 cd api/src/KamSquare.KamScore.Api
 dotnet user-secrets set "Jwt:Secret" "64-character-long-secret"
-dotnet user-secrets set "Users:Entries:0:Username" "username"
-dotnet user-secrets set "Users:Entries:0:Password" "password"
-dotnet user-secrets set "Users:Entries:0:DisplayName" "DisplayName"
+dotnet user-secrets set "Users" '[{"username":"username","password":"password","displayName":"DisplayName","role":"User"}]'
 dotnet user-secrets set "CosmosDb:ConnectionString" "your-connection-string"
 ```
 

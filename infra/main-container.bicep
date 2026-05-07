@@ -7,20 +7,26 @@ param apiImage string
 @description('Full SPA container image path with tag')
 param spaImage string
 
+@description('Prefix for all app-scoped resources')
+param resourcePrefix string
+
 @description('Resource group containing shared resources (Key Vault, Cosmos DB, ACR)')
-param sharedResourceGroup string = 'kam-square'
+param sharedResourceGroup string
 
 @description('Name of the existing Cosmos DB account')
-param cosmosAccountName string = 'kam-square-cosmos'
+param cosmosAccountName string
 
 @description('Name of the existing Key Vault')
-param keyVaultName string = 'kam-square-kv'
+param keyVaultName string
 
 @description('Name of the existing Container Registry')
-param acrName string = 'kamsquareacr'
+param acrName string
+
+@description('Custom domain used in CORS allow-list')
+param customDomainName string
 
 // ──────────────────────────────────────────────
-// Existing resources in kam-square RG
+// Existing resources in shared RG
 // ──────────────────────────────────────────────
 
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' existing = {
@@ -45,11 +51,11 @@ var acrLoginServer = acr.properties.loginServer
 // ──────────────────────────────────────────────
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' existing = {
-  name: 'kam-score-logs'
+  name: '${resourcePrefix}-logs'
 }
 
 resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' existing = {
-  name: 'kam-score-identity'
+  name: '${resourcePrefix}-identity'
 }
 
 // ──────────────────────────────────────────────
@@ -57,7 +63,7 @@ resource managedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-
 // ──────────────────────────────────────────────
 
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
-  name: 'kam-score-env'
+  name: '${resourcePrefix}-env'
   location: location
   properties: {
     appLogsConfiguration: {
@@ -74,8 +80,52 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 // API Container App (defined before SPA so FQDN is available)
 // ──────────────────────────────────────────────
 
+var baseSecrets = [
+  {
+    name: 'jwt-secret'
+    keyVaultUrl: '${keyVaultUri}/JWT-SECRET'
+    identity: managedIdentity.id
+  }
+  {
+    name: 'users'
+    keyVaultUrl: '${keyVaultUri}/USERS'
+    identity: managedIdentity.id
+  }
+  {
+    name: 'cosmos-connection-string'
+    value: cosmosConnectionString
+  }
+]
+
+var baseEnvVars = [
+  {
+    name: 'ASPNETCORE_ENVIRONMENT'
+    value: 'Production'
+  }
+  {
+    name: 'Jwt__Secret'
+    secretRef: 'jwt-secret'
+  }
+  {
+    name: 'Users'
+    secretRef: 'users'
+  }
+  {
+    name: 'CosmosDb__ConnectionString'
+    secretRef: 'cosmos-connection-string'
+  }
+  {
+    name: 'Cors__AllowedOrigins__0'
+    value: 'https://${customDomainName}'
+  }
+  {
+    name: 'Cors__AllowedOrigins__1'
+    value: 'https://${resourcePrefix}-spa.${containerAppEnv.properties.defaultDomain}'
+  }
+]
+
 resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
-  name: 'kam-score-api'
+  name: '${resourcePrefix}-api'
   location: location
   identity: {
     type: 'UserAssigned'
@@ -96,97 +146,7 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
           identity: managedIdentity.id
         }
       ]
-      secrets: [
-        {
-          name: 'jwt-secret'
-          keyVaultUrl: '${keyVaultUri}/JWT-SECRET'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-username'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-password'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-displayname'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'admin-role'
-          keyVaultUrl: '${keyVaultUri}/ADMIN-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-username'
-          keyVaultUrl: '${keyVaultUri}/DTU-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-password'
-          keyVaultUrl: '${keyVaultUri}/DTU-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-displayname'
-          keyVaultUrl: '${keyVaultUri}/DTU-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'dtu-role'
-          keyVaultUrl: '${keyVaultUri}/DTU-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-username'
-          keyVaultUrl: '${keyVaultUri}/KSV-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-password'
-          keyVaultUrl: '${keyVaultUri}/KSV-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-displayname'
-          keyVaultUrl: '${keyVaultUri}/KSV-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'ksv-role'
-          keyVaultUrl: '${keyVaultUri}/KSV-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-username'
-          keyVaultUrl: '${keyVaultUri}/CPH-USERNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-password'
-          keyVaultUrl: '${keyVaultUri}/CPH-PASSWORD'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-displayname'
-          keyVaultUrl: '${keyVaultUri}/CPH-DISPLAYNAME'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cph-role'
-          keyVaultUrl: '${keyVaultUri}/CPH-ROLE'
-          identity: managedIdentity.id
-        }
-        {
-          name: 'cosmos-connection-string'
-          value: cosmosConnectionString
-        }
-      ]
+      secrets: baseSecrets
     }
     template: {
       containers: [
@@ -197,92 +157,7 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
             cpu: json('0.5')
             memory: '1Gi'
           }
-          env: [
-            {
-              name: 'ASPNETCORE_ENVIRONMENT'
-              value: 'Production'
-            }
-            {
-              name: 'Jwt__Secret'
-              secretRef: 'jwt-secret'
-            }
-            {
-              name: 'Users__Entries__0__Username'
-              secretRef: 'admin-username'
-            }
-            {
-              name: 'Users__Entries__0__Password'
-              secretRef: 'admin-password'
-            }
-            {
-              name: 'Users__Entries__0__DisplayName'
-              secretRef: 'admin-displayname'
-            }
-            {
-              name: 'Users__Entries__0__Role'
-              secretRef: 'admin-role'
-            }
-            {
-              name: 'Users__Entries__1__Username'
-              secretRef: 'dtu-username'
-            }
-            {
-              name: 'Users__Entries__1__Password'
-              secretRef: 'dtu-password'
-            }
-            {
-              name: 'Users__Entries__1__DisplayName'
-              secretRef: 'dtu-displayname'
-            }
-            {
-              name: 'Users__Entries__1__Role'
-              secretRef: 'dtu-role'
-            }
-            {
-              name: 'Users__Entries__2__Username'
-              secretRef: 'ksv-username'
-            }
-            {
-              name: 'Users__Entries__2__Password'
-              secretRef: 'ksv-password'
-            }
-            {
-              name: 'Users__Entries__2__DisplayName'
-              secretRef: 'ksv-displayname'
-            }
-            {
-              name: 'Users__Entries__2__Role'
-              secretRef: 'ksv-role'
-            }
-            {
-              name: 'Users__Entries__3__Username'
-              secretRef: 'cph-username'
-            }
-            {
-              name: 'Users__Entries__3__Password'
-              secretRef: 'cph-password'
-            }
-            {
-              name: 'Users__Entries__3__DisplayName'
-              secretRef: 'cph-displayname'
-            }
-            {
-              name: 'Users__Entries__3__Role'
-              secretRef: 'cph-role'
-            }
-            {
-              name: 'CosmosDb__ConnectionString'
-              secretRef: 'cosmos-connection-string'
-            }
-            {
-              name: 'Cors__AllowedOrigins__0'
-              value: 'https://score.kam-square.com'
-            }
-            {
-              name: 'Cors__AllowedOrigins__1'
-              value: 'https://kam-score-spa.${containerAppEnv.properties.defaultDomain}'
-            }
-          ]
+          env: baseEnvVars
         }
       ]
       scale: {
@@ -309,7 +184,7 @@ resource apiApp 'Microsoft.App/containerApps@2026-01-01' = {
 // ──────────────────────────────────────────────
 
 resource spaApp 'Microsoft.App/containerApps@2026-01-01' = {
-  name: 'kam-score-spa'
+  name: '${resourcePrefix}-spa'
   location: location
   identity: {
     type: 'UserAssigned'
