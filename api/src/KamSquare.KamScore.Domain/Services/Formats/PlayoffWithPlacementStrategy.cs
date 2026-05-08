@@ -7,11 +7,6 @@ public class PlayoffWithPlacementStrategy : IPhaseFormatStrategy
 {
     public bool SupportsRefereeAssignment => false;
 
-    public void ValidateTeams(List<Group> groups)
-    {
-        // No format-specific team count constraints
-    }
-
     public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
         => PlayoffWithPlacementGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
 

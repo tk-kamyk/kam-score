@@ -57,7 +57,7 @@ Teams not yet eliminated default to the worst position.
 
 **Ranking flow** — `CustomStandingsRanker.Calculate(Group)` emits standings by walking `ManualStandingOrder`. `RankCrossGroup` is a **stable sort by `Position` ascending** — ties across groups (e.g. every group's 1st-place team) are resolved by the order standings were supplied. This deliberately overrides the default `RankCrossGroup` shape used by games-based formats (which sort by `Points ?? 0` → `SetDifference ?? 0` → …) because those defaults would tie every team at zero.
 
-**Strategy contract** — `CustomStrategy.CalculateStandings(games, group)` satisfies the normal `IPhaseFormatStrategy` shape by ignoring `games` and delegating to `CustomStandingsRanker.Calculate(group)`. `GenerateGames` returns an empty list; `ValidateTeams` is a no-op; `SupportsRefereeAssignment` is `false`.
+**Strategy contract** — `CustomStrategy.CalculateStandings(games, group)` satisfies the normal `IPhaseFormatStrategy` shape by ignoring `games` and delegating to `CustomStandingsRanker.Calculate(group)`. `GenerateGames` returns an empty list; `SupportsRefereeAssignment` is `false`.
 
 **Invariants on ManualStandingOrder (enforced by `Group.SetManualStandingOrder`)**:
 - Count equals `TeamIds.Count`

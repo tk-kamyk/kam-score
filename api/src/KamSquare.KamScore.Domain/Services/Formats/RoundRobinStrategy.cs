@@ -7,11 +7,6 @@ public class RoundRobinStrategy : IPhaseFormatStrategy
 {
     public bool SupportsRefereeAssignment => true;
 
-    public void ValidateTeams(List<Group> groups)
-    {
-        // No format-specific team count constraints for round robin
-    }
-
     public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
         => RoundRobinGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
 

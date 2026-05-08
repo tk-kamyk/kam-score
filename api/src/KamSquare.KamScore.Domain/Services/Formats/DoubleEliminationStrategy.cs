@@ -7,11 +7,6 @@ public class DoubleEliminationStrategy : IPhaseFormatStrategy
 {
     public bool SupportsRefereeAssignment => false;
 
-    public void ValidateTeams(List<Group> groups)
-    {
-        // No format-specific team count constraints for standard double elimination
-    }
-
     public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
         => DoubleEliminationGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
 

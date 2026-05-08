@@ -244,7 +244,6 @@ IPhaseFormatStrategy
 ├── CalculateStandings()            → delegates to XxxStandingsRanker.Calculate(...)
 ├── RankCrossGroup()                → delegates to XxxStandingsRanker.RankCrossGroup(...)
 ├── SupportsRefereeAssignment       (property)
-└── ValidateTeams()                 (format-specific team count validation, e.g. VD requires 8)
 ```
 
 Factory: `PhaseFormatStrategy.For(PhaseFormat)` returns the correct instance.

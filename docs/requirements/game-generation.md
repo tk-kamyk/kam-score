@@ -15,6 +15,8 @@
 - A single "Generate & Schedule" button generates all games in a phase and auto-schedules them across courts and time slots
 - Game generation produces different game sets depending on the phase format (round-robin, playoff-elimination, playoff-with-placement, double-elimination, double-elimination-vd)
 - Playoffs and double elimination apply to each group individually; bracket size is determined by the number of teams in the group
+- All formats must produce a valid schedule for any number of teams in a group, including non-power-of-two counts.
+- Double Elimination (VD) is used only when the group contains exactly 8 teams; for any other team count the phase falls back to the standard Double Elimination format
 - Scheduling uses the tournament-level game length (minutes) for time slot duration and the phase-level start time as the baseline
 
 ## Schedule

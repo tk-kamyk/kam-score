@@ -14,4 +14,9 @@ public static class PhaseFormatStrategy
         PhaseFormat.Custom => new CustomStrategy(),
         _ => throw new ArgumentOutOfRangeException(nameof(format), format, $"Unsupported phase format: {format}")
     };
+
+    public static IPhaseFormatStrategy For(PhaseFormat format, int teamCount) =>
+        format == PhaseFormat.DoubleEliminationVd && teamCount != DoubleEliminationVdGenerator.RequiredTeamCount
+            ? new DoubleEliminationStrategy()
+            : For(format);
 }

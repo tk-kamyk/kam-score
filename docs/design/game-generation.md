@@ -12,6 +12,7 @@ Paired with [../requirements/game-generation.md](../requirements/game-generation
 - Single-elimination bracket per group
 - First round uses real team IDs (seeded)
 - Later rounds use placeholders (e.g., `"Winner SF1"`, `"Winner QF2"`)
+- Non-power-of-two team counts: the bracket is padded to the next power of two and unused slots become byes. Pair groupings of round 1 are then reordered before round 2 is generated so that pairs with both slots from byes come first, pairs with both slots from real round-1 games come next, and pairs mixing a bye with a round-1 game come last. This puts the team that just played round 1 into the latest match of the next round
 
 ### Playoff with Placement
 - Single-elimination bracket with full placement games for all final positions (1st through Nth)
@@ -35,7 +36,7 @@ Paired with [../requirements/game-generation.md](../requirements/game-generation
   - 3rd-4th shared (Grand SF losers)
   - 5th-6th shared (Crossover losers)
   - 7th / 8th from 7th Place game
-- Validation: rejects groups with ≠ 8 teams
+- Validation: only generates the VD layout when the group has exactly 8 teams; for any other count the strategy delegates to the standard Double Elimination strategy
 
 ### Double Elimination (standard)
 - Teams must lose twice to be eliminated

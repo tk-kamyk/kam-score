@@ -28,21 +28,27 @@ public static class PlayoffWithPlacementGenerator
             ];
         }
 
-        var n = teamIds.Count;
-        var bracketSize = BracketUtilities.NextPowerOfTwo(n);
+        var bracketSize = BracketUtilities.NextPowerOfTwo(teamIds.Count);
         var totalMainRounds = (int)Math.Log2(bracketSize);
         var roundNames = BracketUtilities.GetRoundNames(totalMainRounds);
 
-        var (r1Games, r1Pool) = GenerateFirstRound(
+        var (firstRoundGames, firstRoundSlots) = BracketUtilities.BuildFirstRoundPool(
             tournamentId, phaseId, groupId, teamIds, bracketSize, roundNames[0]);
 
-        var eliminationGames = new List<Game>(r1Games);
+        var firstRoundPool = firstRoundSlots.Select(WrapSlot).ToList();
+
+        // Bye-last reorder: pair groupings sort so 0-bye pairs come first,
+        // 2-bye pairs next, and 1-bye mixed pairs last. Pushes the bye seed's
+        // pair to the last A-SF slot.
+        firstRoundPool = BracketUtilities.ReorderPairsByByeLast(firstRoundPool, e => e is PoolEntry.FirstRoundBye);
+
+        var eliminationGames = new List<Game>(firstRoundGames);
         var placementGames = new List<Game>();
         var roundNumber = 1;
 
         var currentLevel = new List<(List<PoolEntry> Entries, string Prefix)>
         {
-            (r1Pool, "")
+            (firstRoundPool, "")
         };
 
         while (currentLevel.Count > 0)
@@ -71,6 +77,14 @@ public static class PlayoffWithPlacementGenerator
         return eliminationGames;
     }
 
+    private static PoolEntry WrapSlot(BracketUtilities.FirstRoundSlot slot) =>
+        slot switch
+        {
+            BracketUtilities.FirstRoundSlot.Bye b => new PoolEntry.FirstRoundBye(b.TeamId),
+            BracketUtilities.FirstRoundSlot.Real r => new PoolEntry.Game(r.GameLabel),
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Unknown FirstRoundSlot kind"),
+        };
+
     private static void ProcessLoserSubBracket(
         string tournamentId, string phaseId, string groupId,
         List<PoolEntry> entries, string prefix,
@@ -78,26 +92,49 @@ public static class PlayoffWithPlacementGenerator
         List<(List<PoolEntry> Entries, string Prefix)> nextLevel,
         ref int roundNumber)
     {
-        var loserEntries = entries.Where(e => e.HasLoser).ToList();
+        var loserEntries = entries.OfType<PoolEntry.Game>().Cast<PoolEntry>().ToList();
         if (loserEntries.Count < 2)
             return;
+
+        // Why: When the loser pool size is odd, append a synthetic loser-bye
+        // after the last real loser. The pair (last real loser, loser-bye) does
+        // not produce a game; the real loser auto-advances to the next level
+        // via a placeholder pool entry.
+        if (loserEntries.Count % 2 == 1)
+        {
+            var lastReal = (PoolEntry.Game)loserEntries[^1];
+            loserEntries.Add(new PoolEntry.LoserBye(lastReal.LoserRef));
+        }
 
         var bPrefix = prefix + "B-";
         var bRoundName = GetSubBracketRoundName(loserEntries.Count / 2);
         var bGames = new List<Game>();
         var bPoolEntries = new List<PoolEntry>();
+        var matchNum = 0;
 
         for (var i = 0; i < loserEntries.Count; i += 2)
         {
-            var matchNum = i / 2 + 1;
+            var first = loserEntries[i];
+            var second = loserEntries[i + 1];
+
+            // Auto-advance: when one side of the pair is a synthetic loser-bye,
+            // the partnered real loser propagates as a placeholder pool entry.
+            if (first is not PoolEntry.Game firstGame || second is not PoolEntry.Game secondGame)
+            {
+                var realLoser = (first is PoolEntry.Game fg) ? fg : (PoolEntry.Game)second;
+                bPoolEntries.Add(new PoolEntry.LoserBye(realLoser.LoserRef));
+                continue;
+            }
+
+            matchNum++;
             var label = $"{bPrefix}{bRoundName}{matchNum}";
             var game = Game.Create(tournamentId, phaseId, groupId,
                 round: 0,
-                homeTeamPlaceholder: loserEntries[i].LoserRef,
-                awayTeamPlaceholder: loserEntries[i + 1].LoserRef,
+                homeTeamPlaceholder: firstGame.LoserRef,
+                awayTeamPlaceholder: secondGame.LoserRef,
                 label: label);
             bGames.Add(game);
-            bPoolEntries.Add(new PoolEntry(label, null));
+            bPoolEntries.Add(new PoolEntry.Game(label));
         }
 
         if (loserEntries.Count == 2)
@@ -133,18 +170,8 @@ public static class PlayoffWithPlacementGenerator
             var matchNum = i / 2 + 1;
             var label = $"{aPrefix}{aRoundName}{matchNum}";
 
-            string? homeTeamId = null, awayTeamId = null;
-            string? homePlaceholder = null, awayPlaceholder = null;
-
-            if (entries[i].IsBye)
-                homeTeamId = entries[i].WinnerRef;
-            else
-                homePlaceholder = entries[i].WinnerRef;
-
-            if (entries[i + 1].IsBye)
-                awayTeamId = entries[i + 1].WinnerRef;
-            else
-                awayPlaceholder = entries[i + 1].WinnerRef;
+            var (homeTeamId, homePlaceholder) = ResolveAdvancingSide(entries[i]);
+            var (awayTeamId, awayPlaceholder) = ResolveAdvancingSide(entries[i + 1]);
 
             var game = Game.Create(tournamentId, phaseId, groupId,
                 round: 0,
@@ -152,7 +179,7 @@ public static class PlayoffWithPlacementGenerator
                 homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
                 label: label);
             aGames.Add(game);
-            aPoolEntries.Add(new PoolEntry(label, null));
+            aPoolEntries.Add(new PoolEntry.Game(label));
         }
 
         if (entries.Count == 2)
@@ -168,47 +195,14 @@ public static class PlayoffWithPlacementGenerator
         }
     }
 
-    private static (List<Game> Games, List<PoolEntry> Pool) GenerateFirstRound(
-        string tournamentId,
-        string phaseId,
-        string groupId,
-        List<string> teamIds,
-        int bracketSize,
-        string roundName)
-    {
-        var n = teamIds.Count;
-        var bracketOrder = BracketUtilities.BuildBracketOrder(bracketSize);
-        var games = new List<Game>();
-        var pool = new List<PoolEntry>();
-        var gameIndex = 0;
-
-        var firstRoundMatchCount = bracketSize / 2;
-
-        for (var match = 0; match < firstRoundMatchCount; match++)
+    private static (string? RealId, string? Placeholder) ResolveAdvancingSide(PoolEntry entry) =>
+        entry switch
         {
-            var seed1Pos = bracketOrder[match * 2];
-            var seed2Pos = bracketOrder[match * 2 + 1];
-
-            var team1 = seed1Pos < n ? teamIds[seed1Pos] : null;
-            var team2 = seed2Pos < n ? teamIds[seed2Pos] : null;
-
-            if (team1 is null || team2 is null)
-            {
-                var advancingTeamId = team1 ?? team2!;
-                pool.Add(new PoolEntry($"BYE-{match}", advancingTeamId));
-                continue;
-            }
-
-            gameIndex++;
-            var label = BracketUtilities.GetMatchLabel(roundName, gameIndex);
-            var game = Game.Create(tournamentId, phaseId, groupId, round: 1,
-                homeTeamId: team1, awayTeamId: team2, label: label);
-            games.Add(game);
-            pool.Add(new PoolEntry(label, null));
-        }
-
-        return (games, pool);
-    }
+            PoolEntry.FirstRoundBye b => (b.TeamId, null),
+            PoolEntry.LoserBye lb => (null, lb.LoserPlaceholder),
+            PoolEntry.Game g => (null, $"Winner {g.Label}"),
+            _ => throw new ArgumentOutOfRangeException(nameof(entry), entry, "Unknown PoolEntry kind"),
+        };
 
     private static string GetSubBracketRoundName(int gameCount)
     {
@@ -221,11 +215,28 @@ public static class PlayoffWithPlacementGenerator
         };
     }
 
-    private record PoolEntry(string Label, string? AutoAdvanceTeamId)
+    /// <summary>
+    /// A bracket-walk pool entry. Three mutually exclusive shapes:
+    /// <list type="bullet">
+    /// <item><see cref="Game"/> — a real played game; its winner and loser
+    /// each have a referencable placeholder.</item>
+    /// <item><see cref="FirstRoundBye"/> — a round-1 bye carrying the
+    /// auto-advancing real team id; produces no game and has no loser.</item>
+    /// <item><see cref="LoserBye"/> — a synthetic loser-side bye carrying a
+    /// <c>"Loser X"</c> placeholder forward without a game; used when a
+    /// sub-bracket loser pool has odd cardinality so the partnered loser
+    /// auto-advances.</item>
+    /// </list>
+    /// </summary>
+    private abstract record PoolEntry
     {
-        public bool IsBye => AutoAdvanceTeamId is not null;
-        public string WinnerRef => IsBye ? AutoAdvanceTeamId! : $"Winner {Label}";
-        public bool HasLoser => !IsBye;
-        public string LoserRef => $"Loser {Label}";
+        public sealed record Game(string Label) : PoolEntry
+        {
+            public string LoserRef => $"Loser {Label}";
+        }
+
+        public sealed record FirstRoundBye(string TeamId) : PoolEntry;
+
+        public sealed record LoserBye(string LoserPlaceholder) : PoolEntry;
     }
 }

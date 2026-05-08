@@ -9,5 +9,4 @@ public interface IPhaseFormatStrategy
     List<Standing> CalculateStandings(List<Game> games, Group group);
     List<Standing> RankCrossGroup(List<Standing> standings);
     bool SupportsRefereeAssignment { get; }
-    void ValidateTeams(List<Group> groups);
 }

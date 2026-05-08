@@ -28,14 +28,6 @@ public class CustomGeneratorTests
     }
 
     [Fact]
-    public void ValidateTeams_ShouldNotThrow_ForAnyTeamCount()
-    {
-        var act = () => _strategy.ValidateTeams([]);
-
-        act.Should().NotThrow();
-    }
-
-    [Fact]
     public void SupportsRefereeAssignment_ShouldBeFalse()
     {
         _strategy.SupportsRefereeAssignment.Should().BeFalse();

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Services.Formats;
 
 namespace KamSquare.KamScore.Domain.UnitTest;
@@ -22,19 +23,44 @@ public class DoubleEliminationVdGeneratorTests
     }
 
     [Fact]
-    public void Generate_WithNon8Teams_ShouldThrow()
+    public void Generate_WithNon8Teams_FallsBackToStandardDoubleElimination()
     {
-        var act4 = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId,
+        // For team counts other than 8, the VD strategy must silently fall back
+        // to the standard Double Elimination format and produce identical games.
+        var standard = new DoubleEliminationStrategy();
+
+        AssertVdMatchesStandardDoubleElimination(
+            standard,
             ["s1", "s2", "s3", "s4"]);
-        act4.Should().Throw<InvalidOperationException>();
 
-        var act7 = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId,
+        AssertVdMatchesStandardDoubleElimination(
+            standard,
             Enumerable.Range(1, 7).Select(i => $"s{i}").ToList());
-        act7.Should().Throw<InvalidOperationException>();
 
-        var act9 = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId,
+        AssertVdMatchesStandardDoubleElimination(
+            standard,
             Enumerable.Range(1, 9).Select(i => $"s{i}").ToList());
-        act9.Should().Throw<InvalidOperationException>();
+    }
+
+    private void AssertVdMatchesStandardDoubleElimination(
+        DoubleEliminationStrategy standard, List<string> teamIds)
+    {
+        var vdGames = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teamIds);
+        var standardGames = standard.GenerateGames(TournamentId, PhaseId, GroupId, teamIds);
+
+        var vdTuples = vdGames
+            .Select(g => (g.Round, g.Label, g.HomeTeamId, g.AwayTeamId,
+                g.HomeTeamPlaceholder, g.AwayTeamPlaceholder))
+            .OrderBy(t => t.Round).ThenBy(t => t.Label, StringComparer.Ordinal)
+            .ToList();
+        var standardTuples = standardGames
+            .Select(g => (g.Round, g.Label, g.HomeTeamId, g.AwayTeamId,
+                g.HomeTeamPlaceholder, g.AwayTeamPlaceholder))
+            .OrderBy(t => t.Round).ThenBy(t => t.Label, StringComparer.Ordinal)
+            .ToList();
+
+        vdTuples.Should().Equal(standardTuples,
+            $"VD strategy with {teamIds.Count} teams should mirror standard Double Elimination");
     }
 
     [Fact]

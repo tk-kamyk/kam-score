@@ -28,82 +28,69 @@ public static class PlayoffEliminationGenerator
             ];
         }
 
-        var games = new List<Game>();
-        var n = teamIds.Count;
-        var bracketSize = BracketUtilities.NextPowerOfTwo(n);
+        var bracketSize = BracketUtilities.NextPowerOfTwo(teamIds.Count);
         var totalRounds = (int)Math.Log2(bracketSize);
-
-        var bracketOrder = BracketUtilities.BuildBracketOrder(bracketSize);
-        var gameMap = new Dictionary<(int round, int matchIndex), Game>();
         var roundNames = BracketUtilities.GetRoundNames(totalRounds);
 
-        var firstRoundMatchCount = bracketSize / 2;
-        var gameIndex = 0;
+        var (firstRoundGames, firstRoundSlots) = BracketUtilities.BuildFirstRoundPool(
+            tournamentId, phaseId, groupId, teamIds, bracketSize, roundNames[0]);
 
-        for (var match = 0; match < firstRoundMatchCount; match++)
+        var games = new List<Game>(firstRoundGames);
+
+        // Bye-last reorder: round-2 pair groupings are reordered so the bye
+        // seed's pair (mixed: 1 phantom + 1 real game) ends up in the last slot.
+        var orderedFirstRound = BracketUtilities.ReorderPairsByByeLast(
+            firstRoundSlots, s => s is BracketUtilities.FirstRoundSlot.Bye);
+
+        // Generate round 2 from the reordered first-round slots.
+        var prevRoundGames = new List<Game>();
+        var matchesInRound2 = bracketSize / 4;
+        for (var match = 0; match < matchesInRound2; match++)
         {
-            var seed1Pos = bracketOrder[match * 2];
-            var seed2Pos = bracketOrder[match * 2 + 1];
+            var (homeTeamId, homePlaceholder) = ResolveSlot(orderedFirstRound[match * 2]);
+            var (awayTeamId, awayPlaceholder) = ResolveSlot(orderedFirstRound[match * 2 + 1]);
 
-            var team1 = seed1Pos < n ? teamIds[seed1Pos] : null;
-            var team2 = seed2Pos < n ? teamIds[seed2Pos] : null;
-
-            if (team1 is null || team2 is null)
-            {
-                var advancingTeamId = team1 ?? team2;
-                var phantomGame = Game.Create(tournamentId, phaseId, groupId, round: 1,
-                    homeTeamId: advancingTeamId);
-                gameMap[(1, match)] = phantomGame;
-                continue;
-            }
-
-            gameIndex++;
-            var matchLabel = BracketUtilities.GetMatchLabel(roundNames[0], gameIndex);
-            var game = Game.Create(tournamentId, phaseId, groupId, round: 1,
-                homeTeamId: team1, awayTeamId: team2, label: matchLabel);
+            var matchLabel = BracketUtilities.GetMatchLabel(roundNames[1], match + 1);
+            var game = Game.Create(tournamentId, phaseId, groupId, round: 2,
+                homeTeamId: homeTeamId, awayTeamId: awayTeamId,
+                homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
+                label: matchLabel);
             games.Add(game);
-            gameMap[(1, match)] = game;
+            prevRoundGames.Add(game);
         }
 
-        for (var round = 2; round <= totalRounds; round++)
+        // Rounds 3..totalRounds: pair previous-round games (no phantoms exist in round 2+).
+        for (var round = 3; round <= totalRounds; round++)
         {
             var matchesInRound = bracketSize / (int)Math.Pow(2, round);
-            gameIndex = 0;
+            var thisRoundGames = new List<Game>(matchesInRound);
 
             for (var match = 0; match < matchesInRound; match++)
             {
-                gameIndex++;
-                var prevMatch1 = match * 2;
-                var prevMatch2 = match * 2 + 1;
+                var prev1 = prevRoundGames[match * 2];
+                var prev2 = prevRoundGames[match * 2 + 1];
 
-                var prevGame1 = gameMap.GetValueOrDefault((round - 1, prevMatch1));
-                var prevGame2 = gameMap.GetValueOrDefault((round - 1, prevMatch2));
-
-                string? homeTeamId = null;
-                string? awayTeamId = null;
-                string? homePlaceholder = null;
-                string? awayPlaceholder = null;
-
-                if (prevGame1 is not null && prevGame1.AwayTeamId is null && prevGame1.HomeTeamId is not null)
-                    homeTeamId = prevGame1.HomeTeamId;
-                else
-                    homePlaceholder = $"Winner {BracketUtilities.GetMatchLabel(roundNames[round - 2], prevMatch1 + 1)}";
-
-                if (prevGame2 is not null && prevGame2.AwayTeamId is null && prevGame2.HomeTeamId is not null)
-                    awayTeamId = prevGame2.HomeTeamId;
-                else
-                    awayPlaceholder = $"Winner {BracketUtilities.GetMatchLabel(roundNames[round - 2], prevMatch2 + 1)}";
-
-                var matchLabel = BracketUtilities.GetMatchLabel(roundNames[round - 1], gameIndex);
+                var matchLabel = BracketUtilities.GetMatchLabel(roundNames[round - 1], match + 1);
                 var game = Game.Create(tournamentId, phaseId, groupId, round: round,
-                    homeTeamId: homeTeamId, awayTeamId: awayTeamId,
-                    homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
+                    homeTeamId: null, awayTeamId: null,
+                    homeTeamPlaceholder: $"Winner {prev1.Label}",
+                    awayTeamPlaceholder: $"Winner {prev2.Label}",
                     label: matchLabel);
                 games.Add(game);
-                gameMap[(round, match)] = game;
+                thisRoundGames.Add(game);
             }
+
+            prevRoundGames = thisRoundGames;
         }
 
         return games;
     }
+
+    private static (string? RealId, string? Placeholder) ResolveSlot(BracketUtilities.FirstRoundSlot slot) =>
+        slot switch
+        {
+            BracketUtilities.FirstRoundSlot.Bye b => (b.TeamId, null),
+            BracketUtilities.FirstRoundSlot.Real r => (null, $"Winner {r.GameLabel}"),
+            _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Unknown FirstRoundSlot kind"),
+        };
 }

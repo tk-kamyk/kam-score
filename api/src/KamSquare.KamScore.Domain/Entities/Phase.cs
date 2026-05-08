@@ -128,14 +128,12 @@ public class Phase
 
     public List<Game> GenerateGames(string tournamentId)
     {
-        var strategy = PhaseFormatStrategy.For(Format);
-        strategy.ValidateTeams(Groups);
-
         var allGames = new List<Game>();
         foreach (var group in Groups)
         {
             if (group.TeamIds.Count <= 1) continue;
-            allGames.AddRange(strategy.GenerateGames(tournamentId, Id, group.Id, group.TeamIds));
+            var groupStrategy = PhaseFormatStrategy.For(Format, group.TeamIds.Count);
+            allGames.AddRange(groupStrategy.GenerateGames(tournamentId, Id, group.Id, group.TeamIds));
         }
 
         return allGames;
@@ -145,18 +143,18 @@ public class Phase
     {
         var group = Groups.FirstOrDefault(g => g.Id == groupId)
             ?? throw new NotFoundException(nameof(Group), groupId);
-        var strategy = PhaseFormatStrategy.For(Format);
+        var strategy = PhaseFormatStrategy.For(Format, group.TeamIds.Count);
         return strategy.CalculateStandings(groupGames, group);
     }
 
     public List<(string GroupId, List<Standing> Standings)> CalculateAllGroupStandings(List<Game> phaseGames)
     {
-        var strategy = PhaseFormatStrategy.For(Format);
         return Groups
             .Select(g =>
             {
+                var groupStrategy = PhaseFormatStrategy.For(Format, g.TeamIds.Count);
                 var groupGames = phaseGames.Where(game => game.GroupId == g.Id).ToList();
-                return (g.Id, strategy.CalculateStandings(groupGames, g));
+                return (g.Id, groupStrategy.CalculateStandings(groupGames, g));
             })
             .ToList();
     }

@@ -119,7 +119,7 @@ public static class BracketUtilities
                 1 => "F",
                 2 => "SF",
                 3 => "QF",
-                _ => $"R{i + 1}"
+                _ => $"R{(int)Math.Pow(2, roundFromEnd)}"
             };
         }
         return names;
@@ -129,6 +129,89 @@ public static class BracketUtilities
     {
         if (roundName == "F")
             return "Final";
+        if (roundName.StartsWith('R'))
+            return $"{roundName}-{matchNumber}";
         return $"{roundName}{matchNumber}";
+    }
+
+    internal static List<T> ReorderPairsByByeLast<T>(List<T> entries, Func<T, bool> isBye)
+    {
+        if (entries.Count < 4 || entries.Count % 2 != 0)
+            return [.. entries];
+
+        var realCount = entries.Count(e => !isBye(e));
+        if (realCount != 1)
+            return [.. entries];
+
+        var pairCount = entries.Count / 2;
+        var pairs = new List<(int OriginalPair, PairKind Kind, int OriginalOrder)>(pairCount);
+        for (var k = 0; k < pairCount; k++)
+        {
+            var byeCount = (isBye(entries[k * 2]) ? 1 : 0) + (isBye(entries[k * 2 + 1]) ? 1 : 0);
+            var kind = byeCount switch
+            {
+                0 => PairKind.BothReal,
+                2 => PairKind.BothBye,
+                _ => PairKind.Mixed,
+            };
+            pairs.Add((k, kind, k));
+        }
+
+        var ordered = pairs.OrderBy(p => p.Kind).ThenBy(p => p.OriginalOrder).ToList();
+
+        var result = new List<T>(entries.Count);
+        foreach (var p in ordered)
+        {
+            result.Add(entries[p.OriginalPair * 2]);
+            result.Add(entries[p.OriginalPair * 2 + 1]);
+        }
+        return result;
+    }
+
+    private enum PairKind
+    {
+        BothReal = 0,
+        BothBye = 1,
+        Mixed = 2,
+    }
+
+    internal abstract record FirstRoundSlot
+    {
+        public sealed record Bye(string TeamId) : FirstRoundSlot;
+        public sealed record Real(string GameLabel) : FirstRoundSlot;
+    }
+
+    internal static (List<Game> Games, List<FirstRoundSlot> Slots) BuildFirstRoundPool(
+        string tournamentId, string phaseId, string groupId,
+        List<string> teamIds, int bracketSize, string roundName)
+    {
+        var bracketOrder = BuildBracketOrder(bracketSize);
+        var games = new List<Game>();
+        var slots = new List<FirstRoundSlot>(bracketSize / 2);
+        var n = teamIds.Count;
+        var gameIndex = 0;
+
+        for (var match = 0; match < bracketSize / 2; match++)
+        {
+            var seedAPos = bracketOrder[match * 2];
+            var seedBPos = bracketOrder[match * 2 + 1];
+
+            var teamA = seedAPos < n ? teamIds[seedAPos] : null;
+            var teamB = seedBPos < n ? teamIds[seedBPos] : null;
+
+            if (teamA is null || teamB is null)
+            {
+                slots.Add(new FirstRoundSlot.Bye((teamA ?? teamB)!));
+                continue;
+            }
+
+            gameIndex++;
+            var label = GetMatchLabel(roundName, gameIndex);
+            games.Add(Game.Create(tournamentId, phaseId, groupId, round: 1,
+                homeTeamId: teamA, awayTeamId: teamB, label: label));
+            slots.Add(new FirstRoundSlot.Real(label));
+        }
+
+        return (games, slots);
     }
 }

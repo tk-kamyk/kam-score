@@ -5,24 +5,25 @@ namespace KamSquare.KamScore.Domain.Services.Formats;
 
 public class DoubleEliminationVdStrategy : IPhaseFormatStrategy
 {
+    private readonly DoubleEliminationStrategy _standardFallback = new();
+
     public bool SupportsRefereeAssignment => false;
 
-    public void ValidateTeams(List<Group> groups)
+    public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
     {
-        var invalidGroups = groups
-            .Where(g => g.TeamIds.Count > 0 && g.TeamIds.Count != DoubleEliminationVdGenerator.RequiredTeamCount)
-            .ToList();
+        if (teamIds.Count == DoubleEliminationVdGenerator.RequiredTeamCount)
+            return DoubleEliminationVdGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
 
-        if (invalidGroups.Count > 0)
-            throw new InvalidOperationException(
-                $"Double Elimination (VD) requires exactly {DoubleEliminationVdGenerator.RequiredTeamCount} teams per group.");
+        return _standardFallback.GenerateGames(tournamentId, phaseId, groupId, teamIds);
     }
 
-    public List<Game> GenerateGames(string tournamentId, string phaseId, string groupId, List<string> teamIds)
-        => DoubleEliminationVdGenerator.Generate(tournamentId, phaseId, groupId, teamIds);
-
     public List<Standing> CalculateStandings(List<Game> games, Group group)
-        => DoubleEliminationVdStandingsRanker.Calculate(games, group.TeamIds);
+    {
+        if (group.TeamIds.Count == DoubleEliminationVdGenerator.RequiredTeamCount)
+            return DoubleEliminationVdStandingsRanker.Calculate(games, group.TeamIds);
+
+        return _standardFallback.CalculateStandings(games, group);
+    }
 
     public List<Standing> RankCrossGroup(List<Standing> standings)
         => DoubleEliminationVdStandingsRanker.RankCrossGroup(standings);

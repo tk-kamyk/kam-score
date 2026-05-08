@@ -48,6 +48,29 @@ const { phaseGames } = useGamesByPhase()
 
 const phases = computed(() => structureStore.structure?.phases ?? [])
 
+// When the structure changes (e.g. groups added, removed, or rebalanced) any
+// previously-selected group ID may no longer exist. Drop or refresh stale
+// entries so the view re-binds to a valid group instead of rendering nothing.
+watch(
+  phases,
+  (phaseList) => {
+    for (const phase of phaseList) {
+      if (!phase.id) continue
+      const currentGroupId = selectedGroups.value.get(phase.id)
+      if (!currentGroupId) continue
+      const stillExists = phase.groups?.some((g) => g.id === currentGroupId) ?? false
+      if (stillExists) continue
+      const firstGroupId = phase.groups?.[0]?.id
+      if (expandedPhases.value.has(phase.id) && firstGroupId) {
+        selectGroup(phase.id, firstGroupId)
+      } else {
+        deselectGroup(phase.id)
+      }
+    }
+  },
+  { deep: true },
+)
+
 function togglePhase(phaseId: string) {
   togglePhaseBase(phaseId)
 

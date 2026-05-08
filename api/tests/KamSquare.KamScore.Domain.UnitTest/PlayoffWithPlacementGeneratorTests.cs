@@ -251,6 +251,97 @@ public class PlayoffWithPlacementGeneratorTests
         AssertLabelsMatchPlaceholderReferences(games);
     }
 
+    [Fact]
+    public void Generate_With7Teams_DoesNotThrow_AndProducesPlacementGames()
+    {
+        // Regression for Bug B: 7 teams produces an odd-sized loser pool
+        // (3 entries) that currently crashes ProcessLoserSubBracket.
+        var teams = Enumerable.Range(1, 7).Select(i => $"s{i}").ToList();
+
+        var act = () => _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
+        var games = act.Should().NotThrow().Which;
+
+        games.Should().AllSatisfy(g => g.Label.Should().NotBeNullOrEmpty());
+
+        // 3 real round-1 games (one per non-bye seed pair).
+        var round1 = games.Where(g => g.Round == 1).ToList();
+        round1.Should().HaveCount(3);
+        round1.Select(g => g.Label).Should().BeEquivalentTo(["QF1", "QF2", "QF3"]);
+
+        // The bye-last reorder only fires when there is exactly ONE real R1
+        // game; 7 teams has three, so the natural seeded layout applies:
+        //   A-SF1 = s1 (bye) vs Winner QF1
+        //   A-SF2 = Winner QF2 vs Winner QF3
+        var aSfGames = games
+            .Where(g => g.Label is not null && g.Label.StartsWith("A-SF"))
+            .ToList();
+        aSfGames.Should().HaveCount(2);
+
+        var aSf1 = aSfGames.Single(g => g.Label == "A-SF1");
+        var aSf1RealIds = new[] { aSf1.HomeTeamId, aSf1.AwayTeamId }.Where(t => t is not null).ToList();
+        aSf1RealIds.Should().BeEquivalentTo(["s1"]);
+
+        var aSf2 = aSfGames.Single(g => g.Label == "A-SF2");
+        aSf2.HomeTeamId.Should().BeNull();
+        aSf2.AwayTeamId.Should().BeNull();
+        aSf2.HomeTeamPlaceholder.Should().Be("Winner QF2");
+        aSf2.AwayTeamPlaceholder.Should().Be("Winner QF3");
+
+        // Loser bracket: 3 R1 losers must pair into exactly one B-SF game,
+        // with the third loser auto-advancing via a synthetic loser-bye.
+        var bSfGames = games
+            .Where(g => g.Label is not null && g.Label.StartsWith("B-SF"))
+            .ToList();
+        bSfGames.Should().HaveCount(1);
+
+        // A Final at the highest round.
+        var maxRound = games.Max(g => g.Round);
+        var final_ = games.Single(g => g.Round == maxRound);
+        final_.HomeTeamPlaceholder.Should().Be("Winner A-SF1");
+        final_.AwayTeamPlaceholder.Should().Be("Winner A-SF2");
+
+        AssertLabelsMatchPlaceholderReferences(games);
+    }
+
+    [Fact]
+    public void Generate_With5Teams_BracketStructure()
+    {
+        // 5 teams → bracketSize 8, 1 real R1 game (QF1: s4 vs s5), 3 byes.
+        // After the bye-last fix:
+        //   A-SF1 = s2 vs s3 (both bye-derived, no placeholders)
+        //   A-SF2 = s1 vs Winner QF1 (the bye-team SF plays last)
+        var teams = new List<string> { "s1", "s2", "s3", "s4", "s5" };
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
+
+        games.Should().AllSatisfy(g => g.Label.Should().NotBeNullOrEmpty());
+
+        var round1 = games.Where(g => g.Round == 1).ToList();
+        round1.Should().HaveCount(1);
+        round1[0].Label.Should().Be("QF1");
+        new HashSet<string?> { round1[0].HomeTeamId, round1[0].AwayTeamId }
+            .Should().BeEquivalentTo(new HashSet<string?> { "s4", "s5" });
+
+        var aSfGames = games
+            .Where(g => g.Label is not null && g.Label.StartsWith("A-SF"))
+            .ToList();
+        aSfGames.Should().HaveCount(2);
+
+        var aSf1 = aSfGames.Single(g => g.Label == "A-SF1");
+        new HashSet<string?> { aSf1.HomeTeamId, aSf1.AwayTeamId }
+            .Should().BeEquivalentTo(new HashSet<string?> { "s2", "s3" });
+        aSf1.HomeTeamPlaceholder.Should().BeNull();
+        aSf1.AwayTeamPlaceholder.Should().BeNull();
+
+        var aSf2 = aSfGames.Single(g => g.Label == "A-SF2");
+        var aSf2RealIds = new[] { aSf2.HomeTeamId, aSf2.AwayTeamId }.Where(t => t is not null).ToList();
+        var aSf2Placeholders = new[] { aSf2.HomeTeamPlaceholder, aSf2.AwayTeamPlaceholder }
+            .Where(p => p is not null).ToList();
+        aSf2RealIds.Should().BeEquivalentTo(["s1"]);
+        aSf2Placeholders.Should().BeEquivalentTo(["Winner QF1"]);
+
+        AssertLabelsMatchPlaceholderReferences(games);
+    }
+
     private static void AssertLabelsMatchPlaceholderReferences(List<Game> games)
     {
         var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();

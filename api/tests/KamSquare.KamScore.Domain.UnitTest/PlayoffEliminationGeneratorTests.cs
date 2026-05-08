@@ -228,6 +228,142 @@ public class PlayoffEliminationGeneratorTests
         AssertLabelsMatchPlaceholderReferences(games);
     }
 
+    [Fact]
+    public void Generate_With5Teams_FinalReferencesSfWinners_NotRealTeam()
+    {
+        // Regression for Bug A: with 5 teams the Final must reference SF winners
+        // via placeholders only — no real team id should leak into the Final.
+        var teams = new List<string> { "s1", "s2", "s3", "s4", "s5" };
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
+
+        var final_ = games.Single(g => g.Label == "Final");
+
+        final_.HomeTeamId.Should().BeNull();
+        final_.AwayTeamId.Should().BeNull();
+        final_.HomeTeamPlaceholder.Should().Be("Winner SF1");
+        final_.AwayTeamPlaceholder.Should().Be("Winner SF2");
+    }
+
+    [Fact]
+    public void Generate_With5Teams_BracketStructure()
+    {
+        // 5 teams → bracketSize 8, 1 real R1 game, 3 byes.
+        // After the bye-last fix:
+        //   QF1 = s4 vs s5 (only real R1 game)
+        //   SF1 = s2 vs s3 (no bye-derived team)
+        //   SF2 = s1 vs Winner QF1 (the SF that contains the bye seed plays last)
+        var teams = new List<string> { "s1", "s2", "s3", "s4", "s5" };
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
+
+        // Round 1: exactly one real game labelled QF1, between s4 and s5.
+        var round1 = games.Where(g => g.Round == 1).ToList();
+        round1.Should().HaveCount(1);
+        round1[0].Label.Should().Be("QF1");
+        new HashSet<string?> { round1[0].HomeTeamId, round1[0].AwayTeamId }
+            .Should().BeEquivalentTo(new HashSet<string?> { "s4", "s5" });
+
+        // Round 2: exactly two SFs.
+        var round2 = games.Where(g => g.Round == 2).ToList();
+        round2.Should().HaveCount(2);
+
+        var sf1 = round2.Single(g => g.Label == "SF1");
+        new HashSet<string?> { sf1.HomeTeamId, sf1.AwayTeamId }
+            .Should().BeEquivalentTo(new HashSet<string?> { "s2", "s3" });
+        sf1.HomeTeamPlaceholder.Should().BeNull();
+        sf1.AwayTeamPlaceholder.Should().BeNull();
+
+        var sf2 = round2.Single(g => g.Label == "SF2");
+        var sf2RealIds = new[] { sf2.HomeTeamId, sf2.AwayTeamId }.Where(t => t is not null).ToList();
+        var sf2Placeholders = new[] { sf2.HomeTeamPlaceholder, sf2.AwayTeamPlaceholder }
+            .Where(p => p is not null).ToList();
+        sf2RealIds.Should().BeEquivalentTo(["s1"]);
+        sf2Placeholders.Should().BeEquivalentTo(["Winner QF1"]);
+    }
+
+    [Fact]
+    public void Generate_With7Teams_BracketStructure()
+    {
+        // 7 teams → bracketSize 8, 3 real R1 games (QF1..QF3), 1 bye (s1).
+        // The bye-last reorder only fires when there is exactly ONE real R1
+        // game; 7 teams has three, so the natural seeded layout applies:
+        //   SF1 = s1 (bye) vs Winner QF1
+        //   SF2 = Winner QF2 vs Winner QF3
+        var teams = Enumerable.Range(1, 7).Select(i => $"s{i}").ToList();
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
+
+        var round1 = games.Where(g => g.Round == 1).ToList();
+        round1.Should().HaveCount(3);
+        round1.Select(g => g.Label).Should().BeEquivalentTo(["QF1", "QF2", "QF3"]);
+
+        var round2 = games.Where(g => g.Round == 2).ToList();
+        round2.Should().HaveCount(2);
+
+        var sf1 = round2.Single(g => g.Label == "SF1");
+        var sf1RealIds = new[] { sf1.HomeTeamId, sf1.AwayTeamId }.Where(t => t is not null).ToList();
+        var sf1Placeholders = new[] { sf1.HomeTeamPlaceholder, sf1.AwayTeamPlaceholder }
+            .Where(p => p is not null).ToList();
+        sf1RealIds.Should().BeEquivalentTo(["s1"]);
+        sf1Placeholders.Should().BeEquivalentTo(["Winner QF1"]);
+
+        var sf2 = round2.Single(g => g.Label == "SF2");
+        sf2.HomeTeamId.Should().BeNull();
+        sf2.AwayTeamId.Should().BeNull();
+        sf2.HomeTeamPlaceholder.Should().Be("Winner QF2");
+        sf2.AwayTeamPlaceholder.Should().Be("Winner QF3");
+
+        var final_ = games.Single(g => g.Round == 3);
+        final_.Label.Should().Be("Final");
+        final_.HomeTeamPlaceholder.Should().Be("Winner SF1");
+        final_.AwayTeamPlaceholder.Should().Be("Winner SF2");
+    }
+
+    [Fact]
+    public void Generate_With9Teams_ByeFedQfIsLast()
+    {
+        // 9 teams → bracketSize 16, 1 real R1 game (s8 vs s9), 7 byes.
+        // After the recursive bye-last fix, the QF that contains s1 (the bye seed
+        // at the top of the bracket) and the "Winner R1*" placeholder must be the
+        // LAST QF (QF4). The other three QFs must be all-real-team matchups.
+        var teams = Enumerable.Range(1, 9).Select(i => $"s{i}").ToList();
+        var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
+
+        var round1 = games.Where(g => g.Round == 1).ToList();
+        round1.Should().HaveCount(1);
+        var r1Label = round1[0].Label!;
+        new HashSet<string?> { round1[0].HomeTeamId, round1[0].AwayTeamId }
+            .Should().BeEquivalentTo(new HashSet<string?> { "s8", "s9" });
+
+        var qfs = games.Where(g => g.Round == 2).ToList();
+        qfs.Should().HaveCount(4);
+        qfs.Select(g => g.Label).Should().BeEquivalentTo(["QF1", "QF2", "QF3", "QF4"]);
+
+        // QF1..QF3 must be all-real-team games (no placeholders, no bye-derived team).
+        var earlyQfs = qfs.Where(g => g.Label is "QF1" or "QF2" or "QF3").ToList();
+        earlyQfs.Should().AllSatisfy(g =>
+        {
+            g.HomeTeamId.Should().NotBeNull();
+            g.AwayTeamId.Should().NotBeNull();
+            g.HomeTeamPlaceholder.Should().BeNull();
+            g.AwayTeamPlaceholder.Should().BeNull();
+        });
+
+        // The early QFs collectively pair s4 vs s5, s2 vs s7, s3 vs s6 (order-agnostic).
+        var earlyMatchups = earlyQfs
+            .Select(g => new HashSet<string?> { g.HomeTeamId, g.AwayTeamId })
+            .ToList();
+        earlyMatchups.Should().ContainEquivalentOf(new HashSet<string?> { "s4", "s5" });
+        earlyMatchups.Should().ContainEquivalentOf(new HashSet<string?> { "s2", "s7" });
+        earlyMatchups.Should().ContainEquivalentOf(new HashSet<string?> { "s3", "s6" });
+
+        // QF4 must contain s1 plus a "Winner <r1Label>" placeholder.
+        var qf4 = qfs.Single(g => g.Label == "QF4");
+        var qf4RealIds = new[] { qf4.HomeTeamId, qf4.AwayTeamId }.Where(t => t is not null).ToList();
+        var qf4Placeholders = new[] { qf4.HomeTeamPlaceholder, qf4.AwayTeamPlaceholder }
+            .Where(p => p is not null).ToList();
+        qf4RealIds.Should().BeEquivalentTo(["s1"]);
+        qf4Placeholders.Should().BeEquivalentTo([$"Winner {r1Label}"]);
+    }
+
     private static void AssertLabelsMatchPlaceholderReferences(List<Game> games)
     {
         var allLabels = games.Where(g => g.Label is not null).Select(g => g.Label!).ToHashSet();
