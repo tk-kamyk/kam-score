@@ -307,9 +307,9 @@ public class PlayoffWithPlacementGeneratorTests
     public void Generate_With5Teams_BracketStructure()
     {
         // 5 teams → bracketSize 8, 1 real R1 game (QF1: s4 vs s5), 3 byes.
-        // After the bye-last fix:
-        //   A-SF1 = s2 vs s3 (both bye-derived, no placeholders)
-        //   A-SF2 = s1 vs Winner QF1 (the bye-team SF plays last)
+        // Natural seeded layout (rest-aware ordering is the scheduler's job):
+        //   A-SF1 = s1 (bye) vs Winner QF1 — top half of bracket
+        //   A-SF2 = s2 vs s3 — bottom half, both teams known
         var teams = new List<string> { "s1", "s2", "s3", "s4", "s5" };
         var games = _strategy.GenerateGames(TournamentId, PhaseId, GroupId, teams);
 
@@ -327,17 +327,17 @@ public class PlayoffWithPlacementGeneratorTests
         aSfGames.Should().HaveCount(2);
 
         var aSf1 = aSfGames.Single(g => g.Label == "A-SF1");
-        new HashSet<string?> { aSf1.HomeTeamId, aSf1.AwayTeamId }
-            .Should().BeEquivalentTo(new HashSet<string?> { "s2", "s3" });
-        aSf1.HomeTeamPlaceholder.Should().BeNull();
-        aSf1.AwayTeamPlaceholder.Should().BeNull();
+        var aSf1RealIds = new[] { aSf1.HomeTeamId, aSf1.AwayTeamId }.Where(t => t is not null).ToList();
+        var aSf1Placeholders = new[] { aSf1.HomeTeamPlaceholder, aSf1.AwayTeamPlaceholder }
+            .Where(p => p is not null).ToList();
+        aSf1RealIds.Should().BeEquivalentTo(["s1"]);
+        aSf1Placeholders.Should().BeEquivalentTo(["Winner QF1"]);
 
         var aSf2 = aSfGames.Single(g => g.Label == "A-SF2");
-        var aSf2RealIds = new[] { aSf2.HomeTeamId, aSf2.AwayTeamId }.Where(t => t is not null).ToList();
-        var aSf2Placeholders = new[] { aSf2.HomeTeamPlaceholder, aSf2.AwayTeamPlaceholder }
-            .Where(p => p is not null).ToList();
-        aSf2RealIds.Should().BeEquivalentTo(["s1"]);
-        aSf2Placeholders.Should().BeEquivalentTo(["Winner QF1"]);
+        new HashSet<string?> { aSf2.HomeTeamId, aSf2.AwayTeamId }
+            .Should().BeEquivalentTo(new HashSet<string?> { "s2", "s3" });
+        aSf2.HomeTeamPlaceholder.Should().BeNull();
+        aSf2.AwayTeamPlaceholder.Should().BeNull();
 
         AssertLabelsMatchPlaceholderReferences(games);
     }

@@ -37,18 +37,12 @@ public static class PlayoffEliminationGenerator
 
         var games = new List<Game>(firstRoundGames);
 
-        // Bye-last reorder: round-2 pair groupings are reordered so the bye
-        // seed's pair (mixed: 1 phantom + 1 real game) ends up in the last slot.
-        var orderedFirstRound = BracketUtilities.ReorderPairsByByeLast(
-            firstRoundSlots, s => s is BracketUtilities.FirstRoundSlot.Bye);
-
-        // Generate round 2 from the reordered first-round slots.
         var prevRoundGames = new List<Game>();
         var matchesInRound2 = bracketSize / 4;
         for (var match = 0; match < matchesInRound2; match++)
         {
-            var (homeTeamId, homePlaceholder) = ResolveSlot(orderedFirstRound[match * 2]);
-            var (awayTeamId, awayPlaceholder) = ResolveSlot(orderedFirstRound[match * 2 + 1]);
+            var (homeTeamId, homePlaceholder) = ResolveSlot(firstRoundSlots[match * 2]);
+            var (awayTeamId, awayPlaceholder) = ResolveSlot(firstRoundSlots[match * 2 + 1]);
 
             var matchLabel = BracketUtilities.GetMatchLabel(roundNames[1], match + 1);
             var game = Game.Create(tournamentId, phaseId, groupId, round: 2,

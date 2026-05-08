@@ -134,47 +134,6 @@ public static class BracketUtilities
         return $"{roundName}{matchNumber}";
     }
 
-    internal static List<T> ReorderPairsByByeLast<T>(List<T> entries, Func<T, bool> isBye)
-    {
-        if (entries.Count < 4 || entries.Count % 2 != 0)
-            return [.. entries];
-
-        var realCount = entries.Count(e => !isBye(e));
-        if (realCount != 1)
-            return [.. entries];
-
-        var pairCount = entries.Count / 2;
-        var pairs = new List<(int OriginalPair, PairKind Kind, int OriginalOrder)>(pairCount);
-        for (var k = 0; k < pairCount; k++)
-        {
-            var byeCount = (isBye(entries[k * 2]) ? 1 : 0) + (isBye(entries[k * 2 + 1]) ? 1 : 0);
-            var kind = byeCount switch
-            {
-                0 => PairKind.BothReal,
-                2 => PairKind.BothBye,
-                _ => PairKind.Mixed,
-            };
-            pairs.Add((k, kind, k));
-        }
-
-        var ordered = pairs.OrderBy(p => p.Kind).ThenBy(p => p.OriginalOrder).ToList();
-
-        var result = new List<T>(entries.Count);
-        foreach (var p in ordered)
-        {
-            result.Add(entries[p.OriginalPair * 2]);
-            result.Add(entries[p.OriginalPair * 2 + 1]);
-        }
-        return result;
-    }
-
-    private enum PairKind
-    {
-        BothReal = 0,
-        BothBye = 1,
-        Mixed = 2,
-    }
-
     internal abstract record FirstRoundSlot
     {
         public sealed record Bye(string TeamId) : FirstRoundSlot;

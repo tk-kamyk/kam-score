@@ -41,8 +41,6 @@ public static class DoubleEliminationGenerator
         GenerateWbFirstRound(tournamentId, phaseId, groupId, teamIds, bracketSize, wbRoundNames,
             roundNumber, games, wbGameMap);
 
-        ApplyByeLastReorderToWbR1(wbGameMap, bracketSize);
-
         // WB Round 2
         roundNumber++;
         GenerateWbRound(tournamentId, phaseId, groupId, bracketSize, wbRoundNames, totalWbRounds,
@@ -344,20 +342,6 @@ public static class DoubleEliminationGenerator
             homeTeamId: homeTeamId, awayTeamId: awayTeamId,
             homeTeamPlaceholder: homePlaceholder, awayTeamPlaceholder: awayPlaceholder,
             label: label);
-    }
-
-    private static void ApplyByeLastReorderToWbR1(
-        Dictionary<(int round, int matchIndex), WinnerBracketSlot> wbGameMap,
-        int bracketSize)
-    {
-        var firstRoundMatchCount = bracketSize / 2;
-        var slots = new List<WinnerBracketSlot>(firstRoundMatchCount);
-        for (var match = 0; match < firstRoundMatchCount; match++)
-            slots.Add(wbGameMap[(1, match)]);
-
-        var ordered = BracketUtilities.ReorderPairsByByeLast(slots, s => s.ByeTeamId is not null);
-        for (var i = 0; i < ordered.Count; i++)
-            wbGameMap[(1, i)] = ordered[i];
     }
 
     private record WinnerBracketSlot(string? Label, string? ByeTeamId);

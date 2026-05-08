@@ -37,11 +37,6 @@ public static class PlayoffWithPlacementGenerator
 
         var firstRoundPool = firstRoundSlots.Select(WrapSlot).ToList();
 
-        // Bye-last reorder: pair groupings sort so 0-bye pairs come first,
-        // 2-bye pairs next, and 1-bye mixed pairs last. Pushes the bye seed's
-        // pair to the last A-SF slot.
-        firstRoundPool = BracketUtilities.ReorderPairsByByeLast(firstRoundPool, e => e is PoolEntry.FirstRoundBye);
-
         var eliminationGames = new List<Game>(firstRoundGames);
         var placementGames = new List<Game>();
         var roundNumber = 1;
