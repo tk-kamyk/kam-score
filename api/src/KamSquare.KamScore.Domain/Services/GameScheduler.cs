@@ -55,9 +55,6 @@ public static class GameScheduler
 
     /// <summary>
     /// Sorts games by round (ascending), interleaving groups within each round.
-    /// Within a (round, group) bucket, games whose teams are fully resolved
-    /// (both <c>HomeTeamId</c> and <c>AwayTeamId</c> set) are placed before
-    /// games that still reference placeholders.
     /// </summary>
     internal static List<Game> SortGamesForScheduling(List<Game> games, List<string> groupOrder)
     {
@@ -69,7 +66,7 @@ public static class GameScheduler
                 var byGroup = roundGroup
                     .GroupBy(g => g.GroupId)
                     .OrderBy(g => groupOrder.IndexOf(g.Key) is var idx and >= 0 ? idx : int.MaxValue)
-                    .Select(g => g.OrderByDescending(ResolvedSideCount).ToList())
+                    .Select(g => g.InScheduleOrder().ToList())
                     .ToList();
 
                 var interleaved = new List<Game>();
@@ -88,9 +85,6 @@ public static class GameScheduler
             })
             .ToList();
     }
-
-    private static int ResolvedSideCount(Game game) =>
-        (game.HomeTeamId is not null ? 1 : 0) + (game.AwayTeamId is not null ? 1 : 0);
 
     private static bool TryScheduleGameInSlot(
         Game game,

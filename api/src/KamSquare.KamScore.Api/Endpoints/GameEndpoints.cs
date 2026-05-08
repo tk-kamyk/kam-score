@@ -57,7 +57,7 @@ public static class GameEndpoints
 
         return Results.Created(
             $"/api/tournaments/{tournamentId}/games?phaseId={phaseId}",
-            GameEnrichmentHelper.EnrichGamesWithNames(savedGames, teams, courts, structure, mapper));
+            GameEnrichmentHelper.EnrichGamesWithNames(savedGames.InScheduleOrder(), teams, courts, structure, mapper));
     }
 
     private static async Task<IResult> GetGames(
@@ -83,7 +83,7 @@ public static class GameEndpoints
         var courts = (await courtRepository.GetByTournamentIdAsync(tournamentId)).ToList();
         var structure = await structureRepository.GetByTournamentIdAsync(tournamentId);
 
-        return Results.Ok(GameEnrichmentHelper.EnrichGamesWithNames(games.OrderBy(g => g.StartTime), teams, courts, structure, mapper));
+        return Results.Ok(GameEnrichmentHelper.EnrichGamesWithNames(games.InScheduleOrder(), teams, courts, structure, mapper));
     }
 
     private static async Task<IResult> DeleteGames(
