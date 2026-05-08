@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import apiClient from '@/api/client'
+import { useGameStore } from '@/game/store'
 import type { CourtDto } from '@/court/types'
 
 export const useCourtStore = defineStore('court', () => {
@@ -36,6 +37,8 @@ export const useCourtStore = defineStore('court', () => {
     if (index >= 0) {
       courts.value[index] = data
     }
+    // Cascade: court name is denormalized into GameDto.
+    await useGameStore().fetchGames(tournamentId)
     return data
   }
 
@@ -53,6 +56,11 @@ export const useCourtStore = defineStore('court', () => {
     return data
   }
 
+  function reset() {
+    courts.value = []
+    loading.value = false
+  }
+
   return {
     courts,
     loading,
@@ -61,5 +69,6 @@ export const useCourtStore = defineStore('court', () => {
     updateCourt,
     deleteCourt,
     generateCourts,
+    reset,
   }
 })

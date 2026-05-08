@@ -85,6 +85,7 @@ export const useVolunteerStore = defineStore('volunteer', () => {
       ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
       : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assign/${volunteerId}`
     await apiClient.post(url)
+    await fetchShifts(tournamentId)
   }
 
   async function unassignVolunteer(
@@ -97,6 +98,14 @@ export const useVolunteerStore = defineStore('volunteer', () => {
       ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
       : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assign/${volunteerId}`
     await apiClient.delete(url)
+    await fetchShifts(tournamentId)
+  }
+
+  function reset() {
+    volunteers.value = []
+    shiftGroups.value = []
+    loading.value = false
+    shiftsLoading.value = false
   }
 
   return {
@@ -112,5 +121,6 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     fetchAvailableVolunteers,
     assignVolunteer,
     unassignVolunteer,
+    reset,
   }
 })

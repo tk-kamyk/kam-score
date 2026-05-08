@@ -64,6 +64,10 @@ export const useTournamentStore = defineStore('tournament', () => {
     }
   }
 
+  function clearCurrent() {
+    currentTournament.value = null
+  }
+
   return {
     tournaments,
     currentTournament,
@@ -73,5 +77,6 @@ export const useTournamentStore = defineStore('tournament', () => {
     createTournament,
     updateTournament,
     deleteTournament,
+    clearCurrent,
   }
 })

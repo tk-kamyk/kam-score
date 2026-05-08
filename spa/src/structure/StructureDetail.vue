@@ -76,14 +76,12 @@ function openEditPhase(phase: PhaseDto) {
 async function handlePhaseSaved() {
   showPhaseForm.value = false
   await structureStore.fetchStructure(props.tournamentId)
-  await teamStore.fetchPlaceholders(props.tournamentId)
 }
 
 async function handleDeletePhase(phaseId: string) {
   try {
     await structureStore.deletePhase(props.tournamentId, phaseId)
     showSuccess('Phase deleted')
-    await teamStore.fetchPlaceholders(props.tournamentId)
   } catch (error) {
     showError(getErrorMessage(error, 'Failed to delete phase'))
   }

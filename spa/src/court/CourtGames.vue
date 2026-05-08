@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import apiClient from '@/api/client'
+import { ref, computed } from 'vue'
 import type { GameDto } from '@/game/types'
+import { useGameStore } from '@/game/store'
+import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import { useRefereeDialog } from '@/composables/useRefereeDialog'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
@@ -15,8 +16,11 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
-const games = ref<GameDto[]>([])
-const loading = ref(false)
+const gameStore = useGameStore()
+const { courtGames } = useGamesByPhase()
+
+const games = computed(() => courtGames(props.courtId))
+const loading = computed(() => gameStore.loading)
 const showResultDialog = ref(false)
 const selectedGame = ref<GameDto | null>(null)
 const { showRefereeDialog, refereeGame, openRefereeDialog } = useRefereeDialog()
@@ -40,25 +44,6 @@ function openResultDialog(game: GameDto) {
   selectedGame.value = game
   showResultDialog.value = true
 }
-
-async function loadGames() {
-  loading.value = true
-  try {
-    const params = new URLSearchParams({ courtId: props.courtId })
-    const { data } = await apiClient.get<GameDto[]>(
-      `/tournaments/${props.tournamentId}/games?${params}`,
-    )
-    games.value = data
-  } finally {
-    loading.value = false
-  }
-}
-
-function onResultDialogClose(open: boolean) {
-  if (!open) loadGames()
-}
-
-onMounted(loadGames)
 </script>
 
 <template>
@@ -133,7 +118,6 @@ onMounted(loadGames)
       :game="selectedGame"
       :tournament-id="tournamentId"
       :is-owner="isOwner"
-      @update:model-value="onResultDialogClose"
     />
 
     <RefereeAssignDialog
@@ -141,7 +125,6 @@ onMounted(loadGames)
       v-model="showRefereeDialog"
       :game="refereeGame"
       :tournament-id="tournamentId"
-      @assigned="loadGames"
     />
   </div>
 </template>

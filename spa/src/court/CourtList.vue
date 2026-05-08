@@ -2,6 +2,7 @@
 import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useCourtStore } from '@/court/store'
+import { useGameStore } from '@/game/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import SectionHeader from '@/components/SectionHeader.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
@@ -21,6 +22,7 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 const courtStore = useCourtStore()
+const gameStore = useGameStore()
 const { showSuccess, showError } = useSnackbar()
 
 const expandedCourt = ref<string | null>((route.query.court as string) || null)
@@ -48,12 +50,17 @@ const formDialog = ref<InstanceType<typeof CourtFormDialog> | null>(null)
 const deleteDialog = ref<InstanceType<typeof ConfirmDeleteDialog> | null>(null)
 const generateDialog = ref<InstanceType<typeof GenerateCourtsDialog> | null>(null)
 
-onMounted(() => courtStore.fetchCourts(props.tournamentId))
+onMounted(() => {
+  courtStore.fetchCourts(props.tournamentId)
+  gameStore.fetchGames(props.tournamentId)
+})
 
 watch(
   () => props.active,
   (isActive) => {
-    if (isActive) courtStore.fetchCourts(props.tournamentId)
+    if (!isActive) return
+    courtStore.fetchCourts(props.tournamentId)
+    gameStore.fetchGames(props.tournamentId)
   },
 )
 

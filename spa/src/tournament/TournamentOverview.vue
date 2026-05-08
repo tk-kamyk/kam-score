@@ -1,16 +1,21 @@
 <script setup lang="ts">
-import { onMounted, ref, computed, watch } from 'vue'
+import { onMounted, onBeforeUnmount, ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDisplay } from 'vuetify'
 import { useAuthStore } from '@/auth/store'
 import { useTournamentStore } from '@/tournament/store'
+import { useTeamStore } from '@/team/store'
+import { useCourtStore } from '@/court/store'
+import { useGameStore } from '@/game/store'
+import { useStructureStore } from '@/structure/store'
+import { useStandingsStore } from '@/standings/store'
+import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { scheduleQueryUpdate } from '@/composables/queryBatch'
 import { getErrorMessage } from '@/api/errors'
 import TournamentBreadcrumb from '@/tournament/TournamentBreadcrumb.vue'
 import TournamentInfo from '@/tournament/TournamentInfo.vue'
 import FinalStandings from '@/standings/FinalStandings.vue'
-import { useStandingsStore } from '@/standings/store'
 import TeamList from '@/team/TeamList.vue'
 import CourtList from '@/court/CourtList.vue'
 import StructureDetail from '@/structure/StructureDetail.vue'
@@ -26,9 +31,24 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 const tournamentStore = useTournamentStore()
+const teamStore = useTeamStore()
+const courtStore = useCourtStore()
+const gameStore = useGameStore()
+const structureStore = useStructureStore()
+const standingsStore = useStandingsStore()
+const volunteerStore = useVolunteerStore()
 const { showSuccess, showError } = useSnackbar()
 const { smAndDown } = useDisplay()
-const standingsStore = useStandingsStore()
+
+function resetTournamentScopedStores() {
+  teamStore.reset()
+  courtStore.reset()
+  gameStore.reset()
+  structureStore.reset()
+  standingsStore.reset()
+  volunteerStore.reset()
+  tournamentStore.clearCurrent()
+}
 
 const tournament = computed(() => tournamentStore.currentTournament)
 const isOwner = computed(
@@ -81,6 +101,20 @@ const breadcrumbItems = computed(() => [
 onMounted(() => {
   tournamentStore.fetchTournament(props.id)
   standingsStore.fetchFinalStandings(props.id)
+})
+
+watch(
+  () => props.id,
+  (newId, oldId) => {
+    if (newId === oldId) return
+    resetTournamentScopedStores()
+    tournamentStore.fetchTournament(newId)
+    standingsStore.fetchFinalStandings(newId)
+  },
+)
+
+onBeforeUnmount(() => {
+  resetTournamentScopedStores()
 })
 
 async function handleUpdate(dto: TournamentDto) {

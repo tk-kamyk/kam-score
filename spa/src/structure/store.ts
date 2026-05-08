@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import apiClient from '@/api/client'
+import { useGameStore } from '@/game/store'
+import { useTeamStore } from '@/team/store'
+import { useStandingsStore } from '@/standings/store'
 import type {
   TournamentStructureDto,
   PhaseDto,
@@ -41,6 +44,8 @@ export const useStructureStore = defineStore('structure', () => {
     if (structure.value?.phases) {
       structure.value.phases = [...structure.value.phases, data]
     }
+    // Cascade: backend may create placeholder teams for the new phase.
+    await useTeamStore().fetchPlaceholders(tournamentId)
     return data
   }
 
@@ -54,6 +59,11 @@ export const useStructureStore = defineStore('structure', () => {
       dto,
     )
     replacePhase(phaseId, data)
+    // Cascade: phase name is denormalized into GameDto; backend may regenerate placeholder teams.
+    await Promise.all([
+      useGameStore().fetchGames(tournamentId),
+      useTeamStore().fetchPlaceholders(tournamentId),
+    ])
     return data
   }
 
@@ -64,6 +74,14 @@ export const useStructureStore = defineStore('structure', () => {
         .filter((p) => p.id !== phaseId)
         .map((p, i) => ({ ...p, order: i + 1 }))
     }
+    // Cascade: backend deletes the phase's games + its placeholder teams; standings keys for the phase invalid.
+    const standingsStore = useStandingsStore()
+    standingsStore.invalidatePhase(phaseId)
+    await Promise.all([
+      useGameStore().fetchGames(tournamentId),
+      useTeamStore().fetchPlaceholders(tournamentId),
+      standingsStore.fetchFinalStandings(tournamentId),
+    ])
   }
 
   async function addGroup(tournamentId: string, phaseId: string, dto: GroupDto): Promise<GroupDto> {
@@ -95,6 +113,8 @@ export const useStructureStore = defineStore('structure', () => {
         phase.groups[index] = data
       }
     }
+    // Cascade: group name is denormalized into GameDto.
+    await useGameStore().fetchGames(tournamentId)
     return data
   }
 
@@ -106,6 +126,8 @@ export const useStructureStore = defineStore('structure', () => {
     if (phase?.groups) {
       phase.groups = phase.groups.filter((g) => g.id !== groupId)
     }
+    // Cascade: standings cache for this phase/group is stale.
+    useStandingsStore().invalidateGroup(phaseId, groupId)
   }
 
   async function assignTeam(
@@ -154,7 +176,15 @@ export const useStructureStore = defineStore('structure', () => {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/complete`,
     )
-    replacePhase(phaseId, data)
+    // Cascade: backend resolves placeholders into next phase's games + sets resolvedTeamId on
+    // placeholder teams + may activate the next phase. A single replacePhase is not enough —
+    // the next phase's status and games change too.
+    await Promise.all([
+      fetchStructure(tournamentId),
+      useGameStore().fetchGames(tournamentId),
+      useTeamStore().fetchPlaceholders(tournamentId),
+      useStandingsStore().fetchFinalStandings(tournamentId),
+    ])
     return data
   }
 
@@ -175,6 +205,8 @@ export const useStructureStore = defineStore('structure', () => {
         phase.levels[index] = data
       }
     }
+    // Cascade: level name is denormalized into GameDto.
+    await useGameStore().fetchGames(tournamentId)
     return data
   }
 
@@ -182,8 +214,19 @@ export const useStructureStore = defineStore('structure', () => {
     const { data } = await apiClient.post<PhaseDto>(
       `/tournaments/${tournamentId}/structure/phases/${phaseId}/reopen`,
     )
-    replacePhase(phaseId, data)
+    // Cascade: reverses completePhase — placeholders are unresolved, next phase status reverts.
+    await Promise.all([
+      fetchStructure(tournamentId),
+      useGameStore().fetchGames(tournamentId),
+      useTeamStore().fetchPlaceholders(tournamentId),
+      useStandingsStore().fetchFinalStandings(tournamentId),
+    ])
     return data
+  }
+
+  function reset() {
+    structure.value = null
+    loading.value = false
   }
 
   return {
@@ -202,5 +245,6 @@ export const useStructureStore = defineStore('structure', () => {
     autoAssignTeams,
     completePhase,
     reopenPhase,
+    reset,
   }
 })

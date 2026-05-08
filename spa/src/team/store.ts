@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import apiClient from '@/api/client'
+import { useGameStore } from '@/game/store'
+import { useStandingsStore } from '@/standings/store'
+import { useVolunteerStore } from '@/volunteer/store'
 import type { TeamDto } from '@/team/types'
 
 export const useTeamStore = defineStore('team', () => {
@@ -47,12 +50,23 @@ export const useTeamStore = defineStore('team', () => {
     if (index >= 0) {
       teams.value[index] = data
     }
+    // Cascade: team name is denormalized into GameDto and StandingDto.
+    const gameStore = useGameStore()
+    const standingsStore = useStandingsStore()
+    standingsStore.invalidateAll()
+    await Promise.all([
+      gameStore.fetchGames(tournamentId),
+      standingsStore.fetchFinalStandings(tournamentId),
+    ])
     return data
   }
 
   async function deleteTeam(tournamentId: string, teamId: string) {
     await apiClient.delete(`/tournaments/${tournamentId}/teams/${teamId}`)
     teams.value = teams.value.filter((t) => t.id !== teamId)
+    // Cascade: backend clears any volunteer's teamId reference.
+    const volunteerStore = useVolunteerStore()
+    await volunteerStore.fetchVolunteers(tournamentId)
   }
 
   async function generateSeedTeams(tournamentId: string, count: number): Promise<TeamDto[]> {
@@ -62,6 +76,12 @@ export const useTeamStore = defineStore('team', () => {
     )
     teams.value = [...teams.value, ...data]
     return data
+  }
+
+  function reset() {
+    teams.value = []
+    placeholders.value = []
+    loading.value = false
   }
 
   return {
@@ -75,5 +95,6 @@ export const useTeamStore = defineStore('team', () => {
     updateTeam,
     deleteTeam,
     generateSeedTeams,
+    reset,
   }
 })

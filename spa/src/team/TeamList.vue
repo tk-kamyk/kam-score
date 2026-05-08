@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTeamStore } from '@/team/store'
+import { useGameStore } from '@/game/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import SectionHeader from '@/components/SectionHeader.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
@@ -21,6 +22,7 @@ const props = defineProps<{
 const route = useRoute()
 const router = useRouter()
 const teamStore = useTeamStore()
+const gameStore = useGameStore()
 const { showSuccess, showError } = useSnackbar()
 
 const expandedTeam = ref<string | null>((route.query.team as string) || null)
@@ -58,12 +60,17 @@ const formDialog = ref<InstanceType<typeof TeamFormDialog> | null>(null)
 const deleteDialog = ref<InstanceType<typeof ConfirmDeleteDialog> | null>(null)
 const generateDialog = ref<InstanceType<typeof GenerateSeedTeamsDialog> | null>(null)
 
-onMounted(() => teamStore.fetchTeams(props.tournamentId))
+onMounted(() => {
+  teamStore.fetchTeams(props.tournamentId)
+  gameStore.fetchGames(props.tournamentId)
+})
 
 watch(
   () => props.active,
   (isActive) => {
-    if (isActive) teamStore.fetchTeams(props.tournamentId)
+    if (!isActive) return
+    teamStore.fetchTeams(props.tournamentId)
+    gameStore.fetchGames(props.tournamentId)
   },
 )
 

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
-import apiClient from '@/api/client'
+import { ref, computed } from 'vue'
 import type { GameDto } from '@/game/types'
+import { useGameStore } from '@/game/store'
+import { useGamesByPhase } from '@/composables/useGamesByPhase'
 import GameResultDisplay from '@/game/GameResultDisplay.vue'
 import GameResultDialog from '@/game/GameResultDialog.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
@@ -13,47 +14,22 @@ const props = defineProps<{
   isOwner: boolean
 }>()
 
-const loading = ref(false)
+const gameStore = useGameStore()
+const { teamGames } = useGamesByPhase()
+
+const loading = computed(() => gameStore.loading)
 const showBreaks = ref(false)
-const games = ref<GameDto[]>([])
-const allTimeSlots = ref<Set<string>>(new Set())
-const timeSlotsLoaded = ref(false)
+const games = computed(() => teamGames(props.teamId))
+const allTimeSlots = computed(
+  () => new Set(gameStore.games.map((g) => g.startTime).filter(Boolean) as string[]),
+)
 const showResultDialog = ref(false)
 const selectedGame = ref<GameDto | null>(null)
-
-async function loadGames() {
-  loading.value = true
-  try {
-    const response = await apiClient.get<GameDto[]>(
-      `/tournaments/${props.tournamentId}/games?teamId=${props.teamId}`,
-    )
-    games.value = response.data
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadAllTimeSlots() {
-  const response = await apiClient.get<GameDto[]>(`/tournaments/${props.tournamentId}/games`)
-  allTimeSlots.value = new Set(response.data.map((g) => g.startTime).filter(Boolean) as string[])
-  timeSlotsLoaded.value = true
-}
-
-watch(showBreaks, (on) => {
-  if (on && !timeSlotsLoaded.value) loadAllTimeSlots()
-})
 
 function openResultDialog(game: GameDto) {
   selectedGame.value = game
   showResultDialog.value = true
 }
-
-async function onResultSaved() {
-  await loadGames()
-  if (timeSlotsLoaded.value) await loadAllTimeSlots()
-}
-
-onMounted(loadGames)
 
 interface PhaseGroup {
   phaseId: string
@@ -98,33 +74,37 @@ const entriesByGroup = computed<Map<string, ScheduleEntry[]>>(() => {
   const result = new Map<string, ScheduleEntry[]>()
   for (const group of groupedGames.value) {
     const key = `${group.phaseId}:${group.groupId}`
-    const sortedGames: ScheduleEntry[] = group.games
-      .filter((g) => g.startTime != null)
-      .map((g) => ({
-        type: 'game' as const,
-        time: g.startTime!,
-        game: g,
-        role: teamRole(g),
-      }))
-      .sort((a, b) => a.time.localeCompare(b.time))
+    const timedEntries: ScheduleEntry[] = []
+    const untimedEntries: ScheduleEntry[] = []
+    for (const game of group.games) {
+      const entry: ScheduleEntry = {
+        type: 'game',
+        time: game.startTime ?? '',
+        game,
+        role: teamRole(game),
+      }
+      if (game.startTime != null) timedEntries.push(entry)
+      else untimedEntries.push(entry)
+    }
+    timedEntries.sort((a, b) => a.time.localeCompare(b.time))
 
-    if (!showBreaks.value || sortedGames.length === 0) {
-      result.set(key, sortedGames)
+    if (!showBreaks.value || timedEntries.length === 0) {
+      result.set(key, [...timedEntries, ...untimedEntries])
       continue
     }
 
-    // Find break slots that fall between this group's first and last game
-    const firstTime = sortedGames[0].time
-    const lastTime = sortedGames[sortedGames.length - 1].time
+    // Find break slots that fall between this group's first and last timed game.
+    const firstTime = timedEntries[0].time
+    const lastTime = timedEntries[timedEntries.length - 1].time
 
     const breakEntries: ScheduleEntry[] = [...allTimeSlots.value]
       .filter((slot) => slot >= firstTime && slot <= lastTime && !teamTimeSlots.value.has(slot))
       .map((slot) => ({ type: 'break' as const, time: slot }))
 
-    result.set(
-      key,
-      [...sortedGames, ...breakEntries].sort((a, b) => a.time.localeCompare(b.time)),
+    const interleaved = [...timedEntries, ...breakEntries].sort((a, b) =>
+      a.time.localeCompare(b.time),
     )
+    result.set(key, [...interleaved, ...untimedEntries])
   }
   return result
 })
@@ -239,7 +219,6 @@ function groupLabel(group: PhaseGroup): string {
       :game="selectedGame"
       :tournament-id="tournamentId"
       :is-owner="isOwner"
-      @saved="onResultSaved"
     />
   </div>
 </template>

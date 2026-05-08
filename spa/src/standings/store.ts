@@ -58,6 +58,32 @@ export const useStandingsStore = defineStore('standings', () => {
     }
   }
 
+  function invalidatePhase(phaseId: string) {
+    const prefix = `${phaseId}:`
+    for (const key of Object.keys(standings.value)) {
+      if (key.startsWith(prefix)) {
+        delete standings.value[key]
+      }
+    }
+  }
+
+  function invalidateGroup(phaseId: string, groupId: string) {
+    delete standings.value[`${phaseId}:${groupId}`]
+  }
+
+  function invalidateAll() {
+    standings.value = {}
+    finalStandings.value = []
+  }
+
+  function reset() {
+    standings.value = {}
+    finalStandings.value = []
+    loading.value = false
+    saving.value = false
+    finalStandingsLoading.value = false
+  }
+
   return {
     standings,
     loading,
@@ -68,5 +94,9 @@ export const useStandingsStore = defineStore('standings', () => {
     finalStandings,
     finalStandingsLoading,
     fetchFinalStandings,
+    invalidatePhase,
+    invalidateGroup,
+    invalidateAll,
+    reset,
   }
 })

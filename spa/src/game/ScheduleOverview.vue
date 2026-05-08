@@ -2,7 +2,6 @@
 import { onMounted, ref, computed, watch, provide } from 'vue'
 import { useGameStore } from '@/game/store'
 import { useStructureStore } from '@/structure/store'
-import { useTeamStore } from '@/team/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { getErrorMessage } from '@/api/errors'
 import { useExpandedQueryParam } from '@/composables/useExpandedQueryParam'
@@ -24,7 +23,6 @@ const props = defineProps<{
 
 const gameStore = useGameStore()
 const structureStore = useStructureStore()
-const teamStore = useTeamStore()
 
 provide('tournamentId', props.tournamentId)
 provide(
@@ -161,21 +159,12 @@ async function runAction() {
     delete: async () => {
       const wasCustom = actionPhaseIsCustom.value
       await gameStore.deleteGames(props.tournamentId, phaseId)
-      await Promise.all([
-        gameStore.fetchGames(props.tournamentId),
-        structureStore.fetchStructure(props.tournamentId),
-      ])
       showSuccess(wasCustom ? 'Phase reset' : 'Games deleted')
     },
     complete: async () => {
       completing.value = phaseId
       try {
         await structureStore.completePhase(props.tournamentId, phaseId)
-        await Promise.all([
-          structureStore.fetchStructure(props.tournamentId),
-          gameStore.fetchGames(props.tournamentId),
-          teamStore.fetchPlaceholders(props.tournamentId),
-        ])
         showSuccess('Phase completed')
       } finally {
         completing.value = null
@@ -185,11 +174,6 @@ async function runAction() {
       reopening.value = phaseId
       try {
         await structureStore.reopenPhase(props.tournamentId, phaseId)
-        await Promise.all([
-          structureStore.fetchStructure(props.tournamentId),
-          gameStore.fetchGames(props.tournamentId),
-          teamStore.fetchPlaceholders(props.tournamentId),
-        ])
         showSuccess('Phase reopened')
       } finally {
         reopening.value = null
@@ -213,7 +197,6 @@ async function handleGenerate(phaseId: string) {
   const successMessage = phase?.format === 'Custom' ? 'Phase started' : 'Schedule generated'
   try {
     await gameStore.generateSchedule(props.tournamentId, phaseId)
-    await structureStore.fetchStructure(props.tournamentId)
     showSuccess(successMessage)
   } catch (error) {
     showError(getErrorMessage(error, 'Failed to generate schedule'))
