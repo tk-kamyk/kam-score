@@ -31,10 +31,22 @@ public static class RoundRobinStandingsRanker
         return AssignPositions(entries);
     }
 
-    public static List<Standing> RankCrossGroup(List<Standing> standings)
+    public static List<Standing> RankCrossGroupByStats(List<Standing> standings)
     {
         return standings
             .OrderByDescending(s => s.Points ?? 0)
+            .ThenByDescending(s => s.SetDifference ?? 0)
+            .ThenByDescending(s => s.PointDifference ?? 0)
+            .ThenByDescending(s => s.Wins)
+            .ThenBy(s => s.Losses)
+            .ToList();
+    }
+
+    public static List<Standing> RankCrossGroupByPosition(List<Standing> standings)
+    {
+        return standings
+            .OrderBy(s => s.Position)
+            .ThenByDescending(s => s.Points ?? 0)
             .ThenByDescending(s => s.SetDifference ?? 0)
             .ThenByDescending(s => s.PointDifference ?? 0)
             .ThenByDescending(s => s.Wins)

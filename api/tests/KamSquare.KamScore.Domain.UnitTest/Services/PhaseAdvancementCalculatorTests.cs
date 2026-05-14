@@ -257,6 +257,83 @@ public class PhaseAdvancementCalculatorTests
             "L2-A1", "L2-B1", "L2-A2", "L2-B2");
     }
 
+    // --- Cross-group position-major seeding (regression: group winner with poor stats) ---
+
+    [Fact]
+    public void CalculateSeeding_BothFlagsSet_GroupWinnerWithPoorStats_SeededAboveStrongerRunnerUp()
+    {
+        // Bug repro: when group sizes vary, a small-group winner (4 pts, won 2 games)
+        // can share points with a larger-group runner-up (4 pts, won 2 of 3 games).
+        // Stats-only sort puts the runner-up ahead. With both flags set, position
+        // priority must keep the winner ahead of any runner-up.
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2,
+            groupWinners: 1, totalTeamsProceeding: 7);
+
+        var groupStandings = new List<(string, List<Standing>)>
+        {
+            // 3-team group: winner with poor differential
+            ("g1", [
+                MakeStanding("w1", 1, 4, setDiff: -2, pointDiff: -5, wins: 2, losses: 0),
+                MakeStanding("r1-2", 2, 2, setDiff: 0, pointDiff: 0, wins: 1, losses: 1),
+                MakeStanding("r1-3", 3, 0, setDiff: 2, pointDiff: 5, wins: 0, losses: 2),
+            ]),
+            // 4-team group: winner is dominant; runner-up matches w1's points but with strong differential
+            ("g2", [
+                MakeStanding("w2", 1, 6, setDiff: 4, pointDiff: 15, wins: 3, losses: 0),
+                MakeStanding("r2-2", 2, 4, setDiff: 3, pointDiff: 12, wins: 2, losses: 1),
+                MakeStanding("r2-3", 3, 2, setDiff: -3, pointDiff: -10, wins: 1, losses: 2),
+                MakeStanding("r2-4", 4, 0, setDiff: -4, pointDiff: -15, wins: 0, losses: 3),
+            ])
+        };
+
+        // Hand-assembled qualifyingIds isolates CalculateSeeding from any ordering
+        // CalculateQualifyingTeamIds might produce upstream.
+        var qualifyingIds = new List<string>
+        {
+            "w1", "r1-2", "r1-3",
+            "w2", "r2-2", "r2-3", "r2-4"
+        };
+
+        var result = PhaseAdvancementCalculator.CalculateSeeding(qualifyingIds, groupStandings, phase);
+
+        result.Should().HaveCount(7);
+        // Top 2 seeds must be group winners regardless of stats. w2 has more points
+        // so wins the winner-vs-winner tiebreak; w1 takes seed 2 even though
+        // r2-2 has identical points and a much better differential.
+        // Runners-up follow, ordered by stats within the position-2 tier: r2-2 (sd=3) > r1-2 (sd=0).
+        result.Should().StartWith(["w2", "w1", "r2-2", "r1-2"]);
+    }
+
+    [Fact]
+    public void CalculateQualifyingTeamIds_BothFlagsSet_BestRemaining_IsPositionMajor()
+    {
+        // Both flags set: a 3rd-place team with dominant stats must NOT leapfrog
+        // a 2nd-place team with mediocre stats when filling "best remaining" slots.
+        var phase = Phase.Create("Group Stage", PhaseFormat.RoundRobin, 1, 2,
+            groupWinners: 1, totalTeamsProceeding: 4);
+
+        var groupStandings = new List<(string, List<Standing>)>
+        {
+            ("g1", [
+                MakeStanding("w1", 1, 6, setDiff: 3, pointDiff: 10),
+                MakeStanding("r1-2nd-weak", 2, 0, setDiff: -2, pointDiff: -10),
+                MakeStanding("r1-3rd-strong", 3, 0, setDiff: 4, pointDiff: 25),
+            ]),
+            ("g2", [
+                MakeStanding("w2", 1, 6, setDiff: 3, pointDiff: 10),
+                MakeStanding("r2-2nd-weak", 2, 0, setDiff: -1, pointDiff: -8),
+                MakeStanding("r2-3rd-strong", 3, 0, setDiff: 5, pointDiff: 28),
+            ])
+        };
+
+        var result = PhaseAdvancementCalculator.CalculateQualifyingTeamIds(phase, groupStandings);
+
+        result.Should().HaveCount(4);
+        // Winners qualify directly; best-remaining slots must go to the 2nd-place
+        // teams, NOT the higher-stat 3rd-place teams.
+        result.Should().BeEquivalentTo(["w1", "w2", "r1-2nd-weak", "r2-2nd-weak"]);
+    }
+
     // --- GetExpectedTeamCount ---
 
     [Fact]

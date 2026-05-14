@@ -25,6 +25,9 @@ public class DoubleEliminationVdStrategy : IPhaseFormatStrategy
         return _standardFallback.CalculateStandings(games, group);
     }
 
-    public List<Standing> RankCrossGroup(List<Standing> standings)
+    public List<Standing> RankCrossGroupByStats(List<Standing> standings)
+        => DoubleEliminationVdStandingsRanker.RankCrossGroup(standings);
+
+    public List<Standing> RankCrossGroupByPosition(List<Standing> standings)
         => DoubleEliminationVdStandingsRanker.RankCrossGroup(standings);
 }

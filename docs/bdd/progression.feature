@@ -43,6 +43,22 @@ Feature: Phase Advancement
       | neither set                                    | no teams advance                                          |
       | GroupWinners=0 and TotalTeamsProceeding=0      | no teams advance but the phase is treated as final        |
 
+  Scenario: Group winners are seeded above runners-up when both progression flags are set
+    Given a completed round-robin phase with 8 groups of 3 teams
+    And the phase has GroupWinners=1 and TotalTeamsProceeding=24
+    And one group winner has worse overall stats than several runners-up in other groups
+    When the phase is completed
+    Then all 8 group winners receive seeds 1 through 8
+    And no runner-up is seeded above any group winner
+
+  Scenario: Best-remaining ranking is position-major when both progression flags are set
+    Given a completed round-robin phase with 2 groups
+    And the phase has GroupWinners=1 and TotalTeamsProceeding=4
+    And in one group a 2nd-place runner-up has worse stats than a 3rd-place team in the other group
+    When the phase is completed
+    Then both group winners qualify
+    And both 2nd-place teams qualify ahead of any 3rd-place team regardless of stats
+
   # Placeholder lifecycle
 
   Scenario: Placeholder teams are created when a successor phase is added

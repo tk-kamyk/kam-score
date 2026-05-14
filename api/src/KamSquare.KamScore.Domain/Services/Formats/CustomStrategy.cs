@@ -18,6 +18,9 @@ public class CustomStrategy : IPhaseFormatStrategy
     public List<Standing> CalculateStandings(List<Game> games, Group group)
         => CustomStandingsRanker.Calculate(group);
 
-    public List<Standing> RankCrossGroup(List<Standing> standings)
+    public List<Standing> RankCrossGroupByStats(List<Standing> standings)
+        => CustomStandingsRanker.RankCrossGroup(standings);
+
+    public List<Standing> RankCrossGroupByPosition(List<Standing> standings)
         => CustomStandingsRanker.RankCrossGroup(standings);
 }

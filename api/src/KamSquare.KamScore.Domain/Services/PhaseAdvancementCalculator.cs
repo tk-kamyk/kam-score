@@ -54,7 +54,7 @@ public static class PhaseAdvancementCalculator
                 .SelectMany(gs => gs.Standings)
                 .ToList();
 
-            return PhaseFormatStrategy.For(format).RankCrossGroup(allStandings)
+            return PhaseFormatStrategy.For(format).RankCrossGroupByStats(allStandings)
                 .Take(totalTeamsProceeding!.Value)
                 .Select(s => s.TeamId)
                 .ToList();
@@ -78,7 +78,7 @@ public static class PhaseAdvancementCalculator
                 .Where(s => !qualifyingIds.Contains(s.TeamId))
                 .ToList();
 
-            var ranked = PhaseFormatStrategy.For(format).RankCrossGroup(remaining);
+            var ranked = PhaseFormatStrategy.For(format).RankCrossGroupByPosition(remaining);
             var slotsToFill = totalTeamsProceeding.Value - qualifyingIds.Count;
 
             foreach (var standing in ranked.Take(slotsToFill))
@@ -101,6 +101,12 @@ public static class PhaseAdvancementCalculator
         Phase phase)
     {
         var qualifyingSet = qualifyingTeamIds.ToHashSet();
+        var strategy = PhaseFormatStrategy.For(phase.Format);
+
+        List<Standing> RankForSeeding(List<Standing> standings) =>
+            phase.GroupWinners is not null && phase.TotalTeamsProceeding is not null
+                ? strategy.RankCrossGroupByPosition(standings)
+                : strategy.RankCrossGroupByStats(standings);
 
         if (phase.Levels.Count == 0)
         {
@@ -109,7 +115,7 @@ public static class PhaseAdvancementCalculator
                 .Where(s => qualifyingSet.Contains(s.TeamId))
                 .ToList();
 
-            return PhaseFormatStrategy.For(phase.Format).RankCrossGroup(qualifyingStandings)
+            return RankForSeeding(qualifyingStandings)
                 .Select(s => s.TeamId)
                 .ToList();
         }
@@ -124,7 +130,7 @@ public static class PhaseAdvancementCalculator
                 .Where(s => qualifyingSet.Contains(s.TeamId))
                 .ToList();
 
-            result.AddRange(PhaseFormatStrategy.For(phase.Format).RankCrossGroup(levelStandings).Select(s => s.TeamId));
+            result.AddRange(RankForSeeding(levelStandings).Select(s => s.TeamId));
         }
 
         return result;

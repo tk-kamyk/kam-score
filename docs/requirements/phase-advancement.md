@@ -19,13 +19,16 @@
 - The progressing teams are the input to the next phase
 - Progression is automatic when the phase is marked as completed:
     1. From each group, the top `GroupWinners` teams qualify automatically
-    2. Remaining teams across all groups are ranked together using the same standings criteria
+    2. Remaining teams across all groups are ranked together
     3. Best remaining teams fill slots until `TotalTeamsProceeding` is reached
     4. If only `GroupWinners` is set: total qualifying = `GroupWinners × number of groups`
     5. If only `TotalTeamsProceeding` is set: top N teams across all groups qualify
     6. If neither is set: no progression occurs
     7. Setting either to 0 explicitly marks the phase as final — no teams advance, but the phase is recognized as having progression config for final standings calculation
-- All qualifying teams are ranked together in a single seeding order using standings criteria — this produces Seed 1, Seed 2, ..., Seed N
+- Cross-group ranking rules:
+    - When both `GroupWinners` and `TotalTeamsProceeding` are set, the cross-group ranking is **group-position-major**: all teams that finished at the same position rank ahead of teams at a worse position, with the standings-criteria cascade applied as a tiebreaker within each position tier.
+    - When only `TotalTeamsProceeding` is set, the cross-group ranking uses the standings-criteria cascade only (group position is not considered).
+- All qualifying teams are ranked together in a single seeding order — this produces Seed 1, Seed 2, ..., Seed N
 - Seeded teams are assigned to the next phase's groups via snake draft
 - When the completing phase uses the `Custom` format, the qualifying set and seeding order are derived from the manually entered positions per group; no other standings criteria apply
 

@@ -168,7 +168,7 @@ async function handleGenerate(count: number) {
         <thead>
           <tr>
             <th>Name</th>
-            <th>Level</th>
+            <th v-if="isOwner">Level</th>
             <th v-if="isOwner">Email</th>
             <th v-if="isOwner">Phone</th>
             <th v-if="isOwner" class="text-right">Actions</th>
@@ -185,7 +185,7 @@ async function handleGenerate(count: number) {
                 />
                 {{ team.name }}
               </td>
-              <td>{{ team.level }}</td>
+              <td v-if="isOwner">{{ team.level }}</td>
               <td v-if="isOwner">{{ team.email ?? '—' }}</td>
               <td v-if="isOwner">{{ team.phone ?? '—' }}</td>
               <td v-if="isOwner" class="text-right">

@@ -13,6 +13,9 @@ public class DoubleEliminationStrategy : IPhaseFormatStrategy
     public List<Standing> CalculateStandings(List<Game> games, Group group)
         => DoubleEliminationStandingsRanker.Calculate(games, group.TeamIds);
 
-    public List<Standing> RankCrossGroup(List<Standing> standings)
+    public List<Standing> RankCrossGroupByStats(List<Standing> standings)
+        => DoubleEliminationStandingsRanker.RankCrossGroup(standings);
+
+    public List<Standing> RankCrossGroupByPosition(List<Standing> standings)
         => DoubleEliminationStandingsRanker.RankCrossGroup(standings);
 }

@@ -13,6 +13,9 @@ public class RoundRobinStrategy : IPhaseFormatStrategy
     public List<Standing> CalculateStandings(List<Game> games, Group group)
         => RoundRobinStandingsRanker.Calculate(games, group.TeamIds);
 
-    public List<Standing> RankCrossGroup(List<Standing> standings)
-        => RoundRobinStandingsRanker.RankCrossGroup(standings);
+    public List<Standing> RankCrossGroupByStats(List<Standing> standings)
+        => RoundRobinStandingsRanker.RankCrossGroupByStats(standings);
+
+    public List<Standing> RankCrossGroupByPosition(List<Standing> standings)
+        => RoundRobinStandingsRanker.RankCrossGroupByPosition(standings);
 }

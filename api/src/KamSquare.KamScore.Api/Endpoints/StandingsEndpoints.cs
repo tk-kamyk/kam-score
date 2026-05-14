@@ -145,7 +145,7 @@ public static class StandingsEndpoints
             .SelectMany(s => s)
             .ToList();
 
-        var ranked = strategy.RankCrossGroup(groupStandings);
+        var ranked = strategy.RankCrossGroupByStats(groupStandings);
         return ranked
             .Where(s => realTeamLookup.ContainsKey(s.TeamId))
             .Select(s => (s.TeamId, realTeamLookup[s.TeamId]))

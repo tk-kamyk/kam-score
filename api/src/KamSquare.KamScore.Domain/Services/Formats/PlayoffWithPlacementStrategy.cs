@@ -13,6 +13,9 @@ public class PlayoffWithPlacementStrategy : IPhaseFormatStrategy
     public List<Standing> CalculateStandings(List<Game> games, Group group)
         => PlayoffWithPlacementStandingsRanker.Calculate(games, group.TeamIds);
 
-    public List<Standing> RankCrossGroup(List<Standing> standings)
+    public List<Standing> RankCrossGroupByStats(List<Standing> standings)
+        => PlayoffWithPlacementStandingsRanker.RankCrossGroup(standings);
+
+    public List<Standing> RankCrossGroupByPosition(List<Standing> standings)
         => PlayoffWithPlacementStandingsRanker.RankCrossGroup(standings);
 }
