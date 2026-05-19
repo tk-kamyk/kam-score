@@ -59,8 +59,8 @@ useFeatureFlags().fetch()
       v-model="snackbarShow"
       :color="snackbarColor"
       :timeout="snackbarTimeout"
-      role="status"
-      aria-live="polite"
+      :role="snackbarColor === 'error' ? 'alert' : 'status'"
+      :aria-live="snackbarColor === 'error' ? 'assertive' : 'polite'"
       class="ks-snackbar"
     >
       <span class="ks-snackbar-message">{{ snackbarMessage }}</span>

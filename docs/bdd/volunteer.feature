@@ -112,3 +112,23 @@ Feature: Volunteer Management
     Given volunteers with varying availability and shift counts
     When the owner requests available volunteers
     Then available volunteers come first, then by fewest shifts, then alphabetically
+
+  # --- Bulk shift-group operations ---
+
+  Scenario: Owner clears all assignments for a single shift group
+    Given volunteers are assigned to shifts in phase 1 and phase 2
+    When the owner clears all assignments for phase 1
+    Then no volunteer is assigned to any shift in phase 1
+    And assignments in phase 2 remain unchanged
+
+  Scenario: Owner auto-assigns N volunteers per shift to a shift group
+    Given a shift group with multiple shifts and an eligible volunteer pool
+    When the owner auto-assigns the shift group with 3 volunteers per shift
+    Then each shift in the group has 3 assigned volunteers
+    And shifts where the eligible pool was smaller than 3 are filled with as many as possible
+
+  Scenario: Auto-assign tops up partially-filled shifts and skips full ones
+    Given a shift group where some shifts already have manual assignments
+    When the owner auto-assigns the shift group with 3 volunteers per shift
+    Then each shift below 3 assignments is topped up to 3 without removing existing assignments
+    And shifts already at or above 3 assignments are left untouched

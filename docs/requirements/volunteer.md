@@ -1,5 +1,7 @@
 # Volunteer
 
+> See design: [./design/volunteer.md](../design/volunteer.md)
+
 - Volunteer is defined by:
     - name (required, free text, unique per tournament)
     - contact (optional, free text)
@@ -50,6 +52,11 @@
 ### Sorting
 
 - Available volunteers are sorted by: available first, then fewest total shifts, then alphabetically by name
+
+### Bulk shift-group operations
+
+- The tournament owner or system admin can clear all volunteer assignments for a given shift group (a phase, Set-up, or Cleanup) in a single action
+- The tournament owner or system admin can auto-assign volunteers to all shifts in a given shift group, specifying how many volunteers each shift should have
 
 ### UI
 

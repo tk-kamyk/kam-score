@@ -118,7 +118,7 @@ public class VolunteerService
             group.Shifts.Select(shiftTime =>
             {
                 var assignedVols = volunteers
-                    .Where(v => v.Assignments.Any(a => a.ShiftGroup == group.Name && a.ShiftTime == shiftTime))
+                    .Where(v => v.IsAssignedTo(group.Name, shiftTime))
                     .Select(v => new ShiftVolunteerDto(
                         v.Id,
                         v.Name,
@@ -149,7 +149,7 @@ public class VolunteerService
             var available = !IsTeamBusyAtTime(v.TeamId, allGames, parsedTime);
             var playsBefore = previousTime.HasValue && IsTeamBusyAtTime(v.TeamId, allGames, previousTime.Value);
             var playsAfter = nextTime.HasValue && IsTeamBusyAtTime(v.TeamId, allGames, nextTime.Value);
-            var assigned = v.Assignments.Any(a => a.ShiftGroup == shiftGroup && a.ShiftTime == parsedTime);
+            var assigned = v.IsAssignedTo(shiftGroup, parsedTime);
 
             return new VolunteerAvailabilityDto(
                 v.Id, v.Name, v.Assignments.Count, available, playsBefore, playsAfter, assigned);
@@ -167,7 +167,7 @@ public class VolunteerService
 
         return volunteers.Select(v =>
         {
-            var assigned = v.Assignments.Any(a => a.ShiftGroup == shiftGroup && a.ShiftTime is null);
+            var assigned = v.IsAssignedTo(shiftGroup, null);
             return new VolunteerAvailabilityDto(
                 v.Id, v.Name, v.Assignments.Count, true, false, false, assigned);
         })
@@ -195,7 +195,7 @@ public class VolunteerService
 
     public async Task AssignToSpecialShiftAsync(string tournamentId, string shiftGroup, string volunteerId)
     {
-        if (shiftGroup is not ("Set-up" or "Cleanup"))
+        if (shiftGroup != ShiftGroup.SetupName && shiftGroup != ShiftGroup.CleanupName)
             throw new ValidationException(
                 [new ValidationFailure("shiftGroup", $"'{shiftGroup}' is not a valid special shift group.")]);
 
@@ -224,6 +224,64 @@ public class VolunteerService
 
         volunteer.UnassignShift(shiftGroup, null);
         await _volunteerRepository.UpdateAsync(volunteer);
+    }
+
+    // --- Bulk shift-group operations ---
+
+    public async Task ClearShiftGroupAssignmentsAsync(Tournament tournament, string shiftGroup)
+    {
+        await EnsureShiftGroupExistsAsync(tournament, shiftGroup);
+
+        var volunteers = (await _volunteerRepository.GetByTournamentIdAsync(tournament.Id)).ToList();
+
+        foreach (var volunteer in volunteers)
+        {
+            var toRemove = volunteer.Assignments.Where(a => a.ShiftGroup == shiftGroup).ToList();
+            if (toRemove.Count == 0) continue;
+
+            foreach (var assignment in toRemove)
+                volunteer.UnassignShift(assignment.ShiftGroup, assignment.ShiftTime);
+
+            await _volunteerRepository.UpdateAsync(volunteer);
+        }
+    }
+
+    public async Task AutoAssignShiftGroupAsync(Tournament tournament, string shiftGroup, int volunteersPerShift)
+    {
+        // VolunteersPerShift bounds are enforced by AutoAssignShiftGroupDtoValidator at the HTTP boundary.
+        var group = await EnsureShiftGroupExistsAsync(tournament, shiftGroup);
+
+        foreach (var slot in group.Shifts)
+            await FillSlotAsync(tournament, group, slot, volunteersPerShift);
+    }
+
+    private async Task<ShiftGroup> EnsureShiftGroupExistsAsync(Tournament tournament, string shiftGroup)
+    {
+        var groups = await GetShiftGroupsAsync(tournament);
+        return groups.FirstOrDefault(g => g.Name == shiftGroup)
+            ?? throw new NotFoundException(nameof(ShiftGroup), shiftGroup);
+    }
+
+    private async Task FillSlotAsync(Tournament tournament, ShiftGroup group, TimeOnly? slot, int targetVolunteerCount)
+    {
+        var volunteers = (await _volunteerRepository.GetByTournamentIdAsync(tournament.Id)).ToList();
+        var currentCount = volunteers.Count(v => v.IsAssignedTo(group.Name, slot));
+        if (currentCount >= targetVolunteerCount) return;
+
+        var ranked = group.IsSpecial
+            ? await GetAvailableVolunteersForSpecialAsync(tournament.Id, group.Name)
+            : await GetAvailableVolunteersAsync(tournament, group.Name, slot!.Value.ToString("HH:mm", CultureInfo.InvariantCulture));
+
+        var picks = ranked.Where(c => !c.Assigned).Take(targetVolunteerCount - currentCount).ToList();
+
+        foreach (var pick in picks)
+        {
+            var volunteer = volunteers.FirstOrDefault(v => v.Id == pick.VolunteerId);
+            if (volunteer is null) continue;
+
+            volunteer.AssignShift(group.Name, slot);
+            await _volunteerRepository.UpdateAsync(volunteer);
+        }
     }
 
     private static TimeOnly ParseShiftTime(string shiftTime)

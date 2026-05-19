@@ -3,6 +3,8 @@ import { onMounted, ref, watch } from 'vue'
 import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import VolunteerAssignDialog from '@/volunteer/VolunteerAssignDialog.vue'
+import VolunteerAutoAssignDialog from '@/volunteer/VolunteerAutoAssignDialog.vue'
+import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
 import { getErrorMessage } from '@/api/errors'
 
@@ -17,6 +19,10 @@ const showAssignDialog = ref(false)
 const selectedShiftGroup = ref('')
 const selectedShiftTime = ref<string | null>(null)
 const assignDialogRef = ref<InstanceType<typeof VolunteerAssignDialog> | null>(null)
+
+const autoAssignTarget = ref<string | null>(null)
+const clearTarget = ref<string | null>(null)
+const autoAssignDialogRef = ref<InstanceType<typeof VolunteerAutoAssignDialog> | null>(null)
 
 watch(showAssignDialog, (open) => {
   if (!open && assignDialogRef.value?.dirty) {
@@ -40,16 +46,42 @@ async function handleUnassign(
   volunteerId: string,
 ) {
   try {
+    // The store action refreshes shifts internally — no need to fetch again here.
     await volunteerStore.unassignVolunteer(
       props.tournamentId,
       groupName,
       shiftTime ?? null,
       volunteerId,
     )
-    await volunteerStore.fetchShifts(props.tournamentId)
     showSuccess('Volunteer removed from shift')
   } catch (error) {
     showError(getErrorMessage(error, 'Failed to remove volunteer'))
+  }
+}
+
+async function handleAutoAssign(volunteersPerShift: number) {
+  const target = autoAssignTarget.value
+  if (!target) return
+  try {
+    await volunteerStore.autoAssignShiftGroup(props.tournamentId, target, volunteersPerShift)
+    showSuccess(`Auto-assigned volunteers to ${target}`)
+    autoAssignTarget.value = null
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to auto-assign volunteers'))
+    autoAssignDialogRef.value?.handleError(error)
+  }
+}
+
+async function handleClearConfirm() {
+  const target = clearTarget.value
+  if (!target) return
+  try {
+    await volunteerStore.clearShiftGroupAssignments(props.tournamentId, target)
+    showSuccess(`Cleared all assignments for ${target}`)
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to clear assignments'))
+  } finally {
+    clearTarget.value = null
   }
 }
 </script>
@@ -64,8 +96,26 @@ async function handleUnassign(
         :key="group.name"
         class="mb-4 shift-group-card"
       >
-        <v-card-title class="text-subtitle-1 font-weight-bold bg-surface-bright py-2 px-4">
-          {{ group.name }}
+        <v-card-title
+          class="d-flex align-center text-subtitle-1 font-weight-bold bg-surface-bright py-2 px-4"
+        >
+          <span class="flex-grow-1">{{ group.name }}</span>
+          <v-btn
+            icon="mdi-auto-fix"
+            variant="text"
+            size="small"
+            color="primary"
+            :aria-label="'Auto-assign volunteers to ' + group.name"
+            @click="autoAssignTarget = group.name"
+          />
+          <v-btn
+            icon="mdi-broom"
+            variant="text"
+            size="small"
+            color="error"
+            :aria-label="'Clear all assignments for ' + group.name"
+            @click="clearTarget = group.name"
+          />
         </v-card-title>
 
         <v-table density="compact" class="shift-table">
@@ -93,7 +143,13 @@ async function handleUnassign(
                     @click:close="handleUnassign(group.name, shift.shiftTime, vol.volunteerId)"
                   >
                     {{ vol.name }}
-                    <v-icon v-if="!vol.available" end icon="mdi-alert" size="x-small" />
+                    <v-icon
+                      v-if="!vol.available"
+                      end
+                      icon="mdi-alert"
+                      size="x-small"
+                      aria-hidden="true"
+                    />
                   </v-chip>
                   <span
                     v-if="shift.volunteers.length === 0"
@@ -139,6 +195,25 @@ async function handleUnassign(
       :tournament-id="tournamentId"
       :shift-group="selectedShiftGroup"
       :shift-time="selectedShiftTime"
+    />
+
+    <VolunteerAutoAssignDialog
+      v-if="autoAssignTarget"
+      ref="autoAssignDialogRef"
+      :model-value="!!autoAssignTarget"
+      :shift-group="autoAssignTarget"
+      @update:model-value="(open) => !open && (autoAssignTarget = null)"
+      @confirm="handleAutoAssign"
+    />
+
+    <ConfirmDeleteDialog
+      v-if="clearTarget"
+      :model-value="!!clearTarget"
+      title="Clear assignments"
+      :message="`Remove every volunteer assignment from ${clearTarget}? This cannot be undone.`"
+      confirm-label="Clear"
+      @update:model-value="(open) => !open && (clearTarget = null)"
+      @confirm="handleClearConfirm"
     />
   </div>
 </template>

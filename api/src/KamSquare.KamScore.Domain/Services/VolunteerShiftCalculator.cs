@@ -1,6 +1,10 @@
 namespace KamSquare.KamScore.Domain.Services;
 
-public record ShiftGroup(string Name, List<TimeOnly?> Shifts, bool IsSpecial);
+public record ShiftGroup(string Name, List<TimeOnly?> Shifts, bool IsSpecial)
+{
+    public const string SetupName = "Set-up";
+    public const string CleanupName = "Cleanup";
+}
 
 public static class VolunteerShiftCalculator
 {
@@ -10,7 +14,7 @@ public static class VolunteerShiftCalculator
     {
         var result = new List<ShiftGroup>
         {
-            new("Set-up", [null], true)
+            new(ShiftGroup.SetupName, [null], true)
         };
 
         for (var i = 0; i < phases.Count; i++)
@@ -20,7 +24,7 @@ public static class VolunteerShiftCalculator
             result.Add(new ShiftGroup(phase.Name, shifts, false));
         }
 
-        result.Add(new ShiftGroup("Cleanup", [null], true));
+        result.Add(new ShiftGroup(ShiftGroup.CleanupName, [null], true));
 
         return result;
     }

@@ -29,6 +29,9 @@ public static class VolunteerEndpoints
         group.MapDelete("/shifts/{shiftGroup}/{shiftTime}/assign/{volunteerId}", UnassignVolunteerFromShift);
         group.MapDelete("/shifts/{shiftGroup}/assign/{volunteerId}", UnassignVolunteerFromSpecialShift);
 
+        group.MapDelete("/shifts/{shiftGroup}/assignments", ClearShiftGroupAssignments);
+        group.MapPost("/shifts/{shiftGroup}/auto-assign", AutoAssignShiftGroup);
+
         return group;
     }
 
@@ -185,6 +188,35 @@ public static class VolunteerEndpoints
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
         await volunteerService.UnassignFromSpecialShiftAsync(tournamentId, shiftGroup, volunteerId);
+        return Results.Ok();
+    }
+
+    // --- Bulk shift-group operations ---
+
+    private static async Task<IResult> ClearShiftGroupAssignments(
+        string tournamentId,
+        string shiftGroup,
+        VolunteerService volunteerService,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser)
+    {
+        var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        await volunteerService.ClearShiftGroupAssignmentsAsync(tournament, shiftGroup);
+        return Results.NoContent();
+    }
+
+    private static async Task<IResult> AutoAssignShiftGroup(
+        string tournamentId,
+        string shiftGroup,
+        AutoAssignShiftGroupDto request,
+        VolunteerService volunteerService,
+        ITournamentRepository tournamentRepository,
+        ICurrentUserService currentUser)
+    {
+        var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
+
+        await volunteerService.AutoAssignShiftGroupAsync(tournament, shiftGroup, request.VolunteersPerShift);
         return Results.Ok();
     }
 

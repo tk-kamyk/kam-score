@@ -1,11 +1,15 @@
 <script setup lang="ts">
 import { useFormErrors } from '@/composables/useFormErrors'
 
-defineProps<{
-  modelValue: boolean
-  title: string
-  message: string
-}>()
+withDefaults(
+  defineProps<{
+    modelValue: boolean
+    title: string
+    message: string
+    confirmLabel?: string
+  }>(),
+  { confirmLabel: 'Delete' },
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -43,7 +47,7 @@ defineExpose({ handleError })
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="emit('update:modelValue', false)">Cancel</v-btn>
-        <v-btn color="error" variant="elevated" @click="emit('confirm')">Delete</v-btn>
+        <v-btn color="error" variant="elevated" @click="emit('confirm')">{{ confirmLabel }}</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>

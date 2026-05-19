@@ -101,6 +101,25 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     await fetchShifts(tournamentId)
   }
 
+  async function clearShiftGroupAssignments(tournamentId: string, shiftGroup: string) {
+    await apiClient.delete(
+      `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assignments`,
+    )
+    await fetchShifts(tournamentId)
+  }
+
+  async function autoAssignShiftGroup(
+    tournamentId: string,
+    shiftGroup: string,
+    volunteersPerShift: number,
+  ) {
+    await apiClient.post(
+      `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/auto-assign`,
+      { volunteersPerShift },
+    )
+    await fetchShifts(tournamentId)
+  }
+
   function reset() {
     volunteers.value = []
     shiftGroups.value = []
@@ -121,6 +140,8 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     fetchAvailableVolunteers,
     assignVolunteer,
     unassignVolunteer,
+    clearShiftGroupAssignments,
+    autoAssignShiftGroup,
     reset,
   }
 })

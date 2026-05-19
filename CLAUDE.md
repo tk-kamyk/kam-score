@@ -32,7 +32,7 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 - Get user confirmation before proceeding
 
 ### Gate 3: Mocked UI (frontend features only — skip for pure backend work)
-- Build the React component with hardcoded/mock data
+- Build the Vue component with hardcoded/mock data
 - No API calls yet — use static data matching the BDD scenarios
 - Show the user for feedback
 - Feature flags are **optional** (see "Feature Flags" below) — only gate behind a flag if the feature will be partially merged while still in development
@@ -43,7 +43,7 @@ If the user asks to skip a gate, remind them of this rule and ask which gate out
 - Integration tests for API endpoints
 - Create skeleton implementation classes (entities, DTOs, validators, repositories, endpoints) that throw `NotImplementedException` — the solution MUST compile
 - ALL tests must FAIL at **runtime** (red), not at compile time, before implementation
-- Run `dotnet test api/Continia.Card.slnx` to confirm failures
+- Run `dotnet test api/KamScore.slnx` to confirm failures
 - **Self-review before handoff**: run `/agentic-dev-team:code-review --changed` against the Gate 4 changes and address findings before asking the user to review.
 
 ### Gate 5: API Implementation
@@ -108,7 +108,8 @@ Requirements are split into focused per-area files. Implementation-level detail 
 | Phase status, progression, placeholders | `docs/requirements/phase-advancement.md` | `docs/design/phase-advancement.md` |
 | Restriction matrix by phase state | `docs/requirements/phase-state-restrictions.md` | — |
 | Levels (per-phase divisions) | `docs/requirements/levels.md` | `docs/design/levels.md` |
-| Tournament, team, court, user, volunteer, feature-flags | `docs/requirements/<area>.md` | as needed |
+| Volunteer (entity, shifts, assignment) | `docs/requirements/volunteer.md` | `docs/design/volunteer.md` |
+| Tournament, team, court, user, feature-flags | `docs/requirements/<area>.md` | as needed |
 
 **Rule**: a requirement file states *what* the user can do. A design file states *how* we do it. Formulas, named constants (`bracketSize / 2^round + 1`), exact bracket walk orders, and step-by-step algorithms must not appear in the requirements — move them to the paired design doc and link with a `> See design: ./design/<name>.md` line at the top of the requirements file.
 
@@ -223,7 +224,7 @@ Extract when endpoint handlers grow beyond simple CRUD.
 | `PhaseCompletionService` | Phase complete/reopen/delete-games, placeholder creation/regeneration/resolution |
 | `ScheduleGenerationService` | Game generation + scheduling orchestration, phase activation |
 | `BracketAdvancementService` | Propagates bracket placeholder resolution after a playoff result is recorded |
-| `VolunteerService` | Volunteer CRUD + shift calculation + assignment validation |
+| `VolunteerService` | Volunteer CRUD + shift calculation + assignment validation + bulk shift-group clear / auto-assign |
 | `TournamentCopyService` | Copy tournament structure from an existing tournament |
 
 ### Phase Format Strategy Pattern
@@ -462,6 +463,11 @@ Endpoints should ONLY: validate auth, map DTOs, call validator, delegate to doma
 - Do **not** assert on exact error-message substrings (`error.message.Contains("phase is completed")`) — assert on HTTP status + error code/field. Unit tests may check messages
 - When adding a repository interface method, update FakeItEasy mocks in integration tests
 - AutoMapper maps `null` `List<T>` to an empty list by default — use `.BeNullOrEmpty()` in assertions, not `.BeNull()`
+
+### Test modification policy (NEW features vs bug fixes)
+- When adding a **new feature**, do **NOT** modify existing tests. Existing tests encode behaviour that must continue to hold.
+- If an existing test fails as a result of new-feature work, **STOP and ask the user to review** — the failure may indicate an unintended regression rather than a needed update. Do not "fix" the test silently.
+- This rule does **not** apply to bug fixes: if an existing test encodes the buggy behaviour, updating it is part of the fix. Call out the test change explicitly in the PR / hand-off so it can be reviewed.
 
 ---
 
