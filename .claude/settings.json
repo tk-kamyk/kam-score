@@ -1,0 +1,116 @@
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0",
+    "ENABLE_TOOL_SEARCH": "true"
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
+  "enableAllProjectMcpServers": true,
+  "autoMemoryEnabled": true,
+  "autoDreamEnabled": true,
+  "worktree": {
+    "symlinkDirectories": ["node_modules", ".next", ".turbo", "obj", "bin"]
+  },
+  "autoMode": {
+    "allow": [
+      "Reading any files in the repository",
+      "Running dotnet build, dotnet test, dotnet format on api/Continia.Card.slnx",
+      "Running pnpm build, lint, test, check-types, dev, format in spa/ or mobile-app/",
+      "Running turbo commands",
+      "Git operations on feature branches (commit, push, fetch, rebase)",
+      "Using Azure DevOps MCP tools for PRs and work items",
+      "Creating and editing files in the project under api/, spa/, mobile-app/, docs/, .claude/"
+    ],
+    "soft_deny": [
+      "Pushing directly to main or master",
+      "Modifying .env or .env.local files in any stack",
+      "Deleting branches without confirmation",
+      "Running destructive git commands (reset --hard, clean -f, branch -D)",
+      "Modifying CI/CD pipeline files under .azuredevops/ or .eas/",
+      "Changing authentication or security configuration (Auth0, Signicat, Adyen secrets)",
+      "Editing files in spa/packages/api/src/generated/ (Orval output)"
+    ],
+    "environment": [
+      ".NET 10 backend (api/, .slnx solution, Clean Architecture, xUnit)",
+      "Next.js 16 App Router admin portal (spa/, Turborepo, React 19, Tailwind 4, Auth0 BFF)",
+      "Expo React Native mobile app (mobile-app/) for cardholders",
+      "Azure DevOps for source control and pipelines",
+      "Azure Key Vault for secrets; Azure SQL for persistence; Azure Container Apps for prod hosting",
+      "Adyen card issuer, Signicat identity verification, Auth0 authentication"
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(dotnet:*)",
+      "Bash(pnpm:*)",
+      "Bash(bash .claude/scripts/*)",
+      "Bash(bash .claude/hooks/*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/session-start-pulse.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-private-folders-bash.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-stack-manifest.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-process-env.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-private-folders.sh"
+          },
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-frontend-query-caching.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__azure-devops__repo_create_pull_request|mcp__azure-devops__repo_update_pull_request",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-pr-format.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/stop-test-reminder.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
