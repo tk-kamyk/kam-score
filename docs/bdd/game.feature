@@ -9,6 +9,7 @@ Feature: Game Generation and Results
 
   # --- Generation (one happy-path per format; per-format bracket math is unit-tested) ---
 
+  @FR-GAM-003 @FR-GAM-004
   Scenario Outline: Owner generates and schedules games for a phase
     Given a <format> phase with a start time
     When I generate and schedule games for the phase
@@ -23,11 +24,13 @@ Feature: Game Generation and Results
       | double-elimination      |
       | double-elimination-vd   |
 
+  @FR-GAM-002 @FR-GAM-003
   Scenario: Owner cannot generate games twice for the same phase
     Given games have already been generated for a phase
     When I try to generate and schedule games for the phase
     Then the request is rejected
 
+  @FR-GAM-003 @FR-GAM-008
   Scenario Outline: Generation is rejected when prerequisites are missing
     Given the tournament is missing <prerequisite>
     When I try to generate and schedule games for a phase
@@ -41,11 +44,13 @@ Feature: Game Generation and Results
 
   # --- Retrieval ---
 
+  @FR-USR-001
   Scenario: Anyone can view generated games with full details
     Given a phase with generated and scheduled games
     When anyone requests the games for the tournament
     Then the response includes team names, court names, times, and status
 
+  @FR-GAM-001
   Scenario: Games can be filtered by court
     Given a phase with generated and scheduled games
     When I request games filtered by a court
@@ -53,12 +58,14 @@ Feature: Game Generation and Results
 
   # --- Deletion ---
 
+  @FR-PSR-020
   Scenario: Owner can delete all games for a phase
     Given a phase with generated games
     When the owner deletes games for the phase
     Then all games for that phase are removed
     And the owner can generate new games for the phase
 
+  @FR-USR-011
   Scenario: Non-owner cannot generate or delete games
     Given a phase in someone else's tournament
     When I try to generate or delete games
@@ -66,22 +73,26 @@ Feature: Game Generation and Results
 
   # --- Recording results ---
 
+  @FR-RES-001 @FR-RES-005 @FR-USR-030
   Scenario: Participant records a detailed result using tournament code
     Given a scheduled game in a phase with generated games
     When a participant submits per-set scores using a valid tournament code
     Then the game status becomes Completed
     And the per-set breakdown and aggregate score are stored
 
+  @FR-RES-001 @FR-RES-005 @FR-USR-030
   Scenario: Participant records a simple result (sets won)
     Given a scheduled game in a phase with generated games
     When a participant submits a sets-won result using a valid tournament code
     Then the game status becomes Completed
 
+  @FR-RES-004
   Scenario: Owner can edit an already-recorded result
     Given a game with a recorded result
     When the owner submits a new result for the same game
     Then the game remains Completed with the new result
 
+  @FR-RES-010 @FR-RES-012
   Scenario Outline: Tie rules are enforced
     Given a scheduled game in a phase with generated games
     When a participant submits <submission>
@@ -93,6 +104,7 @@ Feature: Game Generation and Results
       | a multi-set detailed result that is a tie in set count  |
       | a multi-set detailed result containing a drawn set      |
 
+  @FR-RES-011
   Scenario: A single-set detailed result may be a tie
     Given a scheduled game in a phase with generated games
     When a participant submits a single-set detailed result with equal points
@@ -100,22 +112,26 @@ Feature: Game Generation and Results
 
   # --- Bracket advancement (behavioral; unit tests cover the resolution algorithm) ---
 
+  @FR-RES-090 @FR-RES-091
   Scenario: Recording a playoff result advances winner and loser to downstream games
     Given a playoff phase with generated games where downstream games reference earlier rounds via placeholders
     When a result is recorded for an early-round game
     Then downstream games referencing the winner show the winning team
     And downstream games referencing the loser show the losing team
 
+  @FR-RES-093
   Scenario: A tied playoff result does not trigger advancement
     Given a playoff phase with generated games
     When an early-round playoff game is recorded as a tie
     Then downstream games remain on their placeholders
 
+  @FR-RES-090 @FR-RES-094
   Scenario: Correcting a playoff result re-resolves downstream teams
     Given a playoff phase with an already-recorded early-round result
     When the result is corrected in favour of the other team
     Then downstream games are updated to reflect the new winner and loser
 
+  @FR-RES-095
   Scenario: Round-robin results do not trigger bracket advancement
     Given a round-robin phase with generated games
     When a result is recorded

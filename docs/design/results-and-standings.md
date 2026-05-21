@@ -1,38 +1,32 @@
-# Results and Standings — Design Details
+# Results and Standings — design
 
 Paired with [../requirements/results-and-standings.md](../requirements/results-and-standings.md).
 
-## Round-robin tiebreaker chain
+## [FR-RES-031] Round-robin tiebreaker cascade
 
-1. **Win points** (2 win / 1 draw / 0 loss), descending
-2. **Set difference** = sets won − sets lost (from `HomeScore`/`AwayScore`), descending
-3. **Point difference** = points won − points lost (from per-set detail), descending
-4. **Direct result between tied teams**: when teams are tied on the above, their head-to-head mini-table is recomputed using the same cascade
-5. **Points scored** = total points won (from set details), descending
+Teams are ordered by:
+
+1. **Win points** (2 win / 1 draw / 0 loss), descending.
+2. **Set difference** (sets won − sets lost), descending.
+3. **Point difference** (points won − points lost from per-set detail), descending.
+4. **Direct result between tied teams**: their head-to-head mini-table is recomputed using the same cascade.
+5. **Points scored** (total points won), descending.
 
 Teams still tied after all five criteria share the same position.
 
-## Playoff Elimination — position formula
+## [FR-RES-040] Playoff Elimination — position formula
 
 ```
 position = bracketSize / 2^round + 1      (round is 1-indexed)
 ```
 
-Example for 8-team bracket:
-- Final losers (round 3): `8 / 8 + 1 = 2`
-- SF losers (round 2): `8 / 4 + 1 = 3` (shared)
-- QF losers (round 1): `8 / 2 + 1 = 5` (shared)
+Example for 8-team bracket: Final losers (round 3) → 2; SF losers (round 2) → 3 (shared); QF losers (round 1) → 5 (shared).
 
-## Playoff with Placement
+## [FR-RES-050] Playoff with Placement — ordering
 
-Placement games are single-game rounds at the end of the bracket, generated worst-to-best, Final last:
+Placement games are single-game rounds at the end of the bracket, generated worst-to-best with the Final last. Winner of each placement game takes the odd position, loser takes the even position.
 
-- Winner of the Final → 1st, loser → 2nd
-- Winner of the 3rd-place game → 3rd, loser → 4th
-- Winner of the 5th-place game → 5th, loser → 6th
-- …and so on
-
-## Double Elimination (VD)
+## [FR-RES-060] Double Elimination (VD) — positions
 
 | Position | Source |
 |----------|--------|
@@ -45,32 +39,23 @@ Placement games are single-game rounds at the end of the bracket, generated wors
 
 Teams not yet eliminated default to the worst position.
 
-## Double Elimination (standard)
+## [FR-RES-060] Double Elimination (standard) — positions
 
-- Positions mirror the Playoff Elimination model applied to the Losers Bracket
-- Teams eliminated in the same LB round share the same position
-- Grand Final winner = 1st, loser = 2nd
+Positions mirror the Playoff Elimination model applied to the Losers Bracket. Teams eliminated in the same LB round share the same position. Grand Final winner = 1st, loser = 2nd.
 
-## Custom (manual standings)
+## [FR-RES-070] Custom (manual standings)
 
-**Storage model** — standings ordering is kept as `Group.ManualStandingOrder : List<string>`. Index `i` corresponds to position `i + 1`. The list is authoritative; the `Standing` value object is projected from it on every read with all stats fields (`Points`, `Wins`, `SetDifference`, …) left as `null` / `0`.
+**Storage** — each group keeps an ordered list of team IDs as its manual standings; index `i` corresponds to position `i + 1`. The list is authoritative; per-team stats fields (points, wins, set difference, …) are projected as blank.
 
-**Ranking flow** — `CustomStandingsRanker.Calculate(Group)` emits standings by walking `ManualStandingOrder`. `RankCrossGroup` is a **stable sort by `Position` ascending** — ties across groups (e.g. every group's 1st-place team) are resolved by the order standings were supplied. This deliberately overrides the default `RankCrossGroup` shape used by games-based formats (which sort by `Points ?? 0` → `SetDifference ?? 0` → …) because those defaults would tie every team at zero.
+**Ranking** — for a group, standings are emitted by walking the ordered list. Cross-group ranking is a stable sort by position ascending; ties across groups (e.g. every group's 1st-place team) are resolved by the order in which the orderings were supplied. This deliberately overrides the games-based default (which would tie every team at zero on points).
 
-**Strategy contract** — `CustomStrategy.CalculateStandings(games, group)` satisfies the normal `IPhaseFormatStrategy` shape by ignoring `games` and delegating to `CustomStandingsRanker.Calculate(group)`. `GenerateGames` returns an empty list; `SupportsRefereeAssignment` is `false`.
+**Invariants** — count equals the group's team count, no duplicates, every listed ID is currently in the group. Violations are rejected with HTTP 400.
 
-**Invariants on ManualStandingOrder (enforced by `Group.SetManualStandingOrder`)**:
-- Count equals `TeamIds.Count`
-- No duplicates
-- Every listed ID is in `TeamIds`
+**Cascading clears** — adding, removing, replacing, or clearing the team set of a group also clears its manual ordering, so a stale ordering can never reference a team that is no longer in the group. Changing a phase's format clears the orderings of every group in that phase.
 
-Any violation throws `ArgumentException`; `ManualStandingsService` translates that to FluentValidation's `ValidationException` so the API returns HTTP 400.
+**Final standings** — the final-standings endpoint filters out placeholder teams before invoking the format strategy, so the same code path works for all formats including Custom.
 
-**Cascading clears** — `Group.AddTeam` / `RemoveTeam` / `ClearTeams` / `ReplaceTeamIds` all call `ClearManualStandingOrder` so a stale ordering can never reference a team that is no longer in the group. `Phase.Update` clears every group's ordering when the phase's `Format` changes.
-
-**Final-standings handling** — `StandingsEndpoints.RankGroups` builds a transient filtered `Group` (real-team-only `TeamIds` and `ManualStandingOrder`) before calling the strategy, so the same code path works for all formats including Custom.
-
-## Progression Highlighting math
+## [FR-RES-080] Progression highlighting math
 
 Let `groupsInScope` = number of groups in the level (or phase if no levels).
 
@@ -79,8 +64,8 @@ wildcardSlots = totalTeamsProceeding - groupWinners × groupsInScope
 candidateDepth = ceil(wildcardSlots / groupsInScope)
 ```
 
-- Rows at position ≤ `groupWinners` → **direct qualifiers** (green)
-- Rows at position in `(groupWinners, groupWinners + candidateDepth]` → **candidates** (yellow)
-- When only `totalTeamsProceeding` is set: `candidateDepth = ceil(totalTeamsProceeding / groupsInScope)` starting from position 1
-- When only `groupWinners` is set: no candidates, only direct qualifiers
-- When neither is set: no highlighting
+- Rows at position ≤ `groupWinners` → **direct qualifiers** (green).
+- Rows at position in `(groupWinners, groupWinners + candidateDepth]` → **candidates** (yellow).
+- When only `totalTeamsProceeding` is set: `candidateDepth = ceil(totalTeamsProceeding / groupsInScope)` starting from position 1.
+- When only `groupWinners` is set: no candidates, only direct qualifiers.
+- When neither is set: no highlighting.

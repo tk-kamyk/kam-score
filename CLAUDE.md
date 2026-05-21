@@ -26,7 +26,7 @@ The orchestrator filters skills whose `metadata.stack` ⊄ enabled stacks. The `
 
 ## Requirements & design docs
 
-Requirements split into focused per-area files. Implementation-level detail (formulas, exact game sequences, algorithms) lives in an optional **paired design doc** with the **identical basename** under `docs/design/`.
+Generic doc-authoring rules — FR/NFR ID format, placement heuristic, BDD tagging, design-doc Rules 1–4 — live in `generic-docs-standards` and `generic-spec-authoring`. The KamScore-specific inventory and rule below sit on top.
 
 | Area | Requirements | Paired design |
 |---|---|---|
@@ -39,7 +39,7 @@ Requirements split into focused per-area files. Implementation-level detail (for
 | Volunteer (entity, shifts, assignment) | `docs/requirements/volunteer.md` | `docs/design/volunteer.md` |
 | Tournament, team, court, user, feature-flags | `docs/requirements/<area>.md` | as needed |
 
-Requirement-vs-design separation, ID conventions, placement heuristic, and writing order are owned by `generic-docs-standards` and `generic-spec-authoring`. KamScore-specific: formulas, named constants (`bracketSize / 2^round + 1`), exact bracket walk orders, and step-by-step algorithms belong in the paired design doc, never in the requirement — link from the requirement with `> See design: ./design/<name>.md`.
+**KamScore rule**: formulas, named constants (`bracketSize / 2^round + 1`), exact bracket walk orders, and step-by-step algorithms belong in the paired design doc, never in the requirement — link from the requirement with `> See design: ./design/<name>.md`.
 
 ---
 
@@ -73,9 +73,9 @@ spa/                          # Vue 3 frontend
   nginx.conf
 
 docs/
-  requirements/   # Feature requirements by area (user-intent level)
-  design/         # Paired implementation-detail docs (formulas, algorithms)
-  bdd/            # Gherkin BDD specifications (behavioural scenarios)
+  requirements/
+  design/
+  bdd/
 
 docker-compose.yml
 ```

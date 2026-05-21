@@ -10,6 +10,7 @@ Feature: Phase Advancement
   # Phase status transitions (detailed state matrix lives in
   # phase-state-restrictions.feature; seeding math is unit-tested).
 
+  @FR-ADV-001 @FR-ADV-002 @FR-ADV-004
   Scenario Outline: Phase status transitions
     Given <precondition>
     When <action>
@@ -22,6 +23,7 @@ Feature: Phase Advancement
       | a phase with all games completed                         | I mark it as complete                          | Completed  |
       | a completed phase followed by a next phase with placeholder games | I mark the first phase complete       | Completed  |
 
+  @FR-ADV-005
   Scenario: Cannot complete a phase with unfinished games
     Given a phase in InProgress with some games still scheduled
     When I try to mark the phase as complete
@@ -29,6 +31,7 @@ Feature: Phase Advancement
 
   # Progression configuration
 
+  @FR-ADV-010 @FR-ADV-011 @FR-ADV-012 @FR-ADV-013 @FR-ADV-014 @FR-ADV-015
   Scenario Outline: Progression config controls how many teams advance
     Given a completed phase with 2 groups of 4 teams and <config>
     When the phase is completed
@@ -43,6 +46,7 @@ Feature: Phase Advancement
       | neither set                                    | no teams advance                                          |
       | GroupWinners=0 and TotalTeamsProceeding=0      | no teams advance but the phase is treated as final        |
 
+  @FR-ADV-016
   Scenario: Group winners are seeded above runners-up when both progression flags are set
     Given a completed round-robin phase with 8 groups of 3 teams
     And the phase has GroupWinners=1 and TotalTeamsProceeding=24
@@ -51,6 +55,7 @@ Feature: Phase Advancement
     Then all 8 group winners receive seeds 1 through 8
     And no runner-up is seeded above any group winner
 
+  @FR-ADV-016
   Scenario: Best-remaining ranking is position-major when both progression flags are set
     Given a completed round-robin phase with 2 groups
     And the phase has GroupWinners=1 and TotalTeamsProceeding=4
@@ -61,22 +66,26 @@ Feature: Phase Advancement
 
   # Placeholder lifecycle
 
+  @FR-ADV-030 @FR-ADV-031
   Scenario: Placeholder teams are created when a successor phase is added
     Given a phase with progression config and a known qualifying count
     When a successor phase is added
     Then placeholder teams are created matching the qualifying count
     And each placeholder references the source phase and has a unique seed
 
+  @FR-ADV-034
   Scenario: Placeholder teams are regenerated when progression config changes
     Given a phase with placeholders in a successor phase
     When the source phase's progression config is updated
     Then old placeholders are deleted, new placeholders are created, and any games in the successor phase are deleted
 
+  @FR-ADV-035
   Scenario: Placeholder teams are deleted when their source phase is deleted
     Given a successor phase with placeholders from a source phase
     When the source phase is deleted
     Then the associated placeholder teams are deleted
 
+  @FR-ADV-034 @FR-ADV-035
   Scenario: Deleting a middle phase regenerates placeholders for the successor
     Given three consecutive phases each with progression config
     When the middle phase is deleted
@@ -85,12 +94,14 @@ Feature: Phase Advancement
 
   # Placeholder resolution
 
+  @FR-ADV-040 @FR-ADV-041 @FR-ADV-042
   Scenario: Completing a phase resolves placeholder IDs to real team IDs
     Given a completed phase with progression and a next phase using placeholder team IDs in games and groups
     When the phase is marked complete
     Then the next phase's games and groups contain real team IDs
     And each placeholder team records the resolved real team ID
 
+  @FR-ADV-007 @FR-ADV-043
   Scenario: Reopening a completed phase reverses placeholder resolution
     Given a completed phase with a next phase that has resolved placeholders
     When the first phase is reopened
@@ -98,6 +109,7 @@ Feature: Phase Advancement
 
   # Access control
 
+  @FR-USR-011
   Scenario Outline: Only owner can transition phase status
     Given a phase in someone else's tournament
     When I try to <action>

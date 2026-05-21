@@ -32,12 +32,11 @@ Requirements first. Then BDD. Then design. Edge cases that affect observable beh
 
 Use these words, not emoji: `Done`, `In Progress`, `TBD`, `Pending`, `Blocked`.
 
-## File metadata
+## File conventions
 
-- H1 = title
-- Brief metadata under the H1: date, status (one of the words above), owner
-- "Last Updated: YYYY-MM-DD" at the bottom; update when editing
-- Code blocks tagged with language
+- H1 = title.
+- No `Last Updated:` footers, no "owner/date/status" header blocks, no per-file changelogs. Git history and PR descriptions are the audit trail; the doc is the current-state snapshot. Status labels (above) belong inline on the requirement, scenario, or section they qualify, not as page-level metadata.
+- Code blocks tagged with language.
 - Be specific where it helps the reader — file paths and line numbers in research and vendor docs, FR/NFR IDs in requirements and BDD. Design docs avoid file paths and class/method names; see `generic-spec-authoring` Rule 3.
 
 ## Anti-patterns

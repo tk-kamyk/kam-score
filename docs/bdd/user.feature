@@ -2,6 +2,7 @@ Feature: User Authentication and Roles
 
   # Permission tiers: Anonymous, User, Admin, Participant (code).
 
+  @FR-USR-001 @FR-USR-011
   Scenario Outline: Anonymous visitor access
     When an anonymous visitor <action>
     Then the request is <result>
@@ -12,11 +13,13 @@ Feature: User Authentication and Roles
       | creates a tournament             | rejected with status 401  |
       | updates or deletes a tournament  | rejected with status 401  |
 
+  @FR-USR-011
   Scenario: Authenticated user can create tournaments
     Given the user is authenticated
     When the user creates a tournament
     Then the tournament is created successfully
 
+  @FR-USR-021 @FR-USR-022 @FR-USR-023
   Scenario Outline: Admin can manage any tournament and see protected fields
     Given user "Alice" owns a tournament
     And an admin is authenticated
@@ -31,6 +34,7 @@ Feature: User Authentication and Roles
       | view team contact info                    |
       | record a game result without the tournament code |
 
+  @FR-USR-010
   Scenario: Login response includes the user's role
     Given a user exists with a role
     When the user logs in with valid credentials

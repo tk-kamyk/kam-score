@@ -7,16 +7,19 @@ Feature: Manual Referee Assignment
   # --- Candidate list ---
   # The referee eligibility algorithm is unit-tested (RefereeAssignerTests).
 
+  @FR-GAM-042
   Scenario: Candidate list is scoped by level when phase has levels
     Given a phase with multiple levels
     When I request candidates for a game in one level
     Then only teams from that level are returned
 
+  @FR-GAM-042
   Scenario: Candidate list spans all phase teams when phase has no levels
     Given a phase with no levels
     When I request candidates for a game
     Then teams from all groups in the phase are returned
 
+  @FR-GAM-044
   Scenario Outline: Teams busy in or around the time slot are excluded
     Given a game at 10:00 with no referee
     And another team <activity>
@@ -32,11 +35,13 @@ Feature: Manual Referee Assignment
 
   # --- Elimination bracket placeholders ---
 
+  @FR-GAM-043
   Scenario: Candidate list includes unresolved bracket placeholders from earlier rounds
     Given a later-round elimination game with no referee
     When I request candidates for that game
     Then placeholders from earlier rounds are included and marked as such
 
+  @FR-GAM-043 @FR-GAM-044
   Scenario Outline: Placeholders busy in or around the time slot are excluded
     Given a placeholder <activity>
     When I request candidates for the target game
@@ -50,26 +55,31 @@ Feature: Manual Referee Assignment
 
   # --- Assignment & resolution ---
 
+  @FR-GAM-040 @FR-GAM-045
   Scenario: Owner assigns a real team as referee
     Given a game with no referee and a valid candidate team
     When the owner assigns the team as referee
     Then the game shows that team as its referee
 
+  @FR-GAM-043 @FR-GAM-045
   Scenario: Owner assigns a placeholder as referee
     Given a game with no referee and a valid placeholder candidate
     When the owner assigns the placeholder as referee
     Then the game shows the placeholder label as referee (no team ID until resolved)
 
+  @FR-GAM-040
   Scenario: Re-assigning a referee replaces the current assignment
     Given a game with an existing referee
     When the owner assigns a different valid candidate
     Then the game shows the new referee and the previous one is cleared
 
+  @FR-GAM-046
   Scenario: Referee placeholder resolves when the referenced game completes
     Given a game with a "Loser {label}" referee placeholder
     When the referenced upstream game's result is recorded
     Then the game's refereeTeamId is set while the placeholder label is preserved
 
+  @FR-GAM-044
   Scenario: Ineligible team assignment is rejected
     Given a game with no referee
     When the owner tries to assign a team busy in the same slot
@@ -77,6 +87,7 @@ Feature: Manual Referee Assignment
 
   # --- Access control ---
 
+  @FR-GAM-040 @FR-GAM-047
   Scenario Outline: Only the owner can assign or view candidates
     Given a game in someone else's tournament
     When I try to <action>

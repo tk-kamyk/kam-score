@@ -6,6 +6,7 @@ Feature: Participant Access via Tournament Code
   Background:
     Given a tournament with a valid tournament code and a scheduled game
 
+  @FR-USR-030 @FR-RES-001
   Scenario Outline: Tournament-code authentication for recording results
     When I submit a result with <auth>
     Then the request is <result>
@@ -17,6 +18,7 @@ Feature: Participant Access via Tournament Code
       | an incorrect tournament code                 | rejected with status 403    |
       | no tournament code and no JWT                | rejected with status 401    |
 
+  @FR-RES-005
   Scenario Outline: Record result in either mode
     Given a scheduled game and a valid tournament code
     When I submit <submission>
@@ -27,6 +29,7 @@ Feature: Participant Access via Tournament Code
       | a detailed per-set score breakdown   |
       | a simple sets-won result             |
 
+  @FR-USR-030
   Scenario Outline: Tournament code only grants result recording
     When I use the tournament code to <action>
     Then the request is rejected with status 401
@@ -36,11 +39,13 @@ Feature: Participant Access via Tournament Code
       | create a team         |
       | add a phase           |
 
+  @FR-RES-001
   Scenario: Authenticated owner records a result without a tournament code
     Given the owner is authenticated
     When the owner submits a result without providing a code
     Then the result is recorded
 
+  @FR-USR-011
   Scenario: Non-owner authenticated user cannot record a result without the code
     Given another authenticated user is not the tournament owner
     When they submit a result without providing the tournament code

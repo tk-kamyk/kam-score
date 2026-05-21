@@ -1,5 +1,6 @@
 Feature: Tournament Management
 
+  @FR-TRN-005 @FR-TRN-001
   Scenario: Authenticated user creates a tournament
     Given the user is authenticated
     When the user creates a tournament with name, discipline, and game length
@@ -7,11 +8,13 @@ Feature: Tournament Management
     And the tournament has an auto-generated code
     And the tournament appears in the user's tournament list
 
+  @FR-TRN-004
   Scenario: User creates a tournament with game conditions
     Given the user is authenticated
     When the user creates a tournament with best-of-sets and per-set points specified
     Then the tournament game conditions are stored correctly
 
+  @FR-TRN-008
   Scenario Outline: Tournament code visibility follows ownership
     Given user "Alice" owns tournament "Cup A"
     When <actor> requests <context>
@@ -25,6 +28,7 @@ Feature: Tournament Management
       | an anonymous visitor | the tournament list     | is not     |
       | user "Bob"      | the details of "Cup A"       | is not     |
 
+  @FR-TRN-005 @FR-TRN-009
   Scenario: Owner updates and deletes their tournament
     Given the user owns a tournament
     When the user updates the tournament name
@@ -32,6 +36,7 @@ Feature: Tournament Management
     Then the name change is persisted before deletion
     And the tournament no longer appears in the list
 
+  @FR-TRN-009
   Scenario Outline: Non-owner cannot modify another user's tournament
     Given user "Alice" owns tournament "Cup A"
     When user "Bob" attempts to <operation> "Cup A"
@@ -42,6 +47,7 @@ Feature: Tournament Management
       | update    |
       | delete    |
 
+  @FR-TRN-006
   Scenario: Anyone can list and view tournaments
     Given several tournaments exist owned by different users
     When any authenticated or anonymous user requests the tournament list or details
@@ -49,6 +55,7 @@ Feature: Tournament Management
 
   # --- Copy Structure ---
 
+  @FR-TRN-020 @FR-TRN-021 @FR-TRN-022 @FR-TRN-025
   Scenario: Create tournament by copying structure from another tournament
     Given a source tournament with courts, real teams, and a multi-phase structure
     When the user creates a new tournament copying structure from the source
@@ -58,16 +65,19 @@ Feature: Tournament Management
     And games are generated for phases whose prerequisites are met
     And phase 1 is InProgress while later phases are Scheduled
 
+  @FR-TRN-025
   Scenario: Copy skips game generation when prerequisites are missing
     Given a source tournament with a phase missing prerequisites (no start time, no courts, or no teams)
     When the user copies the structure
     Then the affected phase has no games generated and remains in status New
 
+  @FR-TRN-020
   Scenario: Any authenticated user can copy from any tournament
     Given user "Alice" owns a tournament
     When user "Bob" creates a tournament copying Alice's structure
     Then Bob's tournament is created successfully owned by Bob
 
+  @FR-TRN-020
   Scenario: Copying a nonexistent tournament returns 404
     When the user tries to copy structure from a tournament that doesn't exist
     Then the request is rejected with status 404

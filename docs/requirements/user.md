@@ -1,23 +1,25 @@
 # User
 
-## Permission Tiers
+## Permission tiers
 
 ### Anonymous (no auth)
-- Can view all tournaments and public data (read-only)
-- Cannot see tournament codes or team contact info
 
-### Authenticated User (JWT)
-- Pre-defined in config (`Users:Entries`) with username, password, display name, and role
-- Default role is `User`
-- Can create tournaments and fully manage their own tournaments
-- Can see tournament codes and team contact info for their own tournaments
+- [FR-USR-001] Can view all tournaments and public data (read-only).
+- [FR-USR-002] Cannot see tournament codes or team contact info.
+
+### Authenticated user (JWT)
+
+- [FR-USR-010] Pre-defined in config (`Users:Entries`) with username, password, display name, and role; default role is `User`.
+- [FR-USR-011] Can create tournaments and fully manage their own tournaments.
+- [FR-USR-012] Can see tournament codes and team contact info for their own tournaments.
 
 ### Admin (JWT, role = `Admin`)
-- Pre-defined in config like regular users, but with `Role = Admin`
-- Can manage (edit, delete) any tournament, not just their own
-- Can see tournament codes and team contact info for all tournaments
-- Treated as "owner" for all authorization purposes
+
+- [FR-USR-020] Pre-defined in config like regular users but with `Role = Admin`.
+- [FR-USR-021] Can manage (edit, delete) any tournament, not just their own.
+- [FR-USR-022] Can see tournament codes and team contact info for all tournaments.
+- [FR-USR-023] Treated as "owner" for all authorisation purposes.
 
 ### Participant (tournament code)
-- Can record game results using `X-Tournament-Code` header
-- No JWT required
+
+- [FR-USR-030] Can record game results using the `X-Tournament-Code` header; no JWT required.
