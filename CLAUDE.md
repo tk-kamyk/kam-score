@@ -39,9 +39,7 @@ Requirements split into focused per-area files. Implementation-level detail (for
 | Volunteer (entity, shifts, assignment) | `docs/requirements/volunteer.md` | `docs/design/volunteer.md` |
 | Tournament, team, court, user, feature-flags | `docs/requirements/<area>.md` | as needed |
 
-**Rule**: a requirement file states *what* the user can do. A design file states *how* we do it. Formulas, named constants (`bracketSize / 2^round + 1`), exact bracket walk orders, and step-by-step algorithms must not appear in the requirements — move them to the paired design doc and link with a `> See design: ./design/<name>.md` line at the top.
-
-Placement heuristic, writing order, and ID conventions live in the `generic-docs-standards` and `generic-spec-authoring` skills.
+Requirement-vs-design separation, ID conventions, placement heuristic, and writing order are owned by `generic-docs-standards` and `generic-spec-authoring`. KamScore-specific: formulas, named constants (`bracketSize / 2^round + 1`), exact bracket walk orders, and step-by-step algorithms belong in the paired design doc, never in the requirement — link from the requirement with `> See design: ./design/<name>.md`.
 
 ---
 
@@ -104,29 +102,7 @@ docker-compose.yml
 
 ## Architecture
 
-Clean Architecture, dependencies point inward:
-
-```
-Domain (no dependencies)
-  <- Application (depends on Domain)
-    <- Infrastructure (depends on Application)
-       Api (depends on Infrastructure + Application)
-```
-
-Layer responsibilities + how-to-decide-where-logic-goes are in the `dotnet-clean-architecture` skill. Below are the **KamScore-specific** decisions.
-
-### Where logic lives (KamScore inventory)
-
-| Logic type | Location | Example |
-|---|---|---|
-| Single-entity validation/rules | Entity class (Domain) | `Tournament.IsCodeValid()`, `Tournament.IsOwnedBy()` |
-| Single-entity creation/mutation | Entity factory/mutation methods | `Tournament.Create()`, `Game.RecordResult()` |
-| Format-specific generation/standings | Strategy + static Generator/Ranker (Domain) | `RoundRobinGenerator`, `PlayoffEliminationStandingsRanker` |
-| Cross-entity calculations | Domain services (static classes) | `GameScheduler`, `RefereeAssigner`, `PhaseAdvancementCalculator`, `BracketUtilities` |
-| Multi-repository orchestration | Application services | `PhaseCompletionService`, `ScheduleGenerationService`, `BracketAdvancementService`, `VolunteerService`, `TournamentCopyService` |
-| Request validation | FluentValidation validators (Application) | `GameResultDtoValidator`, `TournamentDtoValidator` |
-| HTTP/auth concerns | API helpers or endpoint handlers | `TournamentAuthorizationHelper` |
-| Simple CRUD wiring | Endpoint handlers directly | `TournamentEndpoints.CreateTournament()` |
+Clean Architecture in `api/` — layer responsibilities, where-logic-goes, and service extraction criteria live in `dotnet-clean-architecture`. Below are the KamScore-specific inventories and the format-strategy pattern.
 
 ### Domain services
 
@@ -291,43 +267,27 @@ Copy `.env.example` to `.env` and fill in values. Then `docker compose up`.
 
 ## KamScore-specific code patterns
 
-Generic .NET conventions (Clean Arch, DDD, Options Pattern, async, control flow, loop safety, Repository query design, FluentValidation rule ordering) live in `dotnet-coding-patterns`, `dotnet-clean-architecture`, `dotnet-api-design`, `dotnet-data-access`. Vue/Vuetify conventions live in `vue-frontend-standards`. Below are the rules that are **specific to KamScore**.
+Generic .NET conventions live in `dotnet-coding-patterns`, `dotnet-clean-architecture`, `dotnet-api-design`, `dotnet-data-access`. Vue/Vuetify conventions live in `vue-frontend-standards`. Generic file-size and comment discipline live in `generic-code-quality`. Below are the rules KamScore adds or sharpens on top.
 
-### Endpoint anti-patterns (push logic down)
+**Canonical Application services** — push logic down to these (or extract a new one) when an endpoint handler grows beyond CRUD:
 
-Endpoints are thin controllers. Push logic down if you see any of these in an endpoint handler:
+- `PhaseCompletionService.DeletePhaseGamesAsync` — "games deleted → phase resets to New"
+- `BracketAdvancementService.ResolveAsync` — "playoff result recorded → downstream placeholders resolve"
+- `VolunteerService.AssignToShiftAsync` — "validate shift time is a real slot, assign, persist"
 
-- **Field classification** (e.g., deciding which DTO fields are "structural")
-- **Conditional business logic** (e.g., "if format changed, block update")
-- **Cross-entity coordination** (e.g., fetching games + structure + teams to compute a transition)
-- **Cascading state changes** (e.g., `if (phase.Status is Scheduled or InProgress) structure.ResetPhase(...)` — belongs in an Application service)
-- **Multi-repo writes that must succeed together** — wrap in a service method so the intent is named
-- **Old/new state comparisons** for business decisions
-- Business rule checks beyond simple null/empty guards
+Register new services as `AddScoped` in `ServiceCollectionExtensions.cs`.
 
-Endpoints should ONLY: validate auth, map DTOs, call validator, delegate to domain/service, map response, return HTTP.
+**KamScore file-size thresholds** (override the generic 200/300-line targets):
 
-**Canonical service methods** (extracted because the endpoint was doing too much):
-
-- `PhaseCompletionService.DeletePhaseGamesAsync` — owns "games deleted → phase resets to New"
-- `BracketAdvancementService.ResolveAsync` — owns "playoff result recorded → downstream placeholders resolve"
-- `VolunteerService.AssignToShiftAsync` — owns "validate shift time is a real slot, assign, persist"
-
-### Service extraction criteria
-
-Extract an Application service when ANY of: multi-repo coordination, conditional cross-entity logic, cascading state changes, reuse across endpoints. Keep services focused — one cohesive responsibility per service. Register as `AddScoped` in `ServiceCollectionExtensions.cs`.
-
-### File-size guidelines
-
-- Domain strategy files: prefer the three-file triad over a monolith — each file under ~400 lines.
-- Endpoint files: under ~200 lines; push logic into Application services otherwise.
-- Vue single-file components: under ~250 lines; extract sub-components (dialogs, list rows, filter bars) otherwise.
+- Domain strategy/generator/ranker files: ~400 lines max — prefer the three-file triad over a monolith.
+- Endpoint files: ~200 lines max — push logic into Application services otherwise.
+- Vue single-file components: ~250 lines max — extract dialogs, list rows, filter bars.
 
 ---
 
 ## Testing
 
-Generic test philosophy + layer placement is in `generic-code-quality`. Below is the **KamScore** layout and policy.
+Generic test discipline (work-type × what-to-do-with-tests matrix) lives in `generic-code-quality`. Below is the **KamScore** test layout.
 
 ### Test layout
 
@@ -343,29 +303,23 @@ Generic test philosophy + layer placement is in `generic-code-quality`. Below is
 - **Orchestration logic** (phase completion, schedule generation, bracket advancement propagation, volunteer shift validation) → `Application.UnitTest` service tests (e.g. `PhaseCompletionServiceTests`, `ScheduleGenerationServiceTests`)
 - **HTTP contracts, auth tiers, end-to-end flows** → `Api.IntegrationTest`
 
-### Anti-patterns
+### KamScore test anti-patterns
 
 - Do **not** write integration tests for cases already covered by unit tests — pick the lowest layer that can express the behaviour.
-- Do **not** assert on exact error-message substrings (`error.message.Contains("phase is completed")`) — assert on HTTP status + error code/field. Unit tests may check messages.
+- Do **not** assert on exact error-message substrings — assert on HTTP status + error code/field. Unit tests may check messages.
 - When adding a repository interface method, update FakeItEasy mocks in integration tests.
 - AutoMapper maps `null` `List<T>` to an empty list by default — use `.BeNullOrEmpty()` in assertions, not `.BeNull()`.
-
-### Test modification policy (NEW features vs bug fixes)
-
-- When adding a **new feature**, do **NOT** modify existing tests. Existing tests encode behaviour that must continue to hold.
-- If an existing test fails as a result of new-feature work, **STOP and ask the user to review** — the failure may indicate an unintended regression rather than a needed update. Do not "fix" the test silently.
-- This rule does **not** apply to bug fixes: if an existing test encodes the buggy behaviour, updating it is part of the fix. Call out the test change explicitly in the PR / hand-off so it can be reviewed.
 
 ---
 
 ## Known technical gotchas
 
-- .NET 10 uses `.slnx` format, not `.sln`.
-- Swashbuckle 10.x uses Microsoft.OpenApi v2 — types in `Microsoft.OpenApi` namespace (NOT `Microsoft.OpenApi.Models`). `OpenApiSecuritySchemeReference("id", document)` replaces the old pattern; `AddSecurityRequirement` takes `Func<OpenApiDocument, OpenApiSecurityRequirement>` — values must be `List<string>()` not `Array.Empty<string>()`.
-- `Infrastructure.csproj` needs `<FrameworkReference Include="Microsoft.AspNetCore.App" />` AND the `Microsoft.AspNetCore.Authentication.JwtBearer` NuGet package.
+Generic .NET 10 quirks (`.slnx`, OpenAPI v2 namespace, `FrameworkReference Microsoft.AspNetCore.App` on Infrastructure libraries) are in `dotnet-build-and-runtime`. KamScore-specific gotchas:
+
+- **Swashbuckle 10.x** (KamScore uses Swashbuckle, not `Microsoft.AspNetCore.OpenApi`) — `OpenApiSecuritySchemeReference("id", document)` replaces the old pattern; `AddSecurityRequirement` takes `Func<OpenApiDocument, OpenApiSecurityRequirement>` — values must be `List<string>()`, not `Array.Empty<string>()`.
+- `Infrastructure.csproj` needs the `Microsoft.AspNetCore.Authentication.JwtBearer` NuGet package (in addition to the framework reference).
 - `AzureCosmosDisableNewtonsoftJsonCheck` must be set in `Directory.Build.props` (not just `Infrastructure.csproj`).
 - Docker: nginx serves the SPA and proxies `/api/` to the backend (ports: API 5001→8080, SPA 3000→80).
-- `create-vue` CLI is interactive — scaffold manually in non-interactive terminals.
 
 ---
 

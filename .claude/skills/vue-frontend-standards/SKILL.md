@@ -51,3 +51,7 @@ ESLint (flat config in `spa/eslint.config.js`) + Prettier (`spa/.prettierrc.json
 | `npm run format` | Prettier |
 | `npx vue-tsc --noEmit` | Type-check only |
 | `npm run build` | format + lint + type-check + vite build |
+
+## Gotchas
+
+- The `create-vue` CLI is interactive — it won't work in a non-interactive terminal. Scaffold new pieces manually.
