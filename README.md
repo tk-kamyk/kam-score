@@ -12,6 +12,15 @@ with round-robin and play-off formats.
 See [`docs/requirements/`](docs/requirements/) for the feature specification and
 [`docs/design/`](docs/design/) for implementation details.
 
+## Disclaimer
+
+This system has been vibe-coded using Claude Code and served as a playground for various agentic development frameworks, including:
+- https://github.com/tk-kamyk/dev-tools
+- https://github.com/bdfinst/agentic-dev-team
+- https://github.com/nWave-ai/nWave
+
+Quality of the solution might differ depending on the frameworks and models used and the maturity of the application.
+
 ## Running the application
 
 ### Docker Compose (full stack)
