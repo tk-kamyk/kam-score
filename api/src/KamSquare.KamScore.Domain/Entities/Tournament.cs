@@ -23,13 +23,13 @@ public partial class Tournament : Entity
         string ownerId,
         TournamentType type = TournamentType.Public)
     {
-        // Gate 4 skeleton: `type` is intentionally not assigned yet (wired in Gate 5).
         return new Tournament
         {
             Id = Guid.NewGuid().ToString(),
             Name = name,
             Discipline = discipline,
             OwnerId = ownerId,
+            Type = type,
             TournamentCode = GenerateTournamentCode(),
             LastModified = DateTime.UtcNow
         };
@@ -43,18 +43,18 @@ public partial class Tournament : Entity
         GameConditions? gameConditions,
         TournamentType type = TournamentType.Public)
     {
-        // Gate 4 skeleton: `type` is intentionally not assigned yet (wired in Gate 5).
         Name = name;
         Discipline = discipline;
         StartTime = startTime;
         GameLength = gameLength;
         GameConditions = gameConditions;
+        Type = type;
         LastModified = DateTime.UtcNow;
     }
 
-    public bool IsOwnedBy(string userId)
+    public bool IsOwnedBy(string? userId)
     {
-        return OwnerId == userId;
+        return !string.IsNullOrEmpty(userId) && OwnerId == userId;
     }
 
     [GeneratedRegex("^[0-9A-Fa-f]{4}$")]

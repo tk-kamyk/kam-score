@@ -12,7 +12,7 @@ public class TournamentDtoValidatorTests
     [Fact]
     public void Valid_Dto_ShouldPassValidation()
     {
-        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var result = _validator.TestValidate(dto);
 
@@ -93,7 +93,7 @@ public class TournamentDtoValidatorTests
     public void ValidGameConditions_ShouldPassValidation()
     {
         var conditions = new GameConditionsDto(3, [25, 25, 15]);
-        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, 60, conditions, null, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, 60, conditions, null, null, Type: "Public");
 
         var result = _validator.TestValidate(dto);
 
@@ -103,7 +103,7 @@ public class TournamentDtoValidatorTests
     [Fact]
     public void BeachVolleyball_ShouldBeValidDiscipline()
     {
-        var dto = new TournamentDto(null, "Beach Cup", "BeachVolleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Beach Cup", "BeachVolleyball", null, null, null, null, null, Type: "Public");
 
         var result = _validator.TestValidate(dto);
 

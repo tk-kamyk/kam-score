@@ -6,6 +6,7 @@ import { useTournamentStore } from '@/tournament/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import { getErrorMessage } from '@/api/errors'
 import TournamentCreateDialog from '@/tournament/TournamentCreateDialog.vue'
+import TournamentTypeBadge from '@/tournament/TournamentTypeBadge.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
 import type { TournamentDto } from '@/tournament/types'
 
@@ -83,6 +84,7 @@ function navigateToTournament(id: string) {
           <v-card-subtitle class="mt-1">{{ tournament.discipline }}</v-card-subtitle>
           <v-card-text class="pt-3 d-flex flex-row justify-space-between">
             <div class="d-flex flex-wrap ga-1">
+              <TournamentTypeBadge :type="tournament.type" />
               <v-chip size="small" variant="outlined" prepend-icon="mdi-account" color="primary">
                 {{ tournament.ownerDisplayName ?? 'Unknown' }}
               </v-chip>

@@ -28,7 +28,11 @@ public class TournamentCopyService
         _gameRepository = gameRepository;
     }
 
-    public async Task<Tournament> CopyAsync(string sourceTournamentId, string name, string ownerId)
+    public async Task<Tournament> CopyAsync(
+        string sourceTournamentId,
+        string name,
+        string ownerId,
+        TournamentType type = TournamentType.Public)
     {
         var source = await _tournamentRepository.GetByIdAsync(sourceTournamentId)
             ?? throw new NotFoundException(nameof(Tournament), sourceTournamentId);
@@ -43,9 +47,8 @@ public class TournamentCopyService
         var sourceTeams = (await sourceTeamsTask).ToList();
         var sourceCourts = (await sourceCourtsTask).ToList();
 
-        // Create new tournament with copied settings
-        var tournament = Tournament.Create(name, source.Discipline, ownerId);
-        tournament.Update(name, source.Discipline, source.StartTime, source.GameLength, source.GameConditions);
+        var tournament = Tournament.Create(name, source.Discipline, ownerId, type);
+        tournament.Update(name, source.Discipline, source.StartTime, source.GameLength, source.GameConditions, type);
         var created = await _tournamentRepository.CreateAsync(tournament);
         var newTournamentId = created.Id;
 

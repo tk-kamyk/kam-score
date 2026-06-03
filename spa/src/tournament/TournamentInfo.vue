@@ -2,8 +2,8 @@
 import { ref } from 'vue'
 import SectionHeader from '@/components/SectionHeader.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
-import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
-import { buildGameConditions, formatPointsPerSet } from '@/tournament/gameConditionsUtils'
+import TournamentTypeBadge from '@/tournament/TournamentTypeBadge.vue'
+import TournamentEditDialog from '@/tournament/TournamentEditDialog.vue'
 import { formatDate } from '@/tournament/dateUtils'
 import type { TournamentDto } from '@/tournament/types'
 
@@ -20,36 +20,6 @@ const emit = defineEmits<{
 
 const showEditDialog = ref(false)
 const showDeleteDialog = ref(false)
-const editForm = ref<TournamentDto>({ name: '', discipline: 'Volleyball' })
-const editCustomConditions = ref(false)
-const editBestOfSets = ref<number | undefined>()
-const editPointsPerSetText = ref('')
-
-const disciplines = ['Volleyball', 'BeachVolleyball']
-
-function openEdit() {
-  editForm.value = {
-    ...props.tournament,
-    startTime: props.tournament.startTime?.split('T')[0],
-  }
-  editCustomConditions.value = !!props.tournament.gameConditions
-  editBestOfSets.value = props.tournament.gameConditions?.bestOfSets
-  editPointsPerSetText.value = formatPointsPerSet(props.tournament.gameConditions?.pointsPerSet)
-  showEditDialog.value = true
-}
-
-function handleUpdate() {
-  const dto: TournamentDto = {
-    ...editForm.value,
-    gameConditions: buildGameConditions(
-      editCustomConditions.value,
-      editBestOfSets.value,
-      editPointsPerSetText.value,
-    ),
-  }
-  emit('updated', dto)
-  showEditDialog.value = false
-}
 
 function handleDelete() {
   emit('deleted')
@@ -65,7 +35,7 @@ function handleDelete() {
           variant="text"
           size="small"
           aria-label="Edit tournament"
-          @click="openEdit"
+          @click="showEditDialog = true"
         />
         <v-btn
           icon="mdi-delete"
@@ -94,6 +64,10 @@ function handleDelete() {
           <tr>
             <th scope="row" class="font-weight-bold">Discipline</th>
             <td>{{ tournament.discipline }}</td>
+          </tr>
+          <tr>
+            <th scope="row" class="font-weight-bold">Type</th>
+            <td><TournamentTypeBadge :type="tournament.type" /></td>
           </tr>
           <tr v-if="tournament.startTime">
             <th scope="row" class="font-weight-bold">Date</th>
@@ -130,36 +104,11 @@ function handleDelete() {
     </v-card>
   </div>
 
-  <!-- Edit Dialog -->
-  <v-dialog v-model="showEditDialog" max-width="500" aria-labelledby="edit-tournament-dialog-title">
-    <v-card class="pa-2">
-      <v-card-title id="edit-tournament-dialog-title" class="text-uppercase dialog-title"
-        >Edit Tournament</v-card-title
-      >
-      <v-card-text>
-        <v-text-field v-model="editForm.name" label="Name" />
-        <v-select v-model="editForm.discipline" :items="disciplines" label="Discipline" />
-        <v-text-field v-model="editForm.startTime" label="Date" type="date" />
-        <v-text-field
-          v-model.number="editForm.gameLength"
-          label="Game Length (minutes)"
-          type="number"
-        />
-        <GameConditionsForm
-          v-model:enabled="editCustomConditions"
-          v-model:best-of-sets="editBestOfSets"
-          v-model:points-per-set-text="editPointsPerSetText"
-        />
-      </v-card-text>
-      <v-card-actions>
-        <v-spacer />
-        <v-btn variant="text" @click="showEditDialog = false">Cancel</v-btn>
-        <v-btn color="primary" variant="elevated" :disabled="!editForm.name" @click="handleUpdate">
-          Save
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <TournamentEditDialog
+    v-model="showEditDialog"
+    :tournament="tournament"
+    @updated="(dto) => emit('updated', dto)"
+  />
 
   <!-- Delete Confirmation -->
   <v-dialog

@@ -5,6 +5,7 @@ using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Domain.Services;
 using KamSquare.KamScore.Domain.ValueObjects;
 using KamSquare.KamScore.Api.Helpers;
 using KamSquare.KamScore.Infrastructure.Options;
@@ -39,18 +40,34 @@ public static class TournamentEndpoints
     {
         var displayNames = ResolveDisplayNames(userOptions);
         var allTournaments = await repository.GetAllAsync();
+        var visible = TournamentVisibility.VisibleInList(
+            allTournaments, currentUser.UserId, currentUser.IsAuthenticated, currentUser.IsAdmin);
 
-        var enrichmentTasks = allTournaments.Select(tournament =>
+        var enrichedDtos = await EnrichAllAsync(
+            visible, currentUser, displayNames, teamRepository, courtRepository, mapper);
+
+        return Results.Ok(enrichedDtos);
+    }
+
+    private static async Task<List<TournamentDto>> EnrichAllAsync(
+        IEnumerable<Tournament> tournaments,
+        ICurrentUserService currentUser,
+        Dictionary<string, string> displayNames,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
+        IMapper mapper)
+    {
+        var enrichmentTasks = tournaments.Select(tournament =>
         {
             var dto = mapper.Map<TournamentDto>(tournament);
             return EnrichTournamentDtoAsync(dto, tournament, currentUser, displayNames, teamRepository, courtRepository);
         });
         var enrichedDtos = await Task.WhenAll(enrichmentTasks);
 
-        return Results.Ok(enrichedDtos.ToList());
+        return enrichedDtos.ToList();
     }
 
-    private static Task<IResult> GetCopySources(
+    private static async Task<IResult> GetCopySources(
         ITournamentRepository repository,
         ITeamRepository teamRepository,
         ICourtRepository courtRepository,
@@ -58,8 +75,15 @@ public static class TournamentEndpoints
         IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
-        // Gate 4 skeleton: implemented in Gate 5.
-        throw new NotImplementedException();
+        var displayNames = ResolveDisplayNames(userOptions);
+        var allTournaments = await repository.GetAllAsync();
+        var sources = TournamentVisibility.CopySources(
+            allTournaments, currentUser.UserId, currentUser.IsAdmin);
+
+        var enrichedDtos = await EnrichAllAsync(
+            sources, currentUser, displayNames, teamRepository, courtRepository, mapper);
+
+        return Results.Ok(enrichedDtos);
     }
 
     private static async Task<IResult> GetTournament(
@@ -96,23 +120,25 @@ public static class TournamentEndpoints
         IOptions<UserOptions> userOptions,
         IMapper mapper)
     {
+        var type = Enum.Parse<TournamentType>(request.Type!, ignoreCase: true);
+
         Tournament created;
         if (!string.IsNullOrEmpty(request.SourceTournamentId))
         {
             created = await copyService.CopyAsync(
-                request.SourceTournamentId, request.Name, currentUser.UserId!);
+                request.SourceTournamentId, request.Name, currentUser.UserId!, type);
         }
         else
         {
             var discipline = Enum.Parse<Discipline>(request.Discipline, ignoreCase: true);
-            var tournament = Tournament.Create(request.Name, discipline, currentUser.UserId!);
+            var tournament = Tournament.Create(request.Name, discipline, currentUser.UserId!, type);
 
             if (request.StartTime.HasValue || request.GameLength.HasValue || request.GameConditions is not null)
             {
                 var gameConditions = request.GameConditions is not null
                     ? mapper.Map<GameConditions>(request.GameConditions)
                     : null;
-                tournament.Update(request.Name, discipline, request.StartTime, request.GameLength, gameConditions);
+                tournament.Update(request.Name, discipline, request.StartTime, request.GameLength, gameConditions, type);
             }
 
             created = await repository.CreateAsync(tournament);
@@ -149,11 +175,12 @@ public static class TournamentEndpoints
         var tournament = await repository.GetOwnedTournamentAsync(currentUser, id);
 
         var discipline = Enum.Parse<Discipline>(request.Discipline, ignoreCase: true);
+        var type = Enum.Parse<TournamentType>(request.Type!, ignoreCase: true);
         var gameConditions = request.GameConditions is not null
             ? mapper.Map<GameConditions>(request.GameConditions)
             : null;
 
-        tournament.Update(request.Name, discipline, request.StartTime, request.GameLength, gameConditions);
+        tournament.Update(request.Name, discipline, request.StartTime, request.GameLength, gameConditions, type);
 
         var updated = await repository.UpdateAsync(tournament);
         var dto = mapper.Map<TournamentDto>(updated);
