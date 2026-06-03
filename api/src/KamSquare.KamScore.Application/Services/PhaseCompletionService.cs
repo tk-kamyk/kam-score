@@ -177,6 +177,11 @@ public class PhaseCompletionService
             group.ClearTeams();
         }
 
+        // Wiping the next phase's games/teams must drop it back to New, otherwise it is
+        // stranded in Scheduled/InProgress with no schedule and can no longer be edited/deleted.
+        if (nextPhase.Status is PhaseStatus.Scheduled or PhaseStatus.InProgress)
+            structure.ResetPhase(nextPhase.Id);
+
         await _structureRepository.UpdateAsync(structure);
 
         var updatedPhase = structure.GetPhase(phaseId);
@@ -228,6 +233,11 @@ public class PhaseCompletionService
         }
 
         await _gameRepository.DeleteByPhaseIdAsync(tournamentId, nextPhase.Id);
+
+        // Wiping the next phase's games/teams must drop it back to New, otherwise it is
+        // stranded in Scheduled/InProgress with no schedule and can no longer be edited/deleted.
+        if (nextPhase.Status is PhaseStatus.Scheduled or PhaseStatus.InProgress)
+            structure.ResetPhase(nextPhase.Id);
 
         if (newPreviousPhase is not null)
         {

@@ -266,4 +266,73 @@ public class PhaseCompletionServiceTests
         level1Group.TeamIds.Should().Equal("a1", "b1", "a2");
         level2Group.TeamIds.Should().Equal("b2", "a3", "b3");
     }
+
+    // --- Cascade status reset (stranded-successor regression) ---
+
+    private static TournamentStructure CreateQualiThenMain(PhaseStatus mainStatus)
+    {
+        var structure = TournamentStructure.Create(TournamentId);
+
+        var quali = structure.AddPhase("Quali", PhaseFormat.RoundRobin, 1, groupWinners: 1,
+            startTime: new TimeOnly(9, 0));
+        quali.Id = "phase-1";
+
+        var main = structure.AddPhase("Main", PhaseFormat.RoundRobin, 1,
+            startTime: new TimeOnly(12, 0));
+        main.Id = "phase-2";
+        main.Groups[0].Id = "group-2";
+        main.Groups[0].AddTeam("team-1");
+
+        switch (mainStatus)
+        {
+            case PhaseStatus.Scheduled:
+                main.Schedule();
+                break;
+            case PhaseStatus.InProgress:
+                main.Activate();
+                break;
+        }
+
+        return structure;
+    }
+
+    [Fact]
+    public async Task HandlePhaseDeletion_resets_scheduled_successor_to_New()
+    {
+        var structure = CreateQualiThenMain(PhaseStatus.Scheduled);
+
+        await _sut.HandlePhaseDeletionAsync(structure, "phase-1", TournamentId);
+
+        var main = structure.GetPhase("phase-2");
+        main.Status.Should().Be(PhaseStatus.New);
+        main.Groups[0].TeamIds.Should().BeEmpty();
+        A.CallTo(() => _gameRepository.DeleteByPhaseIdAsync(TournamentId, "phase-2"))
+            .MustHaveHappened();
+        A.CallTo(() => _structureRepository.UpdateAsync(structure)).MustHaveHappened();
+    }
+
+    [Fact]
+    public async Task HandlePhaseDeletion_leaves_New_successor_in_New()
+    {
+        var structure = CreateQualiThenMain(PhaseStatus.New);
+
+        var act = async () => await _sut.HandlePhaseDeletionAsync(structure, "phase-1", TournamentId);
+
+        await act.Should().NotThrowAsync();
+        structure.GetPhase("phase-2").Status.Should().Be(PhaseStatus.New);
+    }
+
+    [Fact]
+    public async Task RegeneratePlaceholdersOnUpdate_resets_scheduled_successor_to_New()
+    {
+        var structure = CreateQualiThenMain(PhaseStatus.Scheduled);
+
+        await _sut.RegeneratePlaceholdersOnUpdateAsync(structure, "phase-1", TournamentId,
+            oldGroupWinners: 1, oldTotalTeamsProceeding: null,
+            newGroupWinners: 2, newTotalTeamsProceeding: null);
+
+        structure.GetPhase("phase-2").Status.Should().Be(PhaseStatus.New);
+        A.CallTo(() => _gameRepository.DeleteByPhaseIdAsync(TournamentId, "phase-2"))
+            .MustHaveHappened();
+    }
 }
