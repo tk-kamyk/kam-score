@@ -24,15 +24,12 @@ const newTournament = ref<TournamentDto>({
 
 const disciplines = ['Volleyball', 'BeachVolleyball']
 
+// Order is decided by the API (templates first); preserve it here.
 const tournamentOptions = computed(() =>
-  [...tournamentStore.copySources]
-    .sort(
-      (a, b) => new Date(b.lastModified ?? 0).getTime() - new Date(a.lastModified ?? 0).getTime(),
-    )
-    .map((t) => ({
-      title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
-      value: t.id!,
-    })),
+  tournamentStore.copySources.map((t) => ({
+    title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
+    value: t.id!,
+  })),
 )
 
 const selectedSource = computed(() =>
@@ -83,7 +80,7 @@ function handleCreate() {
         <v-select
           v-model="newTournament.type"
           :items="TOURNAMENT_TYPES"
-          label="Type"
+          label="Visibility"
           class="mb-2"
         />
         <v-select

@@ -78,7 +78,9 @@ public static class TournamentEndpoints
         var displayNames = ResolveDisplayNames(userOptions);
         var allTournaments = await repository.GetAllAsync();
         var sources = TournamentVisibility.CopySources(
-            allTournaments, currentUser.UserId, currentUser.IsAdmin);
+                allTournaments, currentUser.UserId, currentUser.IsAdmin)
+            .OrderByDescending(t => t.Type == TournamentType.Template)
+            .ThenByDescending(t => t.LastModified);
 
         var enrichedDtos = await EnrichAllAsync(
             sources, currentUser, displayNames, teamRepository, courtRepository, mapper);

@@ -66,7 +66,7 @@ function handleDelete() {
             <td>{{ tournament.discipline }}</td>
           </tr>
           <tr>
-            <th scope="row" class="font-weight-bold">Type</th>
+            <th scope="row" class="font-weight-bold">Visibility</th>
             <td><TournamentTypeBadge :type="tournament.type" /></td>
           </tr>
           <tr v-if="tournament.startTime">

@@ -49,7 +49,7 @@ function handleUpdate() {
       <v-card-text>
         <v-text-field v-model="editForm.name" label="Name" />
         <v-select v-model="editForm.discipline" :items="disciplines" label="Discipline" />
-        <v-select v-model="editForm.type" :items="TOURNAMENT_TYPES" label="Type" />
+        <v-select v-model="editForm.type" :items="TOURNAMENT_TYPES" label="Visibility" />
         <v-text-field v-model="editForm.startTime" label="Date" type="date" />
         <v-text-field
           v-model.number="editForm.gameLength"

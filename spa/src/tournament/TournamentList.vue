@@ -84,7 +84,7 @@ function navigateToTournament(id: string) {
           <v-card-subtitle class="mt-1">{{ tournament.discipline }}</v-card-subtitle>
           <v-card-text class="pt-3 d-flex flex-row justify-space-between">
             <div class="d-flex flex-wrap ga-1">
-              <TournamentTypeBadge :type="tournament.type" />
+              <TournamentTypeBadge v-if="auth.isAuthenticated" :type="tournament.type" />
               <v-chip size="small" variant="outlined" prepend-icon="mdi-account" color="primary">
                 {{ tournament.ownerDisplayName ?? 'Unknown' }}
               </v-chip>
