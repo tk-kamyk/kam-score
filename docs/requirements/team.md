@@ -17,5 +17,5 @@
 
 - [FR-TEAM-020] Each team row in the list is expandable; expanding shows the team's schedule overview grouped by phase (phase name, format, level/group as section headers).
 - [FR-TEAM-021] Each game in the schedule shows time, court, opponent, result, and the team's role (Home / Away / Referee).
-- [FR-TEAM-022] A "Show breaks" toggle (off by default) reveals time slots where the team has no role.
+- [FR-TEAM-022] A "Show breaks" toggle (on by default) reveals time slots where the team has no role.
 - [FR-TEAM-023] The API supports filtering games by team (returns games where the team plays or referees); game responses include phase name, group name, and level name for display.

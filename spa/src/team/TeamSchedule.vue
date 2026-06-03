@@ -18,7 +18,7 @@ const gameStore = useGameStore()
 const { teamGames } = useGamesByPhase()
 
 const loading = computed(() => gameStore.loading)
-const showBreaks = ref(false)
+const showBreaks = ref(true)
 const games = computed(() => teamGames(props.teamId))
 const allTimeSlots = computed(
   () => new Set(gameStore.games.map((g) => g.startTime).filter(Boolean) as string[]),
