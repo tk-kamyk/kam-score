@@ -104,4 +104,30 @@ public class TournamentTests
 
         tournament.Courts.Should().BeEmpty();
     }
+
+    [Fact]
+    public void Create_ShouldDefaultTypeToPublic()
+    {
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "user1");
+
+        tournament.Type.Should().Be(TournamentType.Public);
+    }
+
+    [Fact]
+    public void Create_ShouldSetGivenType()
+    {
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "user1", TournamentType.Template);
+
+        tournament.Type.Should().Be(TournamentType.Template);
+    }
+
+    [Fact]
+    public void Update_ShouldChangeType()
+    {
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "user1");
+
+        tournament.Update("Summer Cup", Discipline.Volleyball, null, null, null, TournamentType.Private);
+
+        tournament.Type.Should().Be(TournamentType.Private);
+    }
 }

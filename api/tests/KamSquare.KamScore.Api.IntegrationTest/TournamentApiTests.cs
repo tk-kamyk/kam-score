@@ -610,4 +610,154 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeRepository.DeleteAsync(tournament.Id, "alice"))
             .MustHaveHappenedOnceExactly();
     }
+
+    // --- Tournament Type & Visibility ---
+
+    private static Tournament Typed(string name, string ownerId, TournamentType type)
+    {
+        var tournament = Tournament.Create(name, Discipline.Volleyball, ownerId);
+        tournament.Type = type;
+        return tournament;
+    }
+
+    private void SeedTypedTournaments()
+    {
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync()).Returns(new[]
+        {
+            Typed("Alice Public", "alice", TournamentType.Public),
+            Typed("Alice Private", "alice", TournamentType.Private),
+            Typed("Alice Template", "alice", TournamentType.Template),
+            Typed("Bob Public", "bob", TournamentType.Public),
+            Typed("Bob Private", "bob", TournamentType.Private),
+            Typed("Bob Template", "bob", TournamentType.Template),
+        });
+    }
+
+    [Fact]
+    public async Task GetTournaments_Anonymous_ShouldOnlyReturnPublic()
+    {
+        var client = _factory.CreateClient();
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Select(t => t.Name).Should().BeEquivalentTo("Alice Public", "Bob Public");
+    }
+
+    [Fact]
+    public async Task GetTournaments_Owner_ShouldReturnPublicPlusOwnNonPublic_ButNotOthersNonPublic()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Select(t => t.Name).Should().BeEquivalentTo(
+            "Alice Public", "Alice Private", "Alice Template", "Bob Public");
+    }
+
+    [Fact]
+    public async Task GetTournaments_Admin_ShouldReturnAllTypes()
+    {
+        var client = _factory.CreateAdminClient("admin-user");
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Should().HaveCount(6);
+    }
+
+    [Fact]
+    public async Task GetTournament_PrivateTournament_Anonymous_ShouldStillReturnDetails()
+    {
+        var client = _factory.CreateClient();
+        var tournament = Typed("Hidden Cup", "alice", TournamentType.Private);
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Name.Should().Be("Hidden Cup");
+        result.TournamentCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetCopySources_Owner_ShouldIncludeAllTemplatesAndOwnPrivate_ExcludeOthersPrivate()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments/copy-sources");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Select(t => t.Name).Should().BeEquivalentTo(
+            "Alice Public", "Bob Public", "Alice Template", "Bob Template", "Alice Private");
+    }
+
+    [Fact]
+    public async Task GetCopySources_Admin_ShouldReturnAllTypes()
+    {
+        var client = _factory.CreateAdminClient("admin-user");
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments/copy-sources");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Should().HaveCount(6);
+    }
+
+    [Fact]
+    public async Task GetCopySources_Anonymous_ShouldReturn401()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/tournaments/copy-sources");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CreateTournament_WithType_ShouldPersistType()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+
+        var dto = new TournamentDto(null, "Private Cup", "Volleyball", null, null, null, null, null, Type: "Private");
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Type.Should().Be("Private");
+    }
+
+    [Fact]
+    public async Task UpdateTournament_ShouldChangeType()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var tournament = Typed("Summer Cup", "alice", TournamentType.Public);
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeRepository.UpdateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Template");
+
+        var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Type.Should().Be("Template");
+    }
 }

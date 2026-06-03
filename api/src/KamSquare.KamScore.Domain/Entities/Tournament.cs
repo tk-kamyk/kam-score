@@ -13,11 +13,17 @@ public partial class Tournament : Entity
     public GameConditions? GameConditions { get; set; }
     public string TournamentCode { get; set; } = null!;
     public string OwnerId { get; set; } = null!;
+    public TournamentType Type { get; set; }
 
     public List<Court> Courts { get; set; } = [];
 
-    public static Tournament Create(string name, Discipline discipline, string ownerId)
+    public static Tournament Create(
+        string name,
+        Discipline discipline,
+        string ownerId,
+        TournamentType type = TournamentType.Public)
     {
+        // Gate 4 skeleton: `type` is intentionally not assigned yet (wired in Gate 5).
         return new Tournament
         {
             Id = Guid.NewGuid().ToString(),
@@ -34,8 +40,10 @@ public partial class Tournament : Entity
         Discipline discipline,
         DateTime? startTime,
         int? gameLength,
-        GameConditions? gameConditions)
+        GameConditions? gameConditions,
+        TournamentType type = TournamentType.Public)
     {
+        // Gate 4 skeleton: `type` is intentionally not assigned yet (wired in Gate 5).
         Name = name;
         Discipline = discipline;
         StartTime = startTime;

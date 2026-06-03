@@ -13,4 +13,5 @@ public record TournamentDto(
     int? TeamCount = null,
     int? CourtCount = null,
     string? SourceTournamentId = null,
-    string? OwnerDisplayName = null);
+    string? OwnerDisplayName = null,
+    string? Type = null);

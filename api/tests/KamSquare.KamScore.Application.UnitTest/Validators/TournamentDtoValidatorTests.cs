@@ -109,4 +109,37 @@ public class TournamentDtoValidatorTests
 
         result.ShouldNotHaveAnyValidationErrors();
     }
+
+    [Fact]
+    public void MissingType_ShouldFailValidation()
+    {
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: null);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldHaveValidationErrorFor(x => x.Type);
+    }
+
+    [Fact]
+    public void InvalidType_ShouldFailValidation()
+    {
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Bogus");
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldHaveValidationErrorFor(x => x.Type);
+    }
+
+    [Theory]
+    [InlineData("Public")]
+    [InlineData("Private")]
+    [InlineData("Template")]
+    public void ValidType_ShouldPassValidation(string type)
+    {
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: type);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveValidationErrorFor(x => x.Type);
+    }
 }

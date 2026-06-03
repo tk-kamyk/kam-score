@@ -30,7 +30,7 @@ Feature: Court Management
   Scenario: Owner generates courts additively
     Given a tournament with some existing courts
     When the owner generates N additional courts
-    Then N new courts are added named C{next}..C{next+N-1}
+    Then N new courts are added with sequential names continuing from the existing courts
 
   @FR-CRT-010 @FR-CRT-012
   Scenario Outline: Generate-courts validation and auth

@@ -53,4 +53,15 @@ public class TournamentProfileTests
         dto.GameConditions.PointsPerSet.Should().BeEquivalentTo([21, 21, 15]);
         dto.GameLength.Should().Be(45);
     }
+
+    [Fact]
+    public void Tournament_Type_ShouldMapToStringName()
+    {
+        var tournament = Tournament.Create("Summer Cup", Discipline.Volleyball, "user1");
+        tournament.Type = TournamentType.Template;
+
+        var dto = _mapper.Map<TournamentDto>(tournament);
+
+        dto.Type.Should().Be("Template");
+    }
 }

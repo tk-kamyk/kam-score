@@ -7,6 +7,11 @@ KamScore ubiquitous language. Read this when terminology in code, docs, or chat 
 | Term | Meaning |
 |---|---|
 | **Tournament** | The top-level aggregate. Has a code, an owner, courts, teams, a structure, and games. Volleyball or beach volleyball, single- or multi-day. |
+| **Tournament type** | One of `Public`, `Private`, `Template`. Controls list visibility and copy-source eligibility (see `docs/design/tournament.md`). Defaults to `Public`. |
+| **Public** (type) | The default tournament type — listed for everyone and offered as a copy source to all. |
+| **Private** (type) | An *unlisted* tournament — hidden from the list and copy sources for everyone except its owner and admins, but still reachable by direct link (deep link) for participants. |
+| **Template** (type) | An unlisted tournament that is additionally offered as a copy-structure source to **all** authenticated organisers, regardless of owner. Used as a reusable starting structure. |
+| **Copy source** | A tournament selectable in the "copy structure from" dropdown when creating a new tournament. The set is computed by the copy-source filter, distinct from the plain list. |
 | **Tournament code** | Short shared secret that lets a *participant* record results via `X-Tournament-Code` header. Hidden from anonymous viewers. |
 | **Structure** | The phase tree of a tournament — an ordered list of phases that teams progress through. |
 | **Phase** | A stage of the tournament with a single format (e.g. group stage → quarter-finals → semis → final). Has status `New → Scheduled → InProgress → Completed`. |

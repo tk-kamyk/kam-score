@@ -20,6 +20,7 @@ public static class TournamentEndpoints
             .WithTags("Tournaments");
 
         group.MapGet("/", GetTournaments);
+        group.MapGet("/copy-sources", GetCopySources).RequireAuthorization();
         group.MapGet("/{id}", GetTournament);
         group.MapPost("/", CreateTournament).RequireAuthorization();
         group.MapPut("/{id}", UpdateTournament).RequireAuthorization();
@@ -47,6 +48,18 @@ public static class TournamentEndpoints
         var enrichedDtos = await Task.WhenAll(enrichmentTasks);
 
         return Results.Ok(enrichedDtos.ToList());
+    }
+
+    private static Task<IResult> GetCopySources(
+        ITournamentRepository repository,
+        ITeamRepository teamRepository,
+        ICourtRepository courtRepository,
+        ICurrentUserService currentUser,
+        IOptions<UserOptions> userOptions,
+        IMapper mapper)
+    {
+        // Gate 4 skeleton: implemented in Gate 5.
+        throw new NotImplementedException();
     }
 
     private static async Task<IResult> GetTournament(
