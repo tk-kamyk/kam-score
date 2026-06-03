@@ -54,8 +54,8 @@ Feature: Custom Phase Format (Manual Standings)
   @FR-RES-070 @FR-RES-071 @FR-RES-073
   Scenario: Owner saves a complete manual order for a group
     Given a Custom phase in InProgress with a group of 3 teams
-    When I save the group's standings ordered [team-3, team-1, team-2]
-    Then the returned standings list team-3 at position 1, team-1 at position 2, team-2 at position 3
+    When I save the group's standings in a specific manual order
+    Then the returned standings reflect that exact order, each team at its saved position
     And per-team stats (wins, points, set difference) are blank
 
   @FR-RES-074

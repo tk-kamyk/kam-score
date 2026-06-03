@@ -70,7 +70,7 @@ Feature: Team Management
   Scenario: Owner generates seed teams
     Given a tournament
     When the owner generates N seed teams
-    Then N teams are added named "Seed 1".."Seed N" with proportionally distributed levels
+    Then N teams are added with sequential seed names and proportionally distributed levels
     And generation is additive (names continue from the existing team count)
 
   @FR-TEAM-010 @FR-TEAM-013

@@ -11,6 +11,7 @@ public class TournamentProfile : Profile
     {
         CreateMap<Tournament, TournamentDto>()
             .ForMember(dest => dest.Discipline, opt => opt.MapFrom(src => src.Discipline.ToString()))
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => src.Type.ToString()))
             .ForMember(dest => dest.CourtCount, opt => opt.MapFrom(src => src.Courts.Count))
             .ForMember(dest => dest.TeamCount, opt => opt.Ignore());
 

@@ -16,6 +16,10 @@ public class TournamentDtoValidator : AbstractValidator<TournamentDto>
             .NotEmpty().WithMessage("Discipline is required.")
             .Must(BeValidDiscipline).WithMessage("Discipline must be 'Volleyball' or 'BeachVolleyball'.");
 
+        RuleFor(x => x.Type)
+            .NotEmpty().WithMessage("Tournament type is required.")
+            .Must(BeValidType!).WithMessage("Type must be 'Public', 'Private', or 'Template'.");
+
         RuleFor(x => x.GameLength)
             .GreaterThan(0).WithMessage("Game length must be greater than 0.")
             .When(x => x.GameLength.HasValue);
@@ -38,5 +42,10 @@ public class TournamentDtoValidator : AbstractValidator<TournamentDto>
     private static bool BeValidDiscipline(string discipline)
     {
         return Enum.TryParse<Discipline>(discipline, ignoreCase: true, out _);
+    }
+
+    private static bool BeValidType(string type)
+    {
+        return Enum.TryParse<TournamentType>(type, ignoreCase: true, out _);
     }
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useTournamentStore } from '@/tournament/store'
-import type { TournamentDto } from '@/tournament/types'
+import { TOURNAMENT_TYPES, type TournamentDto } from '@/tournament/types'
 import GameConditionsForm from '@/tournament/GameConditionsForm.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
 import { buildGameConditions } from '@/tournament/gameConditionsUtils'
@@ -19,29 +19,27 @@ const sourceTournamentId = ref<string | undefined>()
 const newTournament = ref<TournamentDto>({
   name: '',
   discipline: 'Volleyball',
+  type: 'Public',
 })
 
 const disciplines = ['Volleyball', 'BeachVolleyball']
 
+// Order is decided by the API (templates first); preserve it here.
 const tournamentOptions = computed(() =>
-  [...tournamentStore.tournaments]
-    .sort(
-      (a, b) => new Date(b.lastModified ?? 0).getTime() - new Date(a.lastModified ?? 0).getTime(),
-    )
-    .map((t) => ({
-      title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
-      value: t.id!,
-    })),
+  tournamentStore.copySources.map((t) => ({
+    title: `${t.name} (${t.teamCount ?? 0} teams, ${t.courtCount ?? 0} courts)`,
+    value: t.id!,
+  })),
 )
 
 const selectedSource = computed(() =>
   sourceTournamentId.value
-    ? tournamentStore.tournaments.find((t) => t.id === sourceTournamentId.value)
+    ? tournamentStore.copySources.find((t) => t.id === sourceTournamentId.value)
     : undefined,
 )
 
 function resetForm() {
-  newTournament.value = { name: '', discipline: 'Volleyball' }
+  newTournament.value = { name: '', discipline: 'Volleyball', type: 'Public' }
   useCustomConditions.value = false
   bestOfSets.value = undefined
   pointsPerSetText.value = ''
@@ -49,7 +47,11 @@ function resetForm() {
 }
 
 watch(model, (open) => {
-  if (!open) resetForm()
+  if (open) {
+    tournamentStore.fetchCopySources()
+  } else {
+    resetForm()
+  }
 })
 
 function handleCreate() {
@@ -75,6 +77,12 @@ function handleCreate() {
       <LoadingBar :loading="!!props.loading" />
       <v-card-text>
         <v-text-field v-model="newTournament.name" label="Name" autofocus />
+        <v-select
+          v-model="newTournament.type"
+          :items="TOURNAMENT_TYPES"
+          label="Visibility"
+          class="mb-2"
+        />
         <v-select
           v-model="sourceTournamentId"
           :items="tournamentOptions"

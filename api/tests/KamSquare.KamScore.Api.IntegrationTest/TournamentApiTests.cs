@@ -32,7 +32,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
             .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
 
-        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -52,7 +52,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
     {
         var client = _factory.CreateClient();
 
-        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -150,7 +150,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeRepository.UpdateAsync(A<Tournament>.Ignored))
             .ReturnsLazily((Tournament t) => Task.FromResult(t));
 
-        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
 
@@ -167,7 +167,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id))
             .Returns(tournament);
 
-        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
 
@@ -222,7 +222,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
 
         var conditions = new GameConditionsDto(3, [21, 21, 15]);
-        var dto = new TournamentDto(null, "Beach Cup", "BeachVolleyball", null, 45, conditions, null, null);
+        var dto = new TournamentDto(null, "Beach Cup", "BeachVolleyball", null, 45, conditions, null, null, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -244,7 +244,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
             .Throws(new InvalidOperationException("Cosmos DB error"));
 
-        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -280,7 +280,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeRepository.UpdateAsync(A<Tournament>.Ignored))
             .ReturnsLazily((Tournament t) => Task.FromResult(t));
 
-        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
 
@@ -336,7 +336,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .ReturnsLazily((IEnumerable<Game> g) => Task.FromResult(g));
 
         var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, null, null, null, null,
-            SourceTournamentId: source.Id);
+            SourceTournamentId: source.Id, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -357,7 +357,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .Returns((Tournament?)null);
 
         var dto = new TournamentDto(null, "Copy", "Volleyball", null, null, null, null, null,
-            SourceTournamentId: "nonexistent");
+            SourceTournamentId: "nonexistent", Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -396,7 +396,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .ReturnsLazily((IEnumerable<Game> g) => Task.FromResult(g));
 
         var dto = new TournamentDto(null, "Bob Copy", "Volleyball", null, null, null, null, null,
-            SourceTournamentId: source.Id);
+            SourceTournamentId: source.Id, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -509,7 +509,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(tournament.Id))
             .Returns(3);
 
-        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, 30, null, null, null);
+        var dto = new TournamentDto(null, "Winter Cup", "Volleyball", null, 30, null, null, null, Type: "Public");
 
         var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
 
@@ -533,7 +533,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
         A.CallTo(() => _factory.FakeCourtRepository.CountByTournamentIdAsync(A<string>.Ignored))
             .Returns(1);
 
-        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null);
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -577,7 +577,7 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .Returns(1);
 
         var dto = new TournamentDto(null, "Copy Cup", "Volleyball", null, null, null, null, null,
-            SourceTournamentId: source.Id);
+            SourceTournamentId: source.Id, Type: "Public");
 
         var response = await client.PostAsJsonAsync("/api/tournaments", dto);
 
@@ -609,5 +609,118 @@ public class TournamentApiTests : IClassFixture<KamScoreWebApplicationFactory>
             .MustHaveHappenedOnceExactly();
         A.CallTo(() => _factory.FakeRepository.DeleteAsync(tournament.Id, "alice"))
             .MustHaveHappenedOnceExactly();
+    }
+
+    // --- Tournament Type & Visibility ---
+
+    private static Tournament Typed(string name, string ownerId, TournamentType type)
+    {
+        var tournament = Tournament.Create(name, Discipline.Volleyball, ownerId);
+        tournament.Type = type;
+        return tournament;
+    }
+
+    private void SeedTypedTournaments()
+    {
+        A.CallTo(() => _factory.FakeRepository.GetAllAsync()).Returns(new[]
+        {
+            Typed("Alice Public", "alice", TournamentType.Public),
+            Typed("Alice Private", "alice", TournamentType.Private),
+            Typed("Alice Template", "alice", TournamentType.Template),
+            Typed("Bob Public", "bob", TournamentType.Public),
+            Typed("Bob Private", "bob", TournamentType.Private),
+            Typed("Bob Template", "bob", TournamentType.Template),
+        });
+    }
+
+    [Fact]
+    public async Task GetTournaments_Anonymous_ShouldOnlyReturnPublic()
+    {
+        var client = _factory.CreateClient();
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Select(t => t.Name).Should().BeEquivalentTo("Alice Public", "Bob Public");
+    }
+
+    [Theory]
+    [InlineData(TournamentType.Private)]
+    [InlineData(TournamentType.Template)]
+    public async Task GetTournament_UnlistedTournament_Anonymous_ShouldStillReturnDetails(TournamentType type)
+    {
+        var client = _factory.CreateClient();
+        var tournament = Typed("Hidden Cup", "alice", type);
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Name.Should().Be("Hidden Cup");
+        result.Type.Should().Be(type.ToString());
+        result.TournamentCode.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetCopySources_Owner_ShouldIncludeAllTemplatesAndOwnPrivate_ExcludeOthersPrivate()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        SeedTypedTournaments();
+
+        var response = await client.GetAsync("/api/tournaments/copy-sources");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<TournamentDto>>();
+        result!.Select(t => t.Name).Should().BeEquivalentTo(
+            "Alice Public", "Bob Public", "Alice Template", "Bob Template", "Alice Private");
+    }
+
+    [Fact]
+    public async Task GetCopySources_Anonymous_ShouldReturn401()
+    {
+        var client = _factory.CreateClient();
+
+        var response = await client.GetAsync("/api/tournaments/copy-sources");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task CreateTournament_WithType_ShouldPersistType()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        A.CallTo(() => _factory.FakeRepository.CreateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+        A.CallTo(() => _factory.FakeStructureRepository.CreateAsync(A<TournamentStructure>.Ignored))
+            .ReturnsLazily((TournamentStructure s) => Task.FromResult(s));
+
+        var dto = new TournamentDto(null, "Private Cup", "Volleyball", null, null, null, null, null, Type: "Private");
+
+        var response = await client.PostAsJsonAsync("/api/tournaments", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Type.Should().Be("Private");
+    }
+
+    [Fact]
+    public async Task UpdateTournament_ShouldChangeType()
+    {
+        var client = _factory.CreateAuthenticatedClient("alice");
+        var tournament = Typed("Summer Cup", "alice", TournamentType.Public);
+        A.CallTo(() => _factory.FakeRepository.GetByIdAsync(tournament.Id)).Returns(tournament);
+        A.CallTo(() => _factory.FakeRepository.UpdateAsync(A<Tournament>.Ignored))
+            .ReturnsLazily((Tournament t) => Task.FromResult(t));
+
+        var dto = new TournamentDto(null, "Summer Cup", "Volleyball", null, null, null, null, null, Type: "Template");
+
+        var response = await client.PutAsJsonAsync($"/api/tournaments/{tournament.Id}", dto);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<TournamentDto>();
+        result!.Type.Should().Be("Template");
     }
 }

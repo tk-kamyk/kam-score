@@ -47,11 +47,18 @@ Feature: Tournament Management
       | update    |
       | delete    |
 
-  @FR-TRN-006
-  Scenario: Anyone can list and view tournaments
-    Given several tournaments exist owned by different users
-    When any authenticated or anonymous user requests the tournament list or details
-    Then the data is returned successfully (codes hidden as described above)
+  @FR-TRN-006 @FR-TRN-033
+  Scenario Outline: Tournament list visibility by type and viewer
+    Given Alice owns a Public tournament, a Private tournament, and a Template tournament
+    When <viewer> requests the tournament list
+    Then the list contains <result>
+
+    Examples:
+      | viewer               | result                                                 |
+      | an anonymous visitor | Alice's Public tournament only                         |
+      | Alice                | all of Alice's tournaments (Public, Private, Template) |
+      | another owner Bob    | Alice's Public tournament only                         |
+      | an admin             | all of Alice's tournaments                             |
 
   # --- Copy Structure ---
 
@@ -81,3 +88,36 @@ Feature: Tournament Management
   Scenario: Copying a nonexistent tournament returns 404
     When the user tries to copy structure from a tournament that doesn't exist
     Then the request is rejected with status 404
+
+  # --- Tournament Type & Visibility ---
+
+  @FR-TRN-030 @FR-TRN-031 @FR-TRN-032
+  Scenario: Type is chosen at creation, shown as a badge, and editable
+    Given the user is authenticated
+    When the user creates a tournament with a specific type
+    Then the tournament is created with the selected type
+    And its type is shown as a badge on the tournament list and details page
+    When the user edits the tournament and changes its type
+    Then the tournament type is updated to the new type
+
+  @FR-TRN-033
+  Scenario Outline: Private and Template tournaments stay reachable by direct link
+    Given Alice owns a <type> tournament
+    When an anonymous visitor opens the tournament's direct link (details by id)
+    Then the tournament details are returned successfully
+    And the tournament code is not visible
+
+    Examples:
+      | type     |
+      | Private  |
+      | Template |
+
+  @FR-TRN-034 @FR-TRN-020
+  Scenario: Copy-structure sources include all templates but only the viewer's own private
+    Given Alice owns a Public, a Private, and a Template tournament
+    And Bob owns a Template tournament and a Private tournament
+    When Alice requests the available copy-structure sources
+    Then the sources include all Public tournaments
+    And the sources include every Template tournament, including Bob's
+    And the sources include Alice's own Private tournament
+    And the sources exclude Bob's Private tournament

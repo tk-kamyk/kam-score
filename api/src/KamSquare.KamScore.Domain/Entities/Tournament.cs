@@ -13,10 +13,15 @@ public partial class Tournament : Entity
     public GameConditions? GameConditions { get; set; }
     public string TournamentCode { get; set; } = null!;
     public string OwnerId { get; set; } = null!;
+    public TournamentType Type { get; set; }
 
     public List<Court> Courts { get; set; } = [];
 
-    public static Tournament Create(string name, Discipline discipline, string ownerId)
+    public static Tournament Create(
+        string name,
+        Discipline discipline,
+        string ownerId,
+        TournamentType type = TournamentType.Public)
     {
         return new Tournament
         {
@@ -24,6 +29,7 @@ public partial class Tournament : Entity
             Name = name,
             Discipline = discipline,
             OwnerId = ownerId,
+            Type = type,
             TournamentCode = GenerateTournamentCode(),
             LastModified = DateTime.UtcNow
         };
@@ -34,19 +40,21 @@ public partial class Tournament : Entity
         Discipline discipline,
         DateTime? startTime,
         int? gameLength,
-        GameConditions? gameConditions)
+        GameConditions? gameConditions,
+        TournamentType type = TournamentType.Public)
     {
         Name = name;
         Discipline = discipline;
         StartTime = startTime;
         GameLength = gameLength;
         GameConditions = gameConditions;
+        Type = type;
         LastModified = DateTime.UtcNow;
     }
 
-    public bool IsOwnedBy(string userId)
+    public bool IsOwnedBy(string? userId)
     {
-        return OwnerId == userId;
+        return !string.IsNullOrEmpty(userId) && OwnerId == userId;
     }
 
     [GeneratedRegex("^[0-9A-Fa-f]{4}$")]

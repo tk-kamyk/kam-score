@@ -7,6 +7,7 @@ import type { TournamentDto } from '@/tournament/types'
 export const useTournamentStore = defineStore('tournament', () => {
   const auth = useAuthStore()
   const tournaments = ref<TournamentDto[]>([])
+  const copySources = ref<TournamentDto[]>([])
   const currentTournament = ref<TournamentDto | null>(null)
   const loading = ref(false)
 
@@ -28,6 +29,11 @@ export const useTournamentStore = defineStore('tournament', () => {
     } finally {
       loading.value = false
     }
+  }
+
+  async function fetchCopySources() {
+    const { data } = await apiClient.get<TournamentDto[]>('/tournaments/copy-sources')
+    copySources.value = data
   }
 
   async function fetchTournament(id: string) {
@@ -70,9 +76,11 @@ export const useTournamentStore = defineStore('tournament', () => {
 
   return {
     tournaments,
+    copySources,
     currentTournament,
     loading,
     fetchTournaments,
+    fetchCopySources,
     fetchTournament,
     createTournament,
     updateTournament,

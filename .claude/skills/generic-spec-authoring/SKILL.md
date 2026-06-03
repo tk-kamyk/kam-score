@@ -50,6 +50,9 @@ Avoid prose narratives. If you need narrative to explain *why*, that goes in the
 - Tag every scenario with the requirement ID it satisfies: `@FR-CARD-027`.
 - Scenarios must map to **testable** behaviour — observable user-facing state changes. Not implementation-level.
 - Prefer **representative scenarios** over exhaustive ones. Edge cases go in design docs, not BDD.
+- **Value-agnostic phrasing.** When the specific value is *incidental* to the behaviour, phrase it generically and let it round-trip — e.g. "When the user creates a tournament **with a specific type**" / "Then the tournament is created **with the selected type**", not "with type Private … created with type Private". Hard-coding a value implies the behaviour is value-specific when it isn't, and invites a scenario per value.
+  - **Exception — outcome-driving values stay concrete.** When *different* values produce *different* outcomes, enumerate them in a `Scenario Outline` + `Examples` table (that is exactly what outlines are for). The visibility matrix (Public listed to all, Private/Template only to owner) is value-driven → keep the values. A create→edit round-trip is value-agnostic → keep it generic.
+  - Heuristic: if you could swap the literal for any other valid value and the `Then` would read the same, make it generic.
 
 ```gherkin
 @FR-CARD-027
