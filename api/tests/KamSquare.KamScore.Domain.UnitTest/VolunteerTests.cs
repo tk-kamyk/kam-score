@@ -176,4 +176,84 @@ public class VolunteerTests
 
         volunteer.Assignments.Should().BeEmpty();
     }
+
+    // --- Station colour ---
+
+    [Fact]
+    public void AssignShift_ShouldDefaultStationToNull()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.Assignments.Should().ContainSingle()
+            .Which.Station.Should().BeNull();
+    }
+
+    [Fact]
+    public void SetStation_ShouldSetColourOnExistingAssignment()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.SetStation("Pool", new TimeOnly(9, 0), 3);
+
+        volunteer.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(3);
+    }
+
+    [Fact]
+    public void SetStation_WithNull_ShouldClearColour()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.SetStation("Pool", new TimeOnly(9, 0), 3);
+
+        volunteer.SetStation("Pool", new TimeOnly(9, 0), null);
+
+        volunteer.GetStation("Pool", new TimeOnly(9, 0)).Should().BeNull();
+    }
+
+    [Fact]
+    public void SetStation_WhenNotAssigned_ShouldBeNoOp()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        var action = () => volunteer.SetStation("Pool", new TimeOnly(9, 0), 2);
+
+        action.Should().NotThrow();
+        volunteer.Assignments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void AssignShift_ReAssign_ShouldPreserveExistingStation()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.SetStation("Pool", new TimeOnly(9, 0), 5);
+
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.Assignments.Should().ContainSingle()
+            .Which.Station.Should().Be(5);
+    }
+
+    [Fact]
+    public void UnassignShift_ShouldIgnoreStation()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.SetStation("Pool", new TimeOnly(9, 0), 4);
+
+        volunteer.UnassignShift("Pool", new TimeOnly(9, 0));
+
+        volunteer.Assignments.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void GetStation_WhenNotAssigned_ShouldReturnNull()
+    {
+        var volunteer = Volunteer.Create("John Doe", "tournament-1");
+
+        volunteer.GetStation("Pool", new TimeOnly(9, 0)).Should().BeNull();
+    }
 }

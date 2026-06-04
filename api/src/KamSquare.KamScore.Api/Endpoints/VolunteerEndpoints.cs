@@ -140,11 +140,14 @@ public static class VolunteerEndpoints
         string volunteerId,
         VolunteerService volunteerService,
         ITournamentRepository tournamentRepository,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        AssignShiftRequestDto? request = null)
     {
         var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
-        await volunteerService.AssignToShiftAsync(tournament, shiftGroup, shiftTime, volunteerId);
+        await volunteerService.AssignToShiftAsync(
+            tournament, shiftGroup, shiftTime, volunteerId,
+            request is not null ? StationChange.Set(request.Station) : StationChange.None);
         return Results.Ok();
     }
 
@@ -154,11 +157,14 @@ public static class VolunteerEndpoints
         string volunteerId,
         VolunteerService volunteerService,
         ITournamentRepository tournamentRepository,
-        ICurrentUserService currentUser)
+        ICurrentUserService currentUser,
+        AssignShiftRequestDto? request = null)
     {
         await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
-        await volunteerService.AssignToSpecialShiftAsync(tournamentId, shiftGroup, volunteerId);
+        await volunteerService.AssignToSpecialShiftAsync(
+            tournamentId, shiftGroup, volunteerId,
+            request is not null ? StationChange.Set(request.Station) : StationChange.None);
         return Results.Ok();
     }
 
@@ -216,7 +222,7 @@ public static class VolunteerEndpoints
     {
         var tournament = await tournamentRepository.GetOwnedTournamentAsync(currentUser, tournamentId);
 
-        await volunteerService.AutoAssignShiftGroupAsync(tournament, shiftGroup, request.VolunteersPerShift);
+        await volunteerService.AutoAssignShiftGroupAsync(tournament, shiftGroup, request.VolunteersPerShift, request.StationCount);
         return Results.Ok();
     }
 

@@ -5,6 +5,7 @@ using KamSquare.KamScore.Application.Services;
 using KamSquare.KamScore.Domain.Entities;
 using KamSquare.KamScore.Domain.Enums;
 using KamSquare.KamScore.Domain.Exceptions;
+using KamSquare.KamScore.Domain.Services;
 using KamSquare.KamScore.Domain.ValueObjects;
 
 namespace KamSquare.KamScore.Application.UnitTest.Services;
@@ -308,5 +309,167 @@ public class VolunteerServiceBulkTests
         var act = async () => await _sut.AutoAssignShiftGroupAsync(tournament, "Unknown", 1);
 
         await act.Should().ThrowAsync<NotFoundException>();
+    }
+
+    // --- AutoAssign station colouring ---
+
+    [Fact]
+    public async Task AutoAssign_WithoutStations_LeavesVolunteersUncoloured()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        var bob = Volunteer.Create("Bob", tournament.Id);
+        A.CallTo(() => _volunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { alice, bob });
+
+        await _sut.AutoAssignShiftGroupAsync(tournament, "Pool", 2, stationCount: null);
+
+        new[] { alice, bob }.SelectMany(v => v.Assignments)
+            .Should().OnlyContain(a => a.Station == null);
+    }
+
+    [Fact]
+    public async Task AutoAssign_WithStations_SpreadsColoursUniformlyPerSlot()
+    {
+        var tournament = CreateTournament();
+        // Single last phase => MaxRounds drives slot count; keep it to one slot for a clean spread.
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        var bob = Volunteer.Create("Bob", tournament.Id);
+        var carol = Volunteer.Create("Carol", tournament.Id);
+        var dave = Volunteer.Create("Dave", tournament.Id);
+        A.CallTo(() => _volunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { alice, bob, carol, dave });
+
+        await _sut.AutoAssignShiftGroupAsync(tournament, "Pool", 4, stationCount: 2);
+
+        // 4 volunteers across 2 stations, ordered by name (Alice,Bob,Carol,Dave) => 0,1,0,1.
+        var slot = new TimeOnly(9, 0);
+        alice.GetStation("Pool", slot).Should().Be(0);
+        bob.GetStation("Pool", slot).Should().Be(1);
+        carol.GetStation("Pool", slot).Should().Be(0);
+        dave.GetStation("Pool", slot).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task AutoAssign_WithStations_OverwritesExistingManualColours()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        alice.AssignShift("Pool", new TimeOnly(9, 0));
+        alice.SetStation("Pool", new TimeOnly(9, 0), 7); // pre-existing manual colour
+        var bob = Volunteer.Create("Bob", tournament.Id);
+        A.CallTo(() => _volunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { alice, bob });
+
+        await _sut.AutoAssignShiftGroupAsync(tournament, "Pool", 2, stationCount: 2);
+
+        // Recoloured 0,1 by name order — Alice's manual 7 is overwritten.
+        alice.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(0);
+        bob.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(1);
+    }
+
+    // --- Manual assign-with-station upsert ---
+
+    [Fact]
+    public async Task AssignToShift_WithStation_SetsColour()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        A.CallTo(() => _volunteerRepository.GetByIdAsync(alice.Id, tournament.Id)).Returns(alice);
+
+        await _sut.AssignToShiftAsync(tournament, "Pool", "09:00", alice.Id, StationChange.Set(3));
+
+        alice.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(3);
+    }
+
+    [Fact]
+    public async Task AssignToShift_BareReassign_PreservesExistingColour()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        alice.AssignShift("Pool", new TimeOnly(9, 0));
+        alice.SetStation("Pool", new TimeOnly(9, 0), 5);
+        A.CallTo(() => _volunteerRepository.GetByIdAsync(alice.Id, tournament.Id)).Returns(alice);
+
+        await _sut.AssignToShiftAsync(tournament, "Pool", "09:00", alice.Id);
+
+        alice.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(5);
+    }
+
+    [Fact]
+    public async Task AssignToShift_WithNullStationChange_ClearsExistingColour()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        alice.AssignShift("Pool", new TimeOnly(9, 0));
+        alice.SetStation("Pool", new TimeOnly(9, 0), 5);
+        A.CallTo(() => _volunteerRepository.GetByIdAsync(alice.Id, tournament.Id)).Returns(alice);
+
+        await _sut.AssignToShiftAsync(tournament, "Pool", "09:00", alice.Id, StationChange.Set(null));
+
+        alice.GetStation("Pool", new TimeOnly(9, 0)).Should().BeNull();
+    }
+
+    [Fact]
+    public async Task AssignToShift_WithOutOfRangeStation_Throws()
+    {
+        var tournament = CreateTournament();
+        var structure = CreateStructureWithPhase(tournament.Id);
+        SetupStructureAndGames(structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        A.CallTo(() => _volunteerRepository.GetByIdAsync(alice.Id, tournament.Id)).Returns(alice);
+
+        var act = async () =>
+            // StationPalette.Count == 8 → indices 0..7 valid; 8 is the first out-of-range value.
+            await _sut.AssignToShiftAsync(tournament, "Pool", "09:00", alice.Id, StationChange.Set(StationPalette.Count));
+
+        await act.Should().ThrowAsync<FluentValidation.ValidationException>();
+    }
+
+    [Fact]
+    public async Task AssignToSpecialShift_WithStation_SetsColour()
+    {
+        var tournament = CreateTournament();
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        A.CallTo(() => _volunteerRepository.GetByIdAsync(alice.Id, tournament.Id)).Returns(alice);
+
+        await _sut.AssignToSpecialShiftAsync(tournament.Id, "Set-up", alice.Id, StationChange.Set(2));
+
+        alice.GetStation("Set-up", null).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task AssignToSpecialShift_BareReassign_PreservesExistingColour()
+    {
+        var tournament = CreateTournament();
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        alice.AssignShift("Set-up", null);
+        alice.SetStation("Set-up", null, 6);
+        A.CallTo(() => _volunteerRepository.GetByIdAsync(alice.Id, tournament.Id)).Returns(alice);
+
+        await _sut.AssignToSpecialShiftAsync(tournament.Id, "Set-up", alice.Id);
+
+        alice.GetStation("Set-up", null).Should().Be(6);
     }
 }

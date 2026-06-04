@@ -132,6 +132,29 @@ public class VolunteerBulkEndpointsTests : IClassFixture<KamScoreWebApplicationF
         bob.Assignments.Should().ContainSingle(a => a.ShiftGroup == "Pool");
     }
 
+    [Fact]
+    public async Task AutoAssign_WithStations_ShouldReturn200_AndColourVolunteers()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateStructureWithPhase(tournament.Id, "Pool", new TimeOnly(9, 0));
+        SetupTournamentAndStructure(tournament, structure);
+
+        var alice = Volunteer.Create("Alice", tournament.Id);
+        var bob = Volunteer.Create("Bob", tournament.Id);
+        A.CallTo(() => _factory.FakeVolunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { alice, bob });
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/volunteers/shifts/Pool/auto-assign",
+            new AutoAssignShiftGroupDto(2, StationCount: 2));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // Single slot, 2 volunteers across 2 stations, name order Alice,Bob => 0,1.
+        alice.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(0);
+        bob.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(1);
+    }
+
     // Wiring check only — exhaustive boundary cases live in AutoAssignShiftGroupDtoValidatorTests.
     [Fact]
     public async Task AutoAssign_InvalidVolunteersPerShift_ShouldReturn400()

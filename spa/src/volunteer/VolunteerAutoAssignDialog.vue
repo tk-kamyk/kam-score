@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useFormErrors } from '@/composables/useFormErrors'
+import { STATION_COUNT } from '@/volunteer/stations'
 
 const props = defineProps<{
   modelValue: boolean
@@ -9,21 +10,30 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  confirm: [volunteersPerShift: number]
+  confirm: [payload: { volunteersPerShift: number; stationCount: number | null }]
 }>()
 
 const { generalError, clearErrors, handleError } = useFormErrors()
 
 const volunteersPerShift = ref(2)
+const stations = ref<number | null>(null)
 const submitting = ref(false)
 
 const volunteersPerShiftRules = [(v: number) => (v >= 1 && v <= 50) || 'Must be between 1 and 50.']
+const stationsRules = [
+  (v: number | null) =>
+    v == null ||
+    v === ('' as unknown) ||
+    (v >= 1 && v <= STATION_COUNT) ||
+    `Must be between 1 and ${STATION_COUNT}, or empty.`,
+]
 
 watch(
   () => props.modelValue,
   (open) => {
     if (!open) return
     volunteersPerShift.value = 2
+    stations.value = null
     submitting.value = false
     clearErrors()
   },
@@ -31,8 +41,10 @@ watch(
 
 function submit() {
   if (volunteersPerShift.value < 1 || volunteersPerShift.value > 50) return
+  const count = stations.value
+  if (count != null && (count < 1 || count > STATION_COUNT)) return
   submitting.value = true
-  emit('confirm', volunteersPerShift.value)
+  emit('confirm', { volunteersPerShift: volunteersPerShift.value, stationCount: count ?? null })
 }
 
 defineExpose({ handleError, submitting })
@@ -74,6 +86,18 @@ defineExpose({ handleError, submitting })
           :max="50"
           :rules="volunteersPerShiftRules"
           :disabled="submitting"
+        />
+        <v-text-field
+          v-model.number="stations"
+          label="Stations"
+          type="number"
+          clearable
+          :min="1"
+          :max="STATION_COUNT"
+          :rules="stationsRules"
+          :disabled="submitting"
+          hint="Spreads volunteers in each shift evenly across stations, overwriting existing assignments."
+          persistent-hint
         />
       </v-card-text>
       <v-card-actions>

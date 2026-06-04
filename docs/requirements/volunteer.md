@@ -37,6 +37,13 @@
 - [FR-VOL-050] The tournament owner or system admin can clear all volunteer assignments for a given shift group (phase, Set-up, or Cleanup) in a single action.
 - [FR-VOL-051] The tournament owner or system admin can auto-assign volunteers to all shifts in a given shift group, specifying how many volunteers each shift should have.
 
+### Stations
+
+> See design: [./design/volunteer.md](../design/volunteer.md) for the colour palette, manual and automatic assignment behaviour, and the distribution algorithm.
+
+- [FR-VOL-070] Volunteers can be assigned to stations, both manually and automatically.
+- [FR-VOL-071] A volunteer's station is visible on the shift view.
+
 ### UI
 
 - [FR-VOL-060] The Volunteers tab has two sub-tabs: "List" (CRUD) and "Shifts" (shift assignment view).

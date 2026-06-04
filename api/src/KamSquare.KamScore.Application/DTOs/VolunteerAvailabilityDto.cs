@@ -7,4 +7,5 @@ public record VolunteerAvailabilityDto(
     bool Available,
     bool PlaysBefore,
     bool PlaysAfter,
-    bool Assigned);
+    bool Assigned,
+    int? Station = null);

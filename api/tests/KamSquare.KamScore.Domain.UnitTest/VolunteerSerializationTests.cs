@@ -29,6 +29,20 @@ public class VolunteerSerializationTests
     }
 
     [Fact]
+    public void RoundTrip_PreservesStation()
+    {
+        var original = Volunteer.Create("John Doe", "tournament-1");
+        original.AssignShift("Pool", new TimeOnly(9, 0));
+        original.SetStation("Pool", new TimeOnly(9, 0), 3);
+
+        var json = JsonSerializer.Serialize(original);
+        var restored = JsonSerializer.Deserialize<Volunteer>(json);
+
+        restored.Should().NotBeNull();
+        restored!.GetStation("Pool", new TimeOnly(9, 0)).Should().Be(3);
+    }
+
+    [Fact]
     public void RoundTrip_WithEmptyAssignments_Works()
     {
         var original = Volunteer.Create("Jane", "tournament-1");

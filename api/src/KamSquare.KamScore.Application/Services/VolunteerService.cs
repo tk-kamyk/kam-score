@@ -122,7 +122,11 @@ public class VolunteerService
                     .Select(v => new ShiftVolunteerDto(
                         v.Id,
                         v.Name,
-                        group.IsSpecial || shiftTime is null || !IsTeamBusyAtTime(v.TeamId, allGames, shiftTime.Value)))
+                        group.IsSpecial || shiftTime is null || !IsTeamBusyAtTime(v.TeamId, allGames, shiftTime.Value),
+                        v.GetStation(group.Name, shiftTime)))
+                    // Order by station (uncoloured last), then by name.
+                    .OrderBy(d => d.Station ?? int.MaxValue)
+                    .ThenBy(d => d.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
 
                 return new ShiftSlotDto(
@@ -152,7 +156,8 @@ public class VolunteerService
             var assigned = v.IsAssignedTo(shiftGroup, parsedTime);
 
             return new VolunteerAvailabilityDto(
-                v.Id, v.Name, v.Assignments.Count, available, playsBefore, playsAfter, assigned);
+                v.Id, v.Name, v.Assignments.Count, available, playsBefore, playsAfter, assigned,
+                v.GetStation(shiftGroup, parsedTime));
         })
         .OrderByDescending(v => v.Available)
         .ThenBy(v => v.ShiftCount)
@@ -169,14 +174,19 @@ public class VolunteerService
         {
             var assigned = v.IsAssignedTo(shiftGroup, null);
             return new VolunteerAvailabilityDto(
-                v.Id, v.Name, v.Assignments.Count, true, false, false, assigned);
+                v.Id, v.Name, v.Assignments.Count, true, false, false, assigned,
+                v.GetStation(shiftGroup, null));
         })
         .OrderBy(v => v.ShiftCount)
         .ThenBy(v => v.Name)
         .ToList();
     }
 
-    public async Task AssignToShiftAsync(Tournament tournament, string shiftGroup, string shiftTime, string volunteerId)
+    // Idempotent upsert. station.Apply == true means the caller supplied a colour index (or null
+    // to clear) and it is applied; station == default (None) leaves any existing colour untouched.
+    public async Task AssignToShiftAsync(
+        Tournament tournament, string shiftGroup, string shiftTime, string volunteerId,
+        StationChange station = default)
     {
         var parsedTime = ParseShiftTime(shiftTime);
 
@@ -190,10 +200,14 @@ public class VolunteerService
             ?? throw new NotFoundException(nameof(Volunteer), volunteerId);
 
         volunteer.AssignShift(shiftGroup, parsedTime);
+        if (station.Apply)
+            volunteer.SetStation(shiftGroup, parsedTime, ValidateStationIndex(station.Value));
         await _volunteerRepository.UpdateAsync(volunteer);
     }
 
-    public async Task AssignToSpecialShiftAsync(string tournamentId, string shiftGroup, string volunteerId)
+    public async Task AssignToSpecialShiftAsync(
+        string tournamentId, string shiftGroup, string volunteerId,
+        StationChange station = default)
     {
         if (shiftGroup != ShiftGroup.SetupName && shiftGroup != ShiftGroup.CleanupName)
             throw new ValidationException(
@@ -203,7 +217,19 @@ public class VolunteerService
             ?? throw new NotFoundException(nameof(Volunteer), volunteerId);
 
         volunteer.AssignShift(shiftGroup, null);
+        if (station.Apply)
+            volunteer.SetStation(shiftGroup, null, ValidateStationIndex(station.Value));
         await _volunteerRepository.UpdateAsync(volunteer);
+    }
+
+    // A station INDEX is 0..Count-1 (null = none). Distinct from the auto-assign station COUNT
+    // (1..Count), which is validated by AutoAssignShiftGroupDtoValidator.
+    private static int? ValidateStationIndex(int? station)
+    {
+        if (station is int s && (s < 0 || s >= StationPalette.Count))
+            throw new ValidationException(
+                [new ValidationFailure("station", $"Station must be between 0 and {StationPalette.Count - 1}.")]);
+        return station;
     }
 
     public async Task UnassignFromShiftAsync(string tournamentId, string shiftGroup, string shiftTime, string volunteerId)
@@ -246,13 +272,38 @@ public class VolunteerService
         }
     }
 
-    public async Task AutoAssignShiftGroupAsync(Tournament tournament, string shiftGroup, int volunteersPerShift)
+    // stationCount is an optional, independent add-on: top-up fills slots exactly as before, then —
+    // when stationCount is set — every volunteer in each slot is recoloured uniformly (round-robin,
+    // per-slot), overwriting any existing colours. Empty leaves volunteers uncoloured.
+    // Bounds for both inputs are enforced by AutoAssignShiftGroupDtoValidator at the HTTP boundary.
+    public async Task AutoAssignShiftGroupAsync(
+        Tournament tournament, string shiftGroup, int volunteersPerShift, int? stationCount = null)
     {
-        // VolunteersPerShift bounds are enforced by AutoAssignShiftGroupDtoValidator at the HTTP boundary.
         var group = await EnsureShiftGroupExistsAsync(tournament, shiftGroup);
 
         foreach (var slot in group.Shifts)
-            await FillSlotAsync(tournament, group, slot, volunteersPerShift);
+        {
+            // FillSlotAsync returns the volunteer list it fetched and mutated, so colouring reuses
+            // it rather than issuing another full-collection read per slot.
+            var volunteers = await FillSlotAsync(tournament, group, slot, volunteersPerShift);
+            if (stationCount is int count)
+                await ColorSlotAsync(volunteers, group, slot, count);
+        }
+    }
+
+    private async Task ColorSlotAsync(List<Volunteer> volunteers, ShiftGroup group, TimeOnly? slot, int stationCount)
+    {
+        var assigned = volunteers
+            .Where(v => v.IsAssignedTo(group.Name, slot))
+            .OrderBy(v => v.Name, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(v => v.Id, StringComparer.Ordinal)
+            .ToList();
+
+        for (var i = 0; i < assigned.Count; i++)
+        {
+            assigned[i].SetStation(group.Name, slot, i % stationCount);
+            await _volunteerRepository.UpdateAsync(assigned[i]);
+        }
     }
 
     private async Task<ShiftGroup> EnsureShiftGroupExistsAsync(Tournament tournament, string shiftGroup)
@@ -262,11 +313,13 @@ public class VolunteerService
             ?? throw new NotFoundException(nameof(ShiftGroup), shiftGroup);
     }
 
-    private async Task FillSlotAsync(Tournament tournament, ShiftGroup group, TimeOnly? slot, int targetVolunteerCount)
+    // Returns the fetched volunteer list (with this slot's new assignments applied in place) so the
+    // caller can colour the slot without re-reading.
+    private async Task<List<Volunteer>> FillSlotAsync(Tournament tournament, ShiftGroup group, TimeOnly? slot, int targetVolunteerCount)
     {
         var volunteers = (await _volunteerRepository.GetByTournamentIdAsync(tournament.Id)).ToList();
         var currentCount = volunteers.Count(v => v.IsAssignedTo(group.Name, slot));
-        if (currentCount >= targetVolunteerCount) return;
+        if (currentCount >= targetVolunteerCount) return volunteers;
 
         var ranked = group.IsSpecial
             ? await GetAvailableVolunteersForSpecialAsync(tournament.Id, group.Name)
@@ -282,6 +335,8 @@ public class VolunteerService
             volunteer.AssignShift(group.Name, slot);
             await _volunteerRepository.UpdateAsync(volunteer);
         }
+
+        return volunteers;
     }
 
     private static TimeOnly ParseShiftTime(string shiftTime)
