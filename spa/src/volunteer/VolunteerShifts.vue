@@ -4,7 +4,7 @@ import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import VolunteerAssignDialog from '@/volunteer/VolunteerAssignDialog.vue'
 import VolunteerAutoAssignDialog from '@/volunteer/VolunteerAutoAssignDialog.vue'
-import VolunteerShiftChip from '@/volunteer/VolunteerShiftChip.vue'
+import VolunteerSlotChips from '@/volunteer/VolunteerSlotChips.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
 import { getErrorMessage } from '@/api/errors'
@@ -141,22 +141,10 @@ async function handleClearConfirm() {
                 {{ shift.shiftTime ?? '' }}
               </td>
               <td>
-                <div class="d-flex flex-wrap ga-1">
-                  <VolunteerShiftChip
-                    v-for="vol in shift.volunteers"
-                    :key="vol.volunteerId"
-                    :name="vol.name"
-                    :available="vol.available"
-                    :station="vol.station"
-                    @close="handleUnassign(group.name, shift.shiftTime, vol.volunteerId)"
-                  />
-                  <span
-                    v-if="shift.volunteers.length === 0"
-                    class="text-medium-emphasis text-body-2"
-                  >
-                    No volunteers assigned
-                  </span>
-                </div>
+                <VolunteerSlotChips
+                  :volunteers="shift.volunteers"
+                  @unassign="(id) => handleUnassign(group.name, shift.shiftTime, id)"
+                />
               </td>
               <td class="text-right actions-col">
                 <v-btn
