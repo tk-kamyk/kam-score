@@ -9,4 +9,9 @@ public record VolunteerDto(
 
 public record ShiftAssignmentDto(
     string ShiftGroup,
-    string? ShiftTime);
+    string? ShiftTime,
+    int? Station = null);
+
+// Optional body on the assign endpoints. Body present (incl. Station = null) = set/clear the
+// colour; body absent = bare assign that leaves any existing colour untouched.
+public record AssignShiftRequestDto(int? Station);

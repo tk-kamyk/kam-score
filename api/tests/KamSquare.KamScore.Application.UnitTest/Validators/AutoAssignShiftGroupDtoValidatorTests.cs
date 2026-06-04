@@ -60,4 +60,38 @@ public class AutoAssignShiftGroupDtoValidatorTests
 
         result.ShouldNotHaveAnyValidationErrors();
     }
+
+    [Fact]
+    public void NullStationCount_ShouldPass()
+    {
+        var dto = new AutoAssignShiftGroupDto(2, StationCount: null);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(8)]
+    public void StationCount_WithinPalette_ShouldPass(int stationCount)
+    {
+        var dto = new AutoAssignShiftGroupDto(2, stationCount);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldNotHaveAnyValidationErrors();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(9)]
+    public void StationCount_OutsidePalette_ShouldFail(int stationCount)
+    {
+        var dto = new AutoAssignShiftGroupDto(2, stationCount);
+
+        var result = _validator.TestValidate(dto);
+
+        result.ShouldHaveValidationErrorFor(x => x.StationCount!.Value);
+    }
 }

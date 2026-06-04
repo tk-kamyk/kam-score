@@ -98,6 +98,35 @@ public class VolunteerShiftApiTests : IClassFixture<KamScoreWebApplicationFactor
     }
 
     [Fact]
+    public async Task GetShifts_ShouldOrderVolunteersByStationThenName()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateStructureWithPhases(tournament.Id, ("Pool", new TimeOnly(9, 0)));
+        SetupTournamentAndStructure(tournament, structure);
+
+        // Uncoloured (Zoe) sorts last; station 0 (Carol) before station 1 (Bob); ties by name.
+        var zoe = Volunteer.Create("Zoe", tournament.Id);
+        zoe.AssignShift("Pool", new TimeOnly(9, 0));
+        var carol = Volunteer.Create("Carol", tournament.Id);
+        carol.AssignShift("Pool", new TimeOnly(9, 0));
+        carol.SetStation("Pool", new TimeOnly(9, 0), 0);
+        var bob = Volunteer.Create("Bob", tournament.Id);
+        bob.AssignShift("Pool", new TimeOnly(9, 0));
+        bob.SetStation("Pool", new TimeOnly(9, 0), 1);
+        A.CallTo(() => _factory.FakeVolunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { zoe, carol, bob });
+        A.CallTo(() => _factory.FakeGameRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(Array.Empty<Game>());
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/volunteers/shifts");
+
+        var result = await response.Content.ReadFromJsonAsync<List<ShiftGroupResponseDto>>();
+        var slot = result!.First(g => g.Name == "Pool").Shifts.First(s => s.ShiftTime == "09:00");
+        slot.Volunteers.Select(v => v.Name).Should().ContainInOrder("Carol", "Bob", "Zoe");
+    }
+
+    [Fact]
     public async Task GetShifts_Anonymous_ShouldReturn401()
     {
         var client = _factory.CreateClient();
@@ -261,6 +290,66 @@ public class VolunteerShiftApiTests : IClassFixture<KamScoreWebApplicationFactor
             $"/api/tournaments/{tournament.Id}/volunteers/shifts/Set-up/assign/{volunteer.Id}", null);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task AssignVolunteer_WithStationBody_PersistsAndSurfacesOnGetShifts()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateStructureWithPhases(tournament.Id, ("Pool", new TimeOnly(9, 0)));
+        SetupTournamentAndStructure(tournament, structure);
+
+        var volunteer = Volunteer.Create("John", tournament.Id);
+        A.CallTo(() => _factory.FakeVolunteerRepository.GetByIdAsync(volunteer.Id, tournament.Id))
+            .Returns(volunteer);
+        A.CallTo(() => _factory.FakeVolunteerRepository.UpdateAsync(A<Volunteer>.Ignored))
+            .ReturnsLazily((Volunteer v) => Task.FromResult(v));
+        A.CallTo(() => _factory.FakeVolunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { volunteer });
+        A.CallTo(() => _factory.FakeGameRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(Array.Empty<Game>());
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        var assign = await client.PostAsJsonAsync(
+            $"/api/tournaments/{tournament.Id}/volunteers/shifts/Pool/09:00/assign/{volunteer.Id}",
+            new AssignShiftRequestDto(2));
+        assign.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/volunteers/shifts");
+        var result = await response.Content.ReadFromJsonAsync<List<ShiftGroupResponseDto>>();
+        var firstShift = result!.First(g => g.Name == "Pool").Shifts.First(s => s.ShiftTime == "09:00");
+        firstShift.Volunteers.Should().ContainSingle().Which.Station.Should().Be(2);
+    }
+
+    [Fact]
+    public async Task AssignVolunteer_BareReassign_KeepsExistingStation()
+    {
+        var tournament = CreateTestTournament();
+        var structure = CreateStructureWithPhases(tournament.Id, ("Pool", new TimeOnly(9, 0)));
+        SetupTournamentAndStructure(tournament, structure);
+
+        var volunteer = Volunteer.Create("John", tournament.Id);
+        volunteer.AssignShift("Pool", new TimeOnly(9, 0));
+        volunteer.SetStation("Pool", new TimeOnly(9, 0), 4);
+        A.CallTo(() => _factory.FakeVolunteerRepository.GetByIdAsync(volunteer.Id, tournament.Id))
+            .Returns(volunteer);
+        A.CallTo(() => _factory.FakeVolunteerRepository.UpdateAsync(A<Volunteer>.Ignored))
+            .ReturnsLazily((Volunteer v) => Task.FromResult(v));
+        A.CallTo(() => _factory.FakeVolunteerRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(new[] { volunteer });
+        A.CallTo(() => _factory.FakeGameRepository.GetByTournamentIdAsync(tournament.Id))
+            .Returns(Array.Empty<Game>());
+        var client = _factory.CreateAuthenticatedClient("alice");
+
+        // Bare re-assign — no body — must not clear the colour.
+        var assign = await client.PostAsync(
+            $"/api/tournaments/{tournament.Id}/volunteers/shifts/Pool/09:00/assign/{volunteer.Id}", null);
+        assign.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var response = await client.GetAsync($"/api/tournaments/{tournament.Id}/volunteers/shifts");
+        var result = await response.Content.ReadFromJsonAsync<List<ShiftGroupResponseDto>>();
+        var firstShift = result!.First(g => g.Name == "Pool").Shifts.First(s => s.ShiftTime == "09:00");
+        firstShift.Volunteers.Should().ContainSingle().Which.Station.Should().Be(4);
     }
 
     // --- DELETE unassign ---

@@ -12,4 +12,5 @@ public record ShiftSlotDto(
 public record ShiftVolunteerDto(
     string VolunteerId,
     string Name,
-    bool Available);
+    bool Available,
+    int? Station = null);

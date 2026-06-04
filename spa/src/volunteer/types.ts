@@ -9,6 +9,7 @@ export interface VolunteerDto {
 export interface VolunteerShiftAssignment {
   shiftGroup: string
   shiftTime?: string | null
+  station?: number | null
 }
 
 export interface ShiftGroupDto {
@@ -26,6 +27,7 @@ export interface ShiftVolunteerDto {
   volunteerId: string
   name: string
   available: boolean
+  station?: number | null
 }
 
 export interface VolunteerAvailabilityDto {
@@ -36,4 +38,5 @@ export interface VolunteerAvailabilityDto {
   playsBefore: boolean
   playsAfter: boolean
   assigned: boolean
+  station?: number | null
 }

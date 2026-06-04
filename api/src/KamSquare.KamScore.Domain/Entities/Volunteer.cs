@@ -42,19 +42,33 @@ public class Volunteer : Entity
 
     public void AssignShift(string shiftGroup, TimeOnly? shiftTime)
     {
-        var assignment = new ShiftAssignment(shiftGroup, shiftTime);
-        if (_assignments.Contains(assignment)) return;
-        _assignments.Add(assignment);
+        if (Find(shiftGroup, shiftTime) is not null) return;
+        _assignments.Add(new ShiftAssignment(shiftGroup, shiftTime));
         LastModified = DateTime.UtcNow;
     }
 
     public void UnassignShift(string shiftGroup, TimeOnly? shiftTime)
     {
-        var assignment = new ShiftAssignment(shiftGroup, shiftTime);
-        _assignments.Remove(assignment);
+        var existing = Find(shiftGroup, shiftTime);
+        if (existing is null) return;
+        _assignments.Remove(existing);
         LastModified = DateTime.UtcNow;
     }
 
+    public void SetStation(string shiftGroup, TimeOnly? shiftTime, int? station)
+    {
+        var existing = Find(shiftGroup, shiftTime);
+        if (existing is null) return;
+        existing.Station = station;
+        LastModified = DateTime.UtcNow;
+    }
+
+    public int? GetStation(string shiftGroup, TimeOnly? shiftTime) =>
+        Find(shiftGroup, shiftTime)?.Station;
+
     public bool IsAssignedTo(string shiftGroup, TimeOnly? shiftTime) =>
-        _assignments.Any(a => a.ShiftGroup == shiftGroup && a.ShiftTime == shiftTime);
+        Find(shiftGroup, shiftTime) is not null;
+
+    private ShiftAssignment? Find(string shiftGroup, TimeOnly? shiftTime) =>
+        _assignments.FirstOrDefault(a => a.ShiftGroup == shiftGroup && a.ShiftTime == shiftTime);
 }

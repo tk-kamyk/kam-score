@@ -38,11 +38,27 @@ Auto-assign performs multiple writes (one per assignment) without a transactiona
 - Minimum: `1` — zero or negative is rejected at validation with 400.
 - Maximum: `50` — defensive upper bound against accidental input.
 
+## [FR-VOL-070..071] Station colour coding
+
+A station is an **opaque colour proxy** for a physical post. The system stores no station names or required counts — the owner keeps the colour→post legend externally. This is the cheap visual core of "stations"; named labels and per-post counts can be layered on later without rework.
+
+**Encoding.** A station is an integer index `0..Count-1` (`null` = none), where `Count = StationPalette.Count`. The backend is colour-agnostic and only validates the index range; the actual colours live in `spa/src/volunteer/stations.ts`, whose array length is the contract for `Count`.
+
+**Identity rule (critical).** `ShiftAssignment` is identified by `(ShiftGroup, ShiftTime)` only. `Station` is a mutable attribute **excluded from equality and hashing** (the record overrides `Equals`/`GetHashCode` over the identity pair). Changing a colour never creates or hides an assignment. `AssignShift` is idempotent and preserves any station already set.
+
+**Manual set — assign-as-upsert.** The assign endpoints take an optional body `{ station }`: body absent → bare assign (colour untouched); body present (including `station: null`) → assign and set/clear the colour. Colour changes reuse the assign endpoint (modelled as `StationChange` in the service) rather than a new route.
+
+**Auto-assign distribution.** `stationCount = N` is an independent add-on to `volunteersPerShift`. Top-up fills each slot unchanged (`FillSlotAsync`); then, if `N` is set, each slot's volunteers are ordered by name and assigned `station = index mod N` (round-robin per slot, **overwriting** existing colours). Empty `N` skips colouring. `N` is validated `1..StationPalette.Count`.
+
+**Shift-view ordering.** Within a slot, assigned volunteers are returned ordered by station (uncoloured last), then by name — so chips group by colour. The palette (`spa/src/volunteer/stations.ts`) is ordered by mutual contrast, so low station indices (used first by auto-assign) are the most visually separable. The manual picker is an inline per-row dropdown.
+
 ## Endpoint shape
 
 | Method | Route | Body |
 |--------|-------|------|
+| `POST` | `/api/tournaments/{tournamentId}/volunteers/shifts/{shiftGroup}/{shiftTime}/assign/{volunteerId}` | optional `{ station }` — see assign-as-upsert above |
+| `POST` | `/api/tournaments/{tournamentId}/volunteers/shifts/{shiftGroup}/assign/{volunteerId}` | optional `{ station }` (special shifts) |
 | `DELETE` | `/api/tournaments/{tournamentId}/volunteers/shifts/{shiftGroup}/assignments` | — |
-| `POST` | `/api/tournaments/{tournamentId}/volunteers/shifts/{shiftGroup}/auto-assign` | `{ volunteersPerShift }` |
+| `POST` | `/api/tournaments/{tournamentId}/volunteers/shifts/{shiftGroup}/auto-assign` | `{ volunteersPerShift, stationCount? }` |
 
-Both require JWT auth with owner-or-admin access. If the named shift group does not match any of the calculated shift groups for the tournament, the endpoint returns 404.
+The bulk operations require JWT auth with owner-or-admin access. If the named shift group does not match any of the calculated shift groups for the tournament, the endpoint returns 404.

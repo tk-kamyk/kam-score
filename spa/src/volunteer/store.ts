@@ -75,16 +75,43 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     return data
   }
 
+  // Both regular (with time) and special (Set-up/Cleanup, no time) assign/unassign hit this route;
+  // the only difference is whether the time segment is present.
+  function shiftAssignUrl(
+    tournamentId: string,
+    shiftGroup: string,
+    shiftTime: string | null,
+    volunteerId: string,
+  ) {
+    const base = `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}`
+    return shiftTime
+      ? `${base}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
+      : `${base}/assign/${volunteerId}`
+  }
+
   async function assignVolunteer(
     tournamentId: string,
     shiftGroup: string,
     shiftTime: string | null,
     volunteerId: string,
   ) {
-    const url = shiftTime
-      ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
-      : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assign/${volunteerId}`
-    await apiClient.post(url)
+    await apiClient.post(shiftAssignUrl(tournamentId, shiftGroup, shiftTime, volunteerId))
+    await fetchShifts(tournamentId)
+  }
+
+  // Sets/clears the station colour on an assignment. Hits the same upsert assign endpoint with
+  // a body — station = null clears the colour. (A bare assignVolunteer sends no body and so
+  // leaves any existing colour untouched.)
+  async function setVolunteerStation(
+    tournamentId: string,
+    shiftGroup: string,
+    shiftTime: string | null,
+    volunteerId: string,
+    station: number | null,
+  ) {
+    await apiClient.post(shiftAssignUrl(tournamentId, shiftGroup, shiftTime, volunteerId), {
+      station,
+    })
     await fetchShifts(tournamentId)
   }
 
@@ -94,10 +121,7 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     shiftTime: string | null,
     volunteerId: string,
   ) {
-    const url = shiftTime
-      ? `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/${encodeURIComponent(shiftTime)}/assign/${volunteerId}`
-      : `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/assign/${volunteerId}`
-    await apiClient.delete(url)
+    await apiClient.delete(shiftAssignUrl(tournamentId, shiftGroup, shiftTime, volunteerId))
     await fetchShifts(tournamentId)
   }
 
@@ -112,10 +136,11 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     tournamentId: string,
     shiftGroup: string,
     volunteersPerShift: number,
+    stationCount: number | null = null,
   ) {
     await apiClient.post(
       `/tournaments/${tournamentId}/volunteers/shifts/${encodeURIComponent(shiftGroup)}/auto-assign`,
-      { volunteersPerShift },
+      { volunteersPerShift, stationCount },
     )
     await fetchShifts(tournamentId)
   }
@@ -139,6 +164,7 @@ export const useVolunteerStore = defineStore('volunteer', () => {
     fetchShifts,
     fetchAvailableVolunteers,
     assignVolunteer,
+    setVolunteerStation,
     unassignVolunteer,
     clearShiftGroupAssignments,
     autoAssignShiftGroup,

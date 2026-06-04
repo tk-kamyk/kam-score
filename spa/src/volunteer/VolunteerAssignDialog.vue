@@ -4,7 +4,15 @@ import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import LoadingBar from '@/components/LoadingBar.vue'
 import { getErrorMessage } from '@/api/errors'
+import { STATION_COLORS, stationColor } from '@/volunteer/stations'
 import type { VolunteerAvailabilityDto } from '@/volunteer/types'
+
+// Dropdown options: "No station" plus one per palette colour. `title` is the full accessible
+// label in the menu; the compact closed-select label is derived inline (value + 1, or "—").
+const stationItems = [
+  { value: null as number | null, title: 'No station' },
+  ...STATION_COLORS.map((_, i) => ({ value: i as number | null, title: `Station ${i + 1}` })),
+]
 
 const props = defineProps<{
   tournamentId: string
@@ -79,6 +87,22 @@ async function handleUnassign(volunteerId: string) {
     showError(getErrorMessage(error, 'Failed to remove volunteer'))
   }
 }
+
+async function handleSetStation(volunteerId: string, station: number | null) {
+  try {
+    await volunteerStore.setVolunteerStation(
+      props.tournamentId,
+      props.shiftGroup,
+      props.shiftTime,
+      volunteerId,
+      station,
+    )
+    await loadVolunteers()
+    dirty.value = true
+  } catch (error) {
+    showError(getErrorMessage(error, 'Failed to set station'))
+  }
+}
 </script>
 
 <template>
@@ -138,6 +162,46 @@ async function handleUnassign(volunteerId: string) {
                 <v-chip size="x-small" variant="tonal" color="info">
                   {{ vol.shiftCount }} {{ vol.shiftCount === 1 ? 'shift' : 'shifts' }}
                 </v-chip>
+                <v-select
+                  v-if="vol.assigned"
+                  :model-value="vol.station ?? null"
+                  :items="stationItems"
+                  item-title="title"
+                  item-value="value"
+                  density="compact"
+                  variant="outlined"
+                  hide-details
+                  class="station-select"
+                  :aria-label="'Station for ' + vol.name"
+                  @update:model-value="(val) => handleSetStation(vol.volunteerId, val)"
+                >
+                  <template #selection="{ item }">
+                    <span class="d-flex align-center ga-1">
+                      <v-icon
+                        v-if="item.value != null"
+                        icon="mdi-circle"
+                        :color="stationColor(item.value)"
+                        size="small"
+                        aria-hidden="true"
+                      />
+                      <span class="text-caption">{{
+                        item.value == null ? '—' : item.value + 1
+                      }}</span>
+                    </span>
+                  </template>
+                  <template #item="{ item, props: itemProps }">
+                    <v-list-item v-bind="itemProps">
+                      <template #prepend>
+                        <v-icon
+                          :icon="item.value == null ? 'mdi-circle-off-outline' : 'mdi-circle'"
+                          :color="stationColor(item.value)"
+                          size="small"
+                          aria-hidden="true"
+                        />
+                      </template>
+                    </v-list-item>
+                  </template>
+                </v-select>
               </div>
             </template>
           </v-list-item>
@@ -161,5 +225,10 @@ async function handleUnassign(volunteerId: string) {
 <style scoped>
 .unavailable-row {
   opacity: 0.5;
+}
+
+.station-select {
+  width: 96px;
+  min-width: 96px;
 }
 </style>

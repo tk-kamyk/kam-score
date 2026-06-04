@@ -29,6 +29,7 @@ KamScore ubiquitous language. Read this when terminology in code, docs, or chat 
 | **Volunteer** | A person who staffs a shift (not a player). Tracked per-tournament. |
 | **Shift** | A specific volunteer slot at a tournament — has a group, time, and optional assigned volunteer. |
 | **Shift group** | A grouping of volunteer shifts (e.g. by role: scorekeepers, court manager, registration). |
+| **Station** | A colour palette index (0-based, `null` = none) on a volunteer's shift assignment — an opaque proxy for the physical post they're sent to. Per-volunteer, per-shift; the colour→post legend lives outside the system. Not part of assignment identity. |
 | **Owner** | The tournament organiser who created it. Has a JWT and full CRUD on their tournaments. |
 | **Participant** | An anonymous user holding a tournament code; can record game results, nothing else. |
 

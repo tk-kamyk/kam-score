@@ -4,6 +4,7 @@ import { useVolunteerStore } from '@/volunteer/store'
 import { useSnackbar } from '@/composables/useSnackbar'
 import VolunteerAssignDialog from '@/volunteer/VolunteerAssignDialog.vue'
 import VolunteerAutoAssignDialog from '@/volunteer/VolunteerAutoAssignDialog.vue'
+import VolunteerSlotChips from '@/volunteer/VolunteerSlotChips.vue'
 import ConfirmDeleteDialog from '@/components/ConfirmDeleteDialog.vue'
 import LoadingBar from '@/components/LoadingBar.vue'
 import { getErrorMessage } from '@/api/errors'
@@ -59,11 +60,19 @@ async function handleUnassign(
   }
 }
 
-async function handleAutoAssign(volunteersPerShift: number) {
+async function handleAutoAssign(payload: {
+  volunteersPerShift: number
+  stationCount: number | null
+}) {
   const target = autoAssignTarget.value
   if (!target) return
   try {
-    await volunteerStore.autoAssignShiftGroup(props.tournamentId, target, volunteersPerShift)
+    await volunteerStore.autoAssignShiftGroup(
+      props.tournamentId,
+      target,
+      payload.volunteersPerShift,
+      payload.stationCount,
+    )
     showSuccess(`Auto-assigned volunteers to ${target}`)
     autoAssignTarget.value = null
   } catch (error) {
@@ -132,32 +141,10 @@ async function handleClearConfirm() {
                 {{ shift.shiftTime ?? '' }}
               </td>
               <td>
-                <div class="d-flex flex-wrap ga-1">
-                  <v-chip
-                    v-for="vol in shift.volunteers"
-                    :key="vol.volunteerId"
-                    size="small"
-                    :color="vol.available ? 'primary' : 'warning'"
-                    :variant="vol.available ? 'tonal' : 'outlined'"
-                    closable
-                    @click:close="handleUnassign(group.name, shift.shiftTime, vol.volunteerId)"
-                  >
-                    {{ vol.name }}
-                    <v-icon
-                      v-if="!vol.available"
-                      end
-                      icon="mdi-alert"
-                      size="x-small"
-                      aria-hidden="true"
-                    />
-                  </v-chip>
-                  <span
-                    v-if="shift.volunteers.length === 0"
-                    class="text-medium-emphasis text-body-2"
-                  >
-                    No volunteers assigned
-                  </span>
-                </div>
+                <VolunteerSlotChips
+                  :volunteers="shift.volunteers"
+                  @unassign="(id) => handleUnassign(group.name, shift.shiftTime, id)"
+                />
               </td>
               <td class="text-right actions-col">
                 <v-btn
